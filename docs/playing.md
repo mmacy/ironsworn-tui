@@ -200,7 +200,11 @@ The rulebook lets you make End the Fight after any strong hit meant as a decisiv
 
 A *bond* is a close tie to a person or community (rulebook page 36). When you Forge a Bond, the app marks one tick on your bonds track. Some moves add +1 when you share a bond with someone. The app can't tell whether you do, so add the +1 yourself with `+` before you roll. When your character retires, Write Your Epilogue rolls against your bonds track.
 
-The rulebook lets you start with up to three bonds. The app starts with none. Add them with `/adjust`.
+The rulebook lets you start with up to three background bonds. Name them with `--bond` when you create your character, and the app marks a tick for each. To add a bond later, use `/adjust bonds`.
+
+### Aid Your Ally
+
+Aid Your Ally is Secure an Advantage made in direct support of an ally (rulebook page 76). On a hit, your ally takes the move's benefits instead of you. In a fight, a strong hit gives you and your ally initiative. The app doesn't track your ally, so it rolls the move like Secure an Advantage and shows your ally's benefits as a note. Pick it from the full move list (`/moves`). The decision model never suggests it. Your Secure an Advantage abilities apply too, and their adds help your roll, but the rulebook gives their benefits on a hit to your ally, so the app shows those as a note. Their costs stay with you. Loyalist's first ability adds +1 and gives you +1 momentum on a hit.
 
 ## Experience
 
@@ -234,9 +238,9 @@ On an Endure Harm miss with 0 health, the app asks you to mark wounded or maimed
 
 The rules resolve these moves before anything else happens, so the app blocks other moves until you make them.
 
-### When Pay the Price means harm
+### When the fiction means harm
 
-The app has no way to start Endure Harm or Endure Stress from what you type. If Pay the Price means your character is hurt, the app can't roll Endure Harm for you. Take the loss with `/adjust health` instead. That skips the Endure Harm roll and its chance to shake off the harm. The same goes for stress and spirit.
+Some harm doesn't come from a move result the app can read. Pay the Price may decide your character is hurt, or a foe may strike while you act. The app can't judge the fiction, so you tell it: `/endure harm 2` owes Endure Harm for 2 harm, and `/endure stress 1` owes Endure Stress. You then roll the move as usual, with its chance to shake off the harm.
 
 ## Oracles
 
@@ -292,7 +296,7 @@ The app can't tell when your companion is hurt in the fiction. When it is, use `
 
 `/asset show` lists every ability's full text. A few abilities don't change a roll, so the app doesn't apply them on one:
 
-- Abilities that only help an ally, like Loyalist's. The app is for solo play, and it leaves out Aid Your Ally.
+- Abilities that only help an ally's own moves, like Loyalist's second and third. The app tracks only your character.
 - Abilities that change the story but have nothing to roll, like Raven's third or Communion's second.
 - Abilities that change something once, when you mark them, like Shadow-kin's stat change. The app applies the change at that point.
 - A few abilities that you apply yourself with `/adjust`. Fated's second ability is one. The app logs a reminder when it applies.
@@ -302,7 +306,7 @@ The app can't tell when your companion is hurt in the fiction. When it is, use `
 The app doesn't yet handle a few rules. For each one, apply the effect yourself, usually with `/adjust`:
 
 - **Sojourn's extra choice for a bond:** If you share a bond with the community, Sojourn lets you choose one more recovery option. The app doesn't offer it. Apply the extra option with `/adjust`.
-- **Draw the Circle's "Bare yourself":** This boast gives your foe +1 harm. The app logs it as a note but doesn't apply it. When the foe hurts you, take the extra point with `/adjust health -1`.
+- **Draw the Circle's "Bare yourself":** This boast gives your foe +1 harm. The app logs it as a note but doesn't apply it. When the foe hurts you, add 1 to the harm you type in `/endure harm`.
 - **Draw the Circle's boasts:** The app offers up to two boasts on a strong hit, as its rules data does. The rulebook allows up to three.
 - **A roll card is lost on restart:** If you close the app before you apply a roll card, the roll is lost. The app saves owed follow-ups, but not the card. Finish each card before you quit.
 

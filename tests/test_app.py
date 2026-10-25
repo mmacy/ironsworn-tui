@@ -305,6 +305,69 @@ def test_end_the_fight_from_the_offer(tmp_path: Path):
     assert turn.campaign.foes == []
 
 
+def test_escape_declines_the_end_the_fight_offer(tmp_path: Path):
+    turn, dice, _ = engine(tmp_path)
+    dice.load(6, 1, 1)
+    turn.make_move(
+        "enter_the_fray", stat="heart", inputs=MoveInputs(foes=(("Raider", Rank.DANGEROUS),))
+    )
+    turn.resolve()
+    dice.load(6, 1, 1)
+    turn.make_move("attack", stat="iron")
+    turn.resolve()
+
+    async def play() -> None:
+        app = IronswornApp(turn)
+        async with app.run_test(size=(120, 40)) as pilot:
+            await pilot.pause()
+            await pilot.press("escape")
+            await pilot.press(*"/scene A muddy field", "enter")
+            await pilot.pause()
+            assert app.bar_state.mode == "idle"
+
+    asyncio.run(play())
+    assert turn.campaign.end_fight_offered is False
+
+
+def test_endure_from_the_move_list_shows_the_owed_move(tmp_path: Path):
+    turn, _, _ = engine(tmp_path)
+
+    async def play() -> None:
+        app = IronswornApp(turn)
+        async with app.run_test(size=(120, 40)) as pilot:
+            await pilot.press(*"/moves", "enter")
+            await pilot.pause()
+            assert app.bar_state.mode == "suggest"
+            app.input.focus()
+            await pilot.press(*"/endure harm 2", "enter")
+            await pilot.pause()
+            assert app.bar_state.mode == "follow_up"
+
+    asyncio.run(play())
+
+
+def test_enter_with_nothing_picked_names_the_choice(tmp_path: Path):
+    turn, dice, _ = engine(tmp_path)
+    dice.load(6, 1, 1)
+    card = turn.make_move("secure_an_advantage", stat="edge")
+    assert card is not None
+    notes: list[str] = []
+
+    def note(text: str) -> None:
+        notes.append(text)
+
+    async def play() -> None:
+        app = IronswornApp(turn)
+        async with app.run_test(size=(120, 40)) as pilot:
+            app.note = note
+            await pilot.pause()
+            await pilot.press("enter")
+            await pilot.pause()
+
+    asyncio.run(play())
+    assert notes == ["Choose one"]
+
+
 def test_a_failed_request_shows_the_full_list_and_a_note(tmp_path: Path):
     turn, _, _ = engine(tmp_path)
 

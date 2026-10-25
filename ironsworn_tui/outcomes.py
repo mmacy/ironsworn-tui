@@ -387,6 +387,17 @@ def _secure_an_advantage(hit: Hit, details: MoveDetails) -> tuple[Effect, ...]:
             return (PAY_THE_PRICE,)
 
 
+def _aid_your_ally(hit: Hit, details: MoveDetails) -> tuple[Effect, ...]:
+    # The ally takes Secure an Advantage's benefits, and the app doesn't track the ally.
+    match hit:
+        case Hit.STRONG:
+            return (Note("Your ally takes +1 on their next move, or +2 momentum."),)
+        case Hit.WEAK:
+            return (Note("Your ally takes +1 momentum."),)
+        case Hit.MISS:
+            return (PAY_THE_PRICE,)
+
+
 def _gather_information(hit: Hit, details: MoveDetails) -> tuple[Effect, ...]:
     return {Hit.STRONG: (Momentum(2),), Hit.WEAK: (Momentum(1),), Hit.MISS: (PAY_THE_PRICE,)}[hit]
 
@@ -1100,6 +1111,7 @@ ASSET_MOVE_OUTCOMES: dict[str, OutcomeRule] = {
 OUTCOMES: dict[str, OutcomeRule] = {
     "face_danger": _face_danger,
     "secure_an_advantage": _secure_an_advantage,
+    "aid_your_ally": _aid_your_ally,
     "gather_information": _gather_information,
     "heal": _heal,
     "resupply": _resupply,

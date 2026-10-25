@@ -31,13 +31,13 @@ ironsworn-tui <command> [options]
 | Status | Meaning |
 |---|---|
 | `0` | The command succeeded. |
-| `2` | The arguments didn't parse, an option wasn't valid, or a campaign file was missing, already existed, or couldn't be loaded. The command prints `Error:` and the reason, or argparse's usage message, to standard error. |
+| `2` | The arguments didn't parse, an option wasn't valid, the settings file couldn't be read or wasn't valid, or a campaign file was missing, already existed, or couldn't be loaded. The command prints `Error:` and the reason, or argparse's usage message, to standard error. |
 | `3` | `suggest` only: jevtester couldn't answer, or the model gave no answer. |
 
 ### ironsworn-tui new
 
 ```text
-ironsworn-tui new <name> --description <text> --stats <stat>=<n>,... --assets <asset>[:<ability>],... --vow <text> [--rank <rank>] [--harm 1|2]
+ironsworn-tui new <name> --description <text> --stats <stat>=<n>,... --assets <asset>[:<ability>],... --vow <text> [--bond <text>]... [--rank <rank>] [--harm 1|2]
 ```
 
 Creates a character and a campaign with one background vow. Saves it as `<name>.json` in the campaigns folder, and prints the file's path to standard output. The character starts with full health, spirit, and supply, +2 momentum, and 0 experience.
@@ -49,6 +49,7 @@ Creates a character and a campaign with one background vow. Saves it as `<name>.
 | `--stats` | Yes | | All five stats (`edge`, `heart`, `iron`, `shadow`, `wits`), given the values 3, 2, 2, 1, and 1 in any order. Write each as `<stat>=<n>` and separate them with commas and no spaces. |
 | `--assets` | Yes | | Exactly three asset ids, separated by commas with no spaces. Ids are lowercase, such as `archer` or `cave_lion`. An asset that starts with no ability marked, such as a companion, needs the ability to mark after a colon, from 1 to 3, such as `hawk:2`. An asset that starts with an ability marked takes no colon. `/asset list` in the play screen lists the ids. |
 | `--vow` | Yes | | The background vow's text. |
+| `--bond` | No | None | A person or community the character shares a background bond with. Repeat it for up to three bonds. Each marks one tick on the bonds track and logs `Bond: <text>`. |
 | `--rank` | No | `epic` | The background vow's rank: `troublesome`, `dangerous`, `formidable`, `extreme`, or `epic`. Case doesn't matter. |
 | `--harm` | No | `2` | The harm the character deals: `2` with a deadly weapon, `1` without. |
 
@@ -61,6 +62,8 @@ Errors, each with exit status 2. The command writes nothing when one occurs.
 | `Error: unknown stat '<word>'` | A name in `--stats` isn't one of the five stats. A space after a comma causes this. |
 | `Error: invalid literal for int() with base 10: '<value>'` | A stat value isn't a whole number. |
 | `Error: pick 3 assets, got <n>` | `--assets` doesn't list three assets. |
+| `Error: pick 3 different assets, got <ids>` | `--assets` lists the same asset twice. |
+| `Error: a character starts with up to 3 bonds` | `--bond` is given more than three times. |
 | `Error: unknown asset id: <id>` | An asset id doesn't exist. Ids are lowercase, and a space after a comma causes this. |
 | `Error: <Asset> starts with no ability marked; pick one from 1 to 3` | A companion or similar asset has no `:<ability>`. |
 | `Error: <Asset> already starts with an ability marked` | An asset that starts with an ability marked has `:<ability>`. |
@@ -283,7 +286,7 @@ The bar shows the owed move and, for an endure move, the amount.
 |---|---|
 | `f` | Make End the Fight. The bar shows its roll card. |
 | `a` | Open the abilities picker for End the Fight. Shown only when an ability applies. |
-| Escape | Hide the offer and return to the input line. The offer comes back after a `/` command, and it ends when you make your next move. |
+| Escape | Decline the offer and return to the input line. The fight goes on. |
 
 ### Pickers
 
@@ -333,6 +336,7 @@ Names you type:
 | [`/target`](#target) | Picks the foe an attack targets. |
 | [`/tide`](#tide) | Arms or disarms Turn the Tide. |
 | [`/adjust`](#adjust) | Changes a value by hand. |
+| [`/endure`](#endure) | Owes Endure Harm or Endure Stress. |
 | [`/asset`](#asset) | Lists, shows, buys, and changes assets. |
 | [`/effects`](#effects) | Lists or ends lasting effects. |
 | [`/moves`](#moves) | Shows every move in the context. |
@@ -517,6 +521,25 @@ Adjust: Health -2, now 3
 Adjust: Find my brother is now 12 ticks
 ```
 
+### /endure
+
+```text
+/endure harm|stress <n>
+```
+
+Owes Endure Harm (`harm`) or Endure Stress (`stress`) for `<n>` harm or stress, which must be at least 1. Use it when the fiction hurts your character and no move result owed the roll, such as a foe's attack or Pay the Price. The move joins the end of the follow-up list, and the suggestion bar asks you to roll it. Logs `<name> faces <n> harm` or `<name> faces <n> stress`, and saves.
+
+| Error | Cause |
+|---|---|
+| `usage: /endure harm\|stress <n>` | The form isn't `harm` or `stress` followed by an amount. |
+| `'<text>' isn't a number` | The amount isn't a whole number. |
+| `the harm or stress must be at least 1` | The amount is 0 or less. |
+
+```text
+/endure harm 2
+Kira faces 2 harm
+```
+
 ### /asset
 
 ```text
@@ -615,7 +638,7 @@ Cave Lion: 1, health 4/4
 /moves
 ```
 
-Shows every move in the context, plus moves your assets add, in the suggestion bar in [suggest mode](#suggest-mode), with none selected. Changes nothing until you roll. Any text after `/moves` is ignored.
+Shows every move in the context, then Aid Your Ally and the moves your assets add, in the suggestion bar in [suggest mode](#suggest-mode), with none selected. Changes nothing until you roll. Any text after `/moves` is ignored.
 
 ## Settings
 
@@ -627,7 +650,7 @@ The app reads `ironsworn-tui.toml` in the repository root, beside the `ironsworn
 | `target` | `decision-1@foundry` | The jevtester target that answers the decision questions in `play`, and in `suggest` without `--target`. The app also uses it to look up the confidence thresholds in `suites/policies/moves.yaml`. |
 | `campaigns_dir` | `campaigns` | The folder for campaign files. |
 
-A missing key takes its default. An unknown key, a value of the wrong type, or a `jevtester_config` key stops the command with an error. jevtester reads its settings, including how it signs in to each target, from `jevtester.toml` beside `ironsworn-tui.toml`.
+A missing key takes its default. A missing or unreadable file, invalid TOML, an unknown key, a value of the wrong type, or a `jevtester_config` key stops the command with `Error:` and the reason, and exit status 2. jevtester reads its settings, including how it signs in to each target, from `jevtester.toml` beside `ironsworn-tui.toml`.
 
 ```toml
 jevtester_project = "~/repos/jevtester"

@@ -63,6 +63,8 @@ from ironsworn_tui.cases import CaseSink, build_case, case_id, play_suite_name
 from ironsworn_tui.criteria import CriteriaStyle
 from ironsworn_tui.decide import DecideError, Decision, JsonObject, TurnState, build_request
 from ironsworn_tui.moves import (
+    AID_YOUR_ALLY,
+    AIDED_MOVE,
     ATTACK,
     CANNOT_TELL,
     NO_MOVE,
@@ -425,9 +427,11 @@ class TurnEngine:
         return " ".join(parts)
 
     def full_list(self) -> Suggestion:
-        """Return a suggestion that offers every move in the context, with none selected."""
+        """Return a suggestion that offers every move in the context, then Aid Your Ally and
+        the asset moves, with none selected."""
         result = suggest(None, self.campaign.context, self.thresholds)
-        return dataclasses.replace(result, options=result.options + self.asset_options())
+        extra = (AID_YOUR_ALLY, *self.asset_options())
+        return dataclasses.replace(result, options=result.options + extra)
 
     def inputs_needed(self, option: str) -> tuple[str, ...]:
         """Return the fields the player must fill in before a move, such as `vow` and `rank`.
@@ -535,7 +539,8 @@ class TurnEngine:
         boost, ref = available.boost, available.ref
         campaign = self.campaign
         label = available.label
-        if boost.moves is not None and move not in boost.moves:
+        rolls_as = {move, AIDED_MOVE} if move == AID_YOUR_ALLY else {move}
+        if boost.moves is not None and not rolls_as & set(boost.moves):
             names = ", ".join(self.move_name(m) for m in boost.moves)
             return f"{label} is for {names}"
         if move in PROGRESS_MOVES and _only_changes_the_action_roll(boost):
@@ -757,7 +762,7 @@ class TurnEngine:
             chosen = self._check_boosts(option, boosts)
             self._answering = None
             return self._end_the_fight(chosen)
-        if option not in context_options(campaign.context) and option not in self.asset_options():
+        if option not in (*context_options(campaign.context), AID_YOUR_ALLY, *self.asset_options()):
             name = "Attack" if option == ATTACK else self.move_name(option)
             raise TurnError(f"{name} isn't a move in the {campaign.context} context")
         if option == "forsake_your_vow":
@@ -916,7 +921,8 @@ class TurnEngine:
         if move == "heal" and inputs.heal_self:
             lower: Stat = "iron" if character.stats.iron < character.stats.wits else "wits"
             return lower, character.stats.value(lower)
-        conditions = self.data.find_move(move).trigger.conditions
+        rolls_as = AIDED_MOVE if move == AID_YOUR_ALLY else move
+        conditions = self.data.find_move(rolls_as).trigger.conditions
         stats: list[Stat] = []
         for condition in conditions:
             if condition.method != "player_choice":
@@ -985,6 +991,9 @@ class TurnEngine:
                 Hit.WEAK: outcomes.weak_hit,
                 Hit.MISS: outcomes.miss,
             }[hit].text
+        elif move == AID_YOUR_ALLY:
+            aided = self.data.move(AIDED_MOVE).outcomes
+            text = move_data.text if hit is not Hit.MISS or aided is None else aided.miss.text
         effects = adjust_outcome(outcome(move, hit, details), boosts, hit)
         if move == "heal" and pending.companion is not None and hit is not Hit.MISS:
             effects = (CompanionHealth(2, every=False), *effects)
@@ -1000,7 +1009,8 @@ class TurnEngine:
             late=pending.late,
         )
         for boost in boosts:
-            effects += boost_effects(boost, facts)
+            for_ally = move == AID_YOUR_ALLY and boost.moves is not None and move not in boost.moves
+            effects += boost_effects(boost, facts, for_ally=for_ally)
         effects = self._allowed(effects)
         endurance = pending.endurance
         if endurance is not None and hit is Hit.MISS and endurance.meter_after == 0:
@@ -1736,6 +1746,25 @@ class TurnEngine:
                 ". Mark corrupted (/adjust corrupted mark) or Face Desolation, ignoring momentum."
             )
         self.campaign.add_log("outcome", line)
+        self.save()
+
+    def endure(self, move: Literal["endure_harm", "endure_stress"], amount: int) -> None:
+        """Owe Endure Harm or Endure Stress, for harm or stress the player applies from the
+        fiction, such as Pay the Price's or a foe's attack.
+
+        Raises:
+            TurnError: If the amount isn't at least 1.
+        """
+        if amount < 1:
+            raise TurnError("the harm or stress must be at least 1")
+        self.campaign.follow_ups.append(OwedMove(move=move, amount=amount))
+        what = "harm" if move == "endure_harm" else "stress"
+        self.campaign.add_log("command", f"{self.campaign.character.name} faces {amount} {what}")
+        self.save()
+
+    def decline_end_fight(self) -> None:
+        """Pass on the End the Fight offer, so the fight goes on."""
+        self.campaign.end_fight_offered = False
         self.save()
 
     def harm_companion(self, companion: str, amount: int) -> None:
