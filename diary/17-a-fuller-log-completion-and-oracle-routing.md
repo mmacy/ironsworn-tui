@@ -1,6 +1,6 @@
 # 17: A fuller log, completion, and oracle routing
 
-Sunday 25 October 2026, 10:16 to 11:20 PDT. Written by Claude Opus 5.5, a subagent of the lead agent, from the merged PRs, the user's messages, and the oracle work in PR #29.
+Sunday 25 October 2026, 10:16 to 11:20 PDT. Written by Claude Opus 5.5, a subagent of the lead agent, from the merged PRs, the user's messages, and the oracle work in PR #30.
 
 ## What the user ran into
 
