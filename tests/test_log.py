@@ -252,3 +252,37 @@ def test_the_log_widget_shows_the_whole_turn(tmp_path: Path):
             assert "Next: imagine what you learn" in flat
 
     asyncio.run(play())
+
+
+def test_a_card_with_choices_leaves_out_the_matching_list(tmp_path: Path):
+    turn, dice, _ = engine(tmp_path)
+    # Edge 2 + 3 = 5 against 4 and 6: a weak hit, with four costs to choose from.
+    dice.load(3, 4, 6)
+    card = turn.make_move("face_danger", stat="edge")
+    assert card is not None
+    assert card.outcome_text == (
+        "On a weak hit, you succeed, but face a troublesome cost. Choose one."
+    )
+    before = len(turn.campaign.log)
+    turn.resolve([[3]])
+    assert entries(turn, before)[0] == ("outcome", card.outcome_text)
+
+
+def test_a_list_with_text_after_it_keeps_that_text(tmp_path: Path):
+    turn, dice, _ = engine(tmp_path)
+    dice.load(6, 1, 1)
+    card = turn.make_move("draw_the_circle", inputs=MoveInputs(foes=(("Rival", Rank.DANGEROUS),)))
+    assert card is not None
+    assert "*" not in card.outcome_text
+    assert "Grant first strike" not in card.outcome_text
+    assert card.outcome_text.startswith("On a strong hit, take +1 momentum.")
+    assert "\n\nThen, make moves to resolve the fight." in card.outcome_text
+
+
+def test_a_list_is_left_out_when_a_condition_blocks_some_choices(tmp_path: Path):
+    turn, dice, _ = engine(tmp_path)
+    turn.campaign.character.mark_debility("wounded")
+    dice.load(6, 1, 1)
+    card = turn.make_move("make_camp")
+    assert card is not None
+    assert "Recuperate" not in card.outcome_text

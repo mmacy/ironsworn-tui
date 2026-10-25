@@ -243,7 +243,7 @@ The bar takes keys only while it has focus. It shows the keys it takes on its la
 |---|---|---|
 | Idle | Nothing is waiting. | The list of `/` commands. Focus is on the input line. |
 | Thinking | The decision model is answering a message or an oracle question. | `Thinking…`. The bar takes no keys. |
-| Suggest | The model answered, or you ran `/moves`. | Moves to choose from, the stat, the add, and turned-on abilities. |
+| Suggest | The model answered, or you ran `/moves`. | Moves to choose from, what the selected move is for, the stat, the add, and turned-on abilities. |
 | Oracle | You typed `/oracle` without a table. | The question, and every table and likelihood to roll. |
 | Card | A move was rolled. | The roll card: the result, its outcome, and any choices. |
 | Follow-up | A follow-up move is owed. | The owed move. |
@@ -260,7 +260,7 @@ Which moves appear depends on the model's confidence in its top move:
 
 The `act` and `confirm` thresholds in `suites/policies/moves.yaml` set the confidence bands.
 
-Each move shows its key and, when the model answered, its probability. The selected move is highlighted. Below the moves, `Stat <stat>` shows the stat the roll will use, for a move where you choose one. The model's suggested stat is set when you select the move. Until a stat the move takes is set, the bar shows its keys instead, such as `Stat: press h heart, s shadow, or w wits`, and Enter asks for one. Attack shows the move it makes, such as `Attack (Strike)`: Strike with initiative, Clash without. `Add +<n>` shows your add. The hints name the keys for the moves shown, such as `1-9 A-F or arrows move`.
+Each move shows its key and, when the model answered, its probability. The selected move is highlighted. Below the moves, a dim line says what the selected move is for, from the rulebook's trigger text. It's the same sentence the log shows the first time you make the move. It takes one line, and ends with `…` when the bar is too narrow for all of it. Below that, `Stat <stat>` shows the stat the roll will use, for a move where you choose one. The model's suggested stat is set when you select the move. Until a stat the move takes is set, the bar shows its keys instead, such as `Stat: press h heart, s shadow, or w wits`, and Enter asks for one. Attack shows the move it makes, such as `Attack (Strike)`: Strike with initiative, Clash without. `Add +<n>` shows your add. The hints name the keys for the moves shown, such as `1-9 A-F or arrows move`.
 
 | Key | Action |
 |---|---|
@@ -293,7 +293,7 @@ After the roll or Escape, the bar returns to the move suggestion it showed befor
 
 #### Card mode
 
-The card shows `<Move> +<stat>: <result>`, the abilities used, and the outcome text. When the outcome asks you to choose, the card lists numbered options under a prompt such as `Choose one:` or `Choose up to 2:`.
+The card shows `<Move> +<stat>: <result>`, the abilities used, and the outcome text. When the outcome asks you to choose, the card lists numbered options under a prompt such as `Choose one:` or `Choose up to 2:`. The outcome text then leaves out the rulebook's bulleted list of the same options, on the card and in the log, and keeps the rest of the text.
 
 | Key | Action |
 |---|---|

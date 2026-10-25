@@ -13,6 +13,7 @@ from ironsworn_tui.rules.datasworn import (
     YamlMap,
     datasworn,
     plain_text,
+    without_lists,
 )
 from ironsworn_tui.rules.errors import UnknownIdError
 
@@ -160,3 +161,19 @@ def test_plain_text_drops_links_and_bold_markers():
 def test_plain_text_drops_table_templates():
     text = "Roll on the following table.\n\n{{table>move.oracle_rollable:classic/suffer/x.x}}"
     assert plain_text(text) == "Roll on the following table."
+
+
+def test_without_lists_drops_a_list_of_a_matching_size():
+    text = "Choose one.\n\n  * Take +1 spirit.\n  * Take +2 momentum.\n\nThen, carry on."
+    assert without_lists(text, {2}) == "Choose one.\n\nThen, carry on."
+    assert without_lists(text, {3}) == text
+    assert without_lists(text, set()) == text
+
+
+def test_without_lists_counts_a_list_split_by_headings_as_one():
+    text = (
+        "Choose one from the categories below.\n\n__Clear__\n\n  * Mend: Clear wounded.\n\n"
+        "__Recover__\n\n  * Consort: Take +2 spirit.\n  * Plan: Take +2 momentum."
+    )
+    assert without_lists(text, {3}) == "Choose one from the categories below."
+    assert without_lists(text, {1}) == text

@@ -108,7 +108,7 @@ On a weak hit, you are determined but begin your quest with more questions than 
 Enter apply
 ```
 
-Your result may be different, because the dice are random. The card shows the rulebook's outcome text as the app's rules data stores it, so the underscores around "weak hit" appear on screen. The new vow already appears under "Vows" in the character panel, with ten empty boxes. Press Enter to apply the result, which saves the vow. Those boxes are the vow's progress track. You fill them as you get closer to fulfilling the vow.
+Your result may be different, because the dice are random. The card shows the rulebook's outcome text. The new vow already appears under "Vows" in the character panel, with ten empty boxes. Press Enter to apply the result, which saves the vow. Those boxes are the vow's progress track. You fill them as you get closer to fulfilling the vow.
 
 ## Make a move
 
@@ -122,15 +122,17 @@ The suggestion bar shows "Thinking…" while the decision model reads your actio
 
 ```text
 1 Face Danger 0.94
+Face Danger is the move for when you attempt something risky or react to an imminent threat.
 Stat edge  Add +0
 Enter roll · 1 or arrows move · e h i s w stat · + - add · n no move · Esc back
 ```
 
-![The suggestion bar after Blarg's action. The log shows the typed line "I creep across the frozen river toward the raider camp". The bar shows "1 Face Danger 0.94" highlighted, "Stat edge  Add +0", and the key hints.](images/suggestion.svg)
+![The suggestion bar after Blarg's action. The log shows the typed line "I creep across the frozen river toward the raider camp". The bar shows "1 Face Danger 0.94" highlighted, a dim line that says what Face Danger is for, "Stat edge  Add +0", and the key hints.](images/suggestion.svg)
 
 Read the bar from top to bottom:
 
 - The first line lists the suggested moves. The number before each move is the key that selects it. The number after it is how sure the model is, from 0 to 1. The selected move is highlighted.
+- The dim line says what the selected move is for, so you can choose between suggestions. On a narrow screen, it ends with "…".
 - `Stat edge` is the stat the roll will use. Creeping across ice takes agility, so the model picked edge.
 - `Add +0` is any bonus you add to the roll.
 - The last line lists the keys you can press.
@@ -168,6 +170,8 @@ On a strong hit, the card says what you gain, such as "Take +1 momentum". Press 
 On a weak hit, the card often asks you to choose a cost:
 
 ```text
+Face Danger +edge: weak hit
+On a weak hit, you succeed, but face a troublesome cost. Choose one.
 Choose one:
   1 Delayed, lose advantage, or new danger
   2 Tired or hurt
@@ -175,6 +179,8 @@ Choose one:
   4 Sacrifice resources
 1-4 choose · Enter apply
 ```
+
+The rulebook lists the costs too. The card shows them only once, as the numbered options.
 
 ![A roll card for Face Danger with edge, a weak hit. The log shows "5 vs 4, 6, weak hit". The card shows the outcome text and the prompt "Choose one:" with four costs: delayed, tired or hurt, dispirited or afraid, and sacrifice resources.](images/weak-hit.svg)
 
