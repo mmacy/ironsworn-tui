@@ -2,6 +2,8 @@
 
 ironsworn-tui is a terminal app for playing *Ironsworn*, a solo tabletop roleplaying game. You type what your character does, and a decision model suggests which move that action triggers. You confirm the move with a key, and the app rolls the dice, shows the result, and updates your character.
 
+![The play screen. The character panel on the left shows Asha's stats, meters, assets, and vows. The log on the right shows her latest action, and the suggestion bar below it suggests Face Danger with edge.](docs/images/suggestion.svg)
+
 ## What you need
 
 - Python 3.14.
@@ -36,6 +38,8 @@ When the model answers a message and you make a move or press `n`, the app saves
 
 ## Documentation
 
+The documentation is also published as a site, built with [Zensical](https://zensical.org/) from the `docs/` folder.
+
 - Tutorial: [Getting started](docs/getting-started.md) walks you through a first character and a first session.
 - How-to guides: [How-to guides](docs/how-to.md) cover tasks like choosing a model target, playing without the model, fights, journeys, buying assets, and fixing mistakes.
 - Reference: [Reference](docs/reference.md) lists every command, flag, key, `/` command, and setting.
@@ -53,6 +57,8 @@ uv run ruff check
 uv run pyright
 uv run pytest
 ```
+
+To build the documentation site, run `uv run zensical build`, which writes the site to `site/`. Run `uv run zensical serve` to preview it while you edit. To redraw the screenshots in `docs/images/`, run `uv run python -m scripts.screenshots`.
 
 The developer documentation is in three files:
 

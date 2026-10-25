@@ -86,6 +86,8 @@ The app prints `Starting jevtester for decision-1@foundry…`, then opens the ga
 - The suggestion bar, below them, shows the moves you can make and the result of each roll.
 - The input line, at the bottom, says "Action or /command". You type here.
 
+![The play screen for a new campaign. The character panel on the left shows Asha, a wandering hunter, with her stats, health, spirit, and supply at 5, momentum +2, her three assets, and her background vow with ten empty boxes. The log on the right is empty. The suggestion bar lists the slash commands, and the input line at the bottom reads "Action or /command".](images/start.svg)
+
 Look at the character panel. Asha has health 5, spirit 5, and supply 5. These are meters, which go down as she's hurt, shaken, or runs low on gear. The panel also shows `Momentum +2 (max 10, reset 2)`. Momentum is a measure of how well things are going. Good results raise it, and bad results lower it. You can spend it later to improve a roll.
 
 ## Swear a vow
@@ -124,6 +126,8 @@ Stat edge  Add +0
 Enter roll · 1-9 or arrows move · e h i s w stat · + - add · n no move · Esc back
 ```
 
+![The suggestion bar after Asha's action. The log shows the typed line "I creep across the frozen river toward the raider camp". The bar shows "1 Face Danger 0.94" highlighted, "Stat edge  Add +0", and the key hints.](images/suggestion.svg)
+
 Read the bar from top to bottom:
 
 - The first line lists the suggested moves. The number before each move is the key that selects it. The number after it is how sure the model is, from 0 to 1. The selected move is highlighted.
@@ -132,6 +136,8 @@ Read the bar from top to bottom:
 - The last line lists the keys you can press.
 
 When the model is less sure, the bar shows two moves or the full list. If you started with `--no-model`, it always shows the full list. In either case, press the number before Face Danger to select it. In the full list, it's `1`. If the bar says `Stat not set`, press `e` to pick edge.
+
+![The full move list in the suggestion bar, as `/moves` or a low-confidence answer shows it. Moves 1 to 9 have number keys, from Face Danger to Sojourn, and the moves after them, such as Swear an Iron Vow and Enter the Fray, are reached with the arrow keys.](images/move-list.svg)
 
 Press Enter to roll.
 
@@ -170,9 +176,13 @@ Choose one:
 1-4 choose · Enter apply
 ```
 
+![A roll card for Face Danger with edge, a weak hit. The log shows "5 vs 4, 6, weak hit". The card shows the outcome text and the prompt "Choose one:" with four costs: delayed, tired or hurt, dispirited or afraid, and sacrifice resources.](images/weak-hit.svg)
+
 Press the number of the cost that fits the story, then press Enter. If the ice slowed Asha down, press `1`, then Enter. She loses 1 momentum, and the character panel shows it. Some costs, like `2` (tired or hurt), lead to another roll. When that happens, the suggestion bar shows the next roll and the keys to press.
 
 On a miss, press Enter, and the suggestion bar shows Pay the Price. This move decides what goes wrong. Press `o` to take the most obvious bad outcome, then describe it in your next action.
+
+![The suggestion bar after a miss on Face Danger. It shows "Pay the Price" and the keys "o obvious outcome", "a ask the oracle", and "t roll the table".](images/pay-the-price.svg)
 
 Whatever the result, decide what it means for Asha. The app changes the numbers, and you decide what happens in the story.
 
@@ -206,6 +216,8 @@ Oracle classic/action_and_theme/theme, 47: Freedom
 ```
 
 Read the two words together and decide what they mean. "Surrender" and "freedom" might mean a raider offers to free the brother in exchange for safe passage. Type what Asha does about it, and keep playing.
+
+![The log after marking the vow and asking the oracle. It shows "Reach a Milestone: Free my brother from the raiders is at 2/10", "Ask the Oracle (likely), 69: yes", and the oracle table results Surrender and Freedom. The vow's track in the character panel has two filled boxes.](images/oracle.svg)
 
 ## Quit and resume
 
