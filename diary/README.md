@@ -13,3 +13,4 @@
 | [09](09-asset-catalog-and-ownership.md) | The asset catalog and owning assets | 25 October 2026, 01:14 to 01:34 PDT | Claude Opus 5.5 |
 | [10](10-abilities-on-a-roll.md) | Asset abilities on a roll | 25 October 2026, 01:36 to 01:59 PDT | Claude Opus 5.5 |
 | [11](11-asset-moves-lasting-effects-and-companions.md) | Asset moves, lasting effects, and companions | 25 October 2026, 02:00 to 02:24 PDT | Claude Opus 5.5 |
+| [12](12-user-documentation.md) | The user documentation | 25 October 2026, 06:25 to 06:56 PDT | Claude Opus 5.5 |
