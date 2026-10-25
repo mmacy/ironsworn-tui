@@ -8,7 +8,8 @@ ironsworn-tui is a terminal app for playing *Ironsworn*, a solo tabletop rolepla
 
 - Python 3.14.
 - [uv](https://docs.astral.sh/uv/).
-- A checkout of jevtester at `~/repos/jevtester`. The app runs it to ask the decision model.
+- A checkout of [jevtester](https://github.com/mmacy/jevtester) at `~/repos/jevtester`. The app runs it to ask the decision model.
+- Your own decision model deployment, with its details in `jevtester.local.toml`. [How to set up the model target](docs/how-to.md#how-to-set-up-the-model-target) shows how.
 - A sign-in for the decision model. The default target, `decision-1@foundry`, uses the Azure CLI, so run `az login`. The `clef-flash@workers-ai` target uses Wrangler, so run `npx wrangler login`.
 
 If you don't have jevtester or a sign-in, you can still play. Start the game with `--no-model`, and you'll pick each move from a list yourself.

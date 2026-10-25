@@ -17,6 +17,13 @@ def test_defaults_when_the_file_is_empty(tmp_path: Path):
     assert settings.jevtester_config == tmp_path / "jevtester.toml"
 
 
+def test_a_local_jevtester_config_wins(tmp_path: Path):
+    path = tmp_path / "ironsworn-tui.toml"
+    path.write_text("")
+    (tmp_path / "jevtester.local.toml").write_text("")
+    assert load_settings(path).jevtester_config == tmp_path / "jevtester.local.toml"
+
+
 def test_values_from_the_file(tmp_path: Path):
     path = tmp_path / "ironsworn-tui.toml"
     path.write_text(

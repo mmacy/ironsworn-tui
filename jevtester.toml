@@ -1,5 +1,8 @@
 # jevtester config for ironsworn-tui. The target entries are copied from ~/repos/jevtester/jevtester.toml.
 #
+# Copy this file to jevtester.local.toml, which git ignores, and fill in your own Cloudflare account ID and Foundry
+# resource name there. The app uses jevtester.local.toml when it exists.
+#
 # Credentials never go in this file: Foundry uses the `az` sign-in, and Workers AI uses the Wrangler sign-in or
 # CLOUDFLARE_API_TOKEN.
 
@@ -12,14 +15,14 @@ repeats = 1
 suites = "suites"
 
 [cloudflare]
-account_id = "ac01e4453275b1832bbebe1c82c5b356"
+account_id = "<your Cloudflare account ID>"
 
 [targets."decision-1@foundry"]
 label = "Microsoft-Decision-1, Azure Foundry"
 provider = "systemone"
 runtime = "foundry"
 model = "decision-1"
-base_url = "https://goldbox-resource.services.ai.azure.com/providers/microsoft"
+base_url = "https://<your Foundry resource>.services.ai.azure.com/providers/microsoft"
 auth = "azure-cli"
 
 [targets."decision-1@foundry".capabilities]

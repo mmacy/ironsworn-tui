@@ -12,8 +12,17 @@ The decision model suggests which move your action triggers. The app reaches it 
 
 Before you start, you need:
 
-- jevtester checked out at `~/repos/jevtester`. If it's somewhere else, set `jevtester_project` in `ironsworn-tui.toml` to its path.
+- jevtester checked out at `~/repos/jevtester`, with `git clone https://github.com/mmacy/jevtester.git ~/repos/jevtester`. If it's somewhere else, set `jevtester_project` in `ironsworn-tui.toml` to its path.
 - The Azure CLI (`az`) for `decision-1@foundry`, or Wrangler for `clef-flash@workers-ai`.
+- Your own model deployment: an Azure AI Foundry resource with Decision-1, or a Cloudflare account with Workers AI.
+
+First, give jevtester your account details. `jevtester.toml` in the ironsworn-tui folder has placeholders, so copy it to `jevtester.local.toml`, which git ignores:
+
+```sh
+cp jevtester.toml jevtester.local.toml
+```
+
+In `jevtester.local.toml`, replace `<your Foundry resource>` in `base_url` with your Foundry resource's name, and `<your Cloudflare account ID>` with your account ID. You only need the one for your target. The app uses `jevtester.local.toml` whenever it exists.
 
 To use `decision-1@foundry`, which is the default:
 
@@ -49,7 +58,7 @@ To use `clef-flash@workers-ai`:
 To check the sign-in, run this from the ironsworn-tui folder:
 
 ```sh
-uv run --project ~/repos/jevtester jevtester --config jevtester.toml targets check
+uv run --project ~/repos/jevtester jevtester --config jevtester.local.toml targets check
 ```
 
 When you start `play`, the terminal shows "Starting jevtester for decision-1@foundry…" with your target's name. If jevtester can't start, the game still opens, and the log shows a note that begins "Playing without move suggestions:". If a single request fails, the log shows a note that begins "No suggestion:", and the bar offers the full move list.

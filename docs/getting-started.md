@@ -6,7 +6,7 @@ For the rules in depth, see [Playing Ironsworn](playing.md). The full rules are 
 
 ## Install the app
 
-You need Python 3.14, [uv](https://docs.astral.sh/uv/), and a checkout of jevtester at `~/repos/jevtester`. jevtester is the tool the app uses to ask the decision model which move you're making.
+You need Python 3.14, [uv](https://docs.astral.sh/uv/), and a checkout of [jevtester](https://github.com/mmacy/jevtester) at `~/repos/jevtester`. jevtester is the tool the app uses to ask the decision model which move you're making. The model also needs your own deployment, set up as [How to set up the model target](how-to.md#how-to-set-up-the-model-target) shows.
 
 Clone the repository:
 
