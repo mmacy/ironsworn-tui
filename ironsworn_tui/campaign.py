@@ -401,7 +401,16 @@ class SavedCard(_Model):
 
 
 type LogKind = Literal[
-    "message", "explain", "roll", "outcome", "choice", "change", "next", "note", "command"
+    "message",
+    "explain",
+    "roll",
+    "outcome",
+    "choice",
+    "change",
+    "next",
+    "note",
+    "command",
+    "player_note",
 ]
 
 

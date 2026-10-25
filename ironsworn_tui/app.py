@@ -1,21 +1,27 @@
 """The Textual app: a thin layer over the turn engine and the commands."""
 
+from collections.abc import Callable
 from dataclasses import dataclass, field
-from typing import Literal
+from typing import ClassVar, Literal
 
 from rich.markup import escape
+from rich.style import Style
+from rich.text import Text
 from textual import events, on, work
+from textual.actions import SkipAction
 from textual.app import App, ComposeResult
+from textual.binding import Binding, BindingType
 from textual.containers import Horizontal, Vertical
 from textual.screen import ModalScreen
 from textual.widgets import Input, Label, RichLog, Static
 
 from ironsworn_tui.abilities import AvailableBoost, BoostRef
 from ironsworn_tui.campaign import Campaign, ProgressTrack
-from ironsworn_tui.commands import CommandError, asset_summary, parse_foes, parse_rank, run_command
+from ironsworn_tui.commands import REGISTRY, asset_summary, parse_foes, parse_rank, run_command
 from ironsworn_tui.moves import ATTACK, CANNOT_TELL, NO_MOVE, stat_choices
 from ironsworn_tui.outcomes import Choose
 from ironsworn_tui.policy import Suggestion
+from ironsworn_tui.registry import CommandError, Completion, ghost_pieces
 from ironsworn_tui.rules.datasworn import Datasworn, Stat
 from ironsworn_tui.rules.progress import TICKS_PER_BOX, Rank
 from ironsworn_tui.turn import ROLLED_FOLLOW_UPS, MoveInputs, RollCard, TurnEngine, TurnError
@@ -40,8 +46,13 @@ LOG_STYLES: dict[str, str] = {
     "next": "b yellow",
     "note": "yellow",
     "command": "dim",
+    "player_note": "b italic",
 }
+# Help isn't a log kind, because it isn't saved to the campaign log.
+HELP_STYLE = "blue"
 LOG_RESTORED = 200
+GHOST = Style(dim=True)
+GHOST_SELECTED = Style(dim=True, reverse=True)
 FIELD_HINTS = {
     "vow": "The vow",
     "rank": "troublesome, dangerous, formidable, extreme, or epic",
@@ -177,6 +188,99 @@ class SuggestionBar(Static, can_focus=True):
     SuggestionBar { height: auto; min-height: 3; border: round $accent; padding: 0 1; }
     SuggestionBar:focus { border: round $success; }
     """
+
+
+class CommandInput(Input):
+    """The input line, which completes `/` commands.
+
+    After a `/`, it shows the options for the argument at the cursor as dim ghost text, such
+    as `[action | theme | +20 more]`. Typing filters them, Up and Down select one, Tab
+    completes it, and Escape hides them until the text changes or Tab shows them again.
+    """
+
+    BINDINGS: ClassVar[list[BindingType]] = [
+        Binding("tab", "complete", "Complete", show=False),
+        Binding("up", "select(-1)", "Previous option", show=False),
+        Binding("down", "select(1)", "Next option", show=False),
+        Binding("escape", "dismiss", "Hide options", show=False),
+    ]
+
+    def __init__(
+        self, complete: Callable[[str], Completion | None], placeholder: str, id: str
+    ) -> None:
+        """Create the input line with the function that completes its text."""
+        super().__init__(placeholder=placeholder, id=id)
+        self.complete = complete
+        self.selected = 0
+        self.dismissed = False
+        self._completion: Completion | None = None
+
+    @property
+    def completion(self) -> Completion | None:
+        """The options for the text before the cursor, or None."""
+        if self.dismissed or not self.cursor_at_end or not self.value.startswith("/"):
+            return None
+        if self._completion is None or self._completion.text != self.value:
+            self._completion = self.complete(self.value)
+            self.selected = 0
+        return self._completion
+
+    def _watch_value(self, value: str) -> None:
+        super()._watch_value(value)
+        self.dismissed = False
+
+    def ghost(self) -> str:
+        """The ghost text after the cursor, as plain text."""
+        return self._ghost().plain
+
+    def _ghost(self) -> Text:
+        completion = self.completion
+        ghost = Text(end="")
+        if completion is None or not self.has_focus:
+            return ghost
+        if completion.placeholder:
+            ghost.append(f" {completion.placeholder}", GHOST)
+        if completion.options:
+            width = max(20, self.scrollable_content_region.width - len(self.value) - 3)
+            ghost.append(" ", GHOST)
+            for piece, chosen in ghost_pieces(completion.options, self.selected, width):
+                ghost.append(piece, GHOST_SELECTED if chosen else GHOST)
+        return ghost
+
+    @property
+    def _value(self) -> Text:
+        return super()._value + self._ghost()
+
+    def action_complete(self) -> None:
+        """Complete the selected option, or move focus on when there's nothing to complete.
+
+        After Escape, Tab shows the options again.
+        """
+        if self.dismissed and self.value.startswith("/"):
+            self.dismissed = False
+            self.refresh()
+            return
+        completion = self.completion
+        if completion is None:
+            raise SkipAction()
+        if completion.options:
+            self.value = completion.apply(self.selected)
+            self.cursor_position = len(self.value)
+
+    def action_select(self, step: int) -> None:
+        """Select the next or previous option."""
+        completion = self.completion
+        if completion is None or not completion.options:
+            raise SkipAction()
+        self.selected = (self.selected + step) % len(completion.options)
+        self.refresh()
+
+    def action_dismiss(self) -> None:
+        """Hide the options until the text changes."""
+        if self.completion is None:
+            raise SkipAction()
+        self.dismissed = True
+        self.refresh()
 
 
 class InputsScreen(ModalScreen[MoveInputs | None]):
@@ -344,7 +448,11 @@ class IronswornApp(App[None]):
             yield CharacterPanel()
             yield RichLog(wrap=True, markup=True)
         yield SuggestionBar()
-        yield Input(placeholder="Action or /command", id="input")
+        yield CommandInput(
+            lambda text: REGISTRY.complete(self.engine, text),
+            placeholder="Action or /command",
+            id="input",
+        )
 
     def on_mount(self) -> None:
         """Show the campaign and the recent log, then whatever the campaign owes."""
@@ -353,9 +461,9 @@ class IronswornApp(App[None]):
         self.after_turn()
 
     @property
-    def input(self) -> Input:
+    def input(self) -> CommandInput:
         """The input line."""
-        return self.query_one("#input", Input)
+        return self.query_one("#input", CommandInput)
 
     @property
     def bar(self) -> SuggestionBar:
@@ -367,7 +475,7 @@ class IronswornApp(App[None]):
         or a typed command."""
         if kind == "note":
             text = _sentence(text)
-        style = LOG_STYLES.get(kind, "")
+        style = HELP_STYLE if kind == "help" else LOG_STYLES.get(kind, "")
         line = escape(text)
         log = self.query_one(RichLog)
         if (starts_turn or kind == "message") and log.lines:
@@ -425,6 +533,8 @@ class IronswornApp(App[None]):
         self.log_new(before)
         for line in result.lines:
             self.write_log("outcome", line)
+        for line in result.help:
+            self.write_log("help", line)
         # A command can change what a move resolves to, as /tide does for Attack.
         self.bar_state.boosts = []
         if result.card is not None:
@@ -488,11 +598,7 @@ class IronswornApp(App[None]):
         engine = self.engine
         match state.mode:
             case "idle":
-                commands = (
-                    "/moves · /oracle · /ask · /vow · /scene · /target · /tide · /adjust · "
-                    "/endure · /asset · /effects"
-                )
-                return f"[dim]Enter send · {commands}[/dim]"
+                return "[dim]Enter send · / commands · Tab complete · /help explains them[/dim]"
             case "thinking":
                 return "Thinking…"
             case "suggest":
