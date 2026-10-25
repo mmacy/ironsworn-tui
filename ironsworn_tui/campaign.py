@@ -99,6 +99,18 @@ class AssetError(ValueError):
     """An asset can't be bought, upgraded, or changed as asked."""
 
 
+class NotFoundError(KeyError):
+    """The campaign has no vow, or the character no asset, by that name.
+
+    It's a `KeyError` whose message reads as written: `str(KeyError("x"))` is `'x'`, with
+    quotes, because a `KeyError` shows its key with `repr`.
+    """
+
+    def __str__(self) -> str:
+        """Return the message without the quotes a `KeyError` adds."""
+        return str(self.args[0]) if self.args else ""
+
+
 class OwnedAsset(_Model):
     """An asset the character owns.
 
@@ -156,6 +168,14 @@ def new_owned(data: Datasworn, asset_id: str, ability: int | None) -> OwnedAsset
     )
 
 
+def setback_note(setback: int) -> str:
+    """Return the note for a momentum loss past -6, which the player takes with Face a Setback."""
+    return (
+        f"Face a Setback: exchange {setback} momentum for health, spirit, supply, or progress "
+        "on a track."
+    )
+
+
 def meter_max(data: Datasworn, owned: OwnedAsset, meter: str) -> int:
     """Return an asset meter's maximum, raised by any marked ability, as Awakening's is.
 
@@ -195,11 +215,11 @@ class Character(_Model):
         """Return an owned asset.
 
         Raises:
-            KeyError: If the character doesn't own it.
+            NotFoundError: If the character doesn't own it.
         """
         owned = self.asset_or_none(asset_id)
         if owned is None:
-            raise KeyError(f"{self.name} doesn't own {asset_id}")
+            raise NotFoundError(f"{self.name} doesn't own {asset_id}")
         return owned
 
     def asset_or_none(self, asset_id: str) -> OwnedAsset | None:
@@ -377,12 +397,12 @@ class Campaign(_Model):
         """Return the active vow with a name.
 
         Raises:
-            KeyError: If no active vow has the name.
+            NotFoundError: If no active vow has the name.
         """
         for vow in self.vows:
             if vow.name == name:
                 return vow
-        raise KeyError(f"no vow named {name!r}")
+        raise NotFoundError(f"no vow named {name!r}")
 
     def target_foe(self) -> Foe | None:
         """Return the foe an attack targets: the selected one, or the first."""

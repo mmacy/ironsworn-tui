@@ -645,3 +645,27 @@ def test_asset_moves_show_on_the_full_list(tmp_path: Path):
             assert turn.card is not None and turn.card.move == "augur"
 
     asyncio.run(play())
+
+
+def test_moves_past_the_ninth_take_capital_letters(tmp_path: Path):
+    turn, _, _ = engine(tmp_path)
+
+    async def play() -> None:
+        app = IronswornApp(turn)
+        async with app.run_test(size=(200, 40)) as pilot:
+            await pilot.press(*"/moves", "enter")
+            await pilot.pause()
+            options = app.bar_state.options
+            assert len(options) > 10
+            bar = app.render_bar()
+            assert f"A {turn.move_name(options[9])}" in bar
+            assert f"B {turn.move_name(options[10])}" in bar
+            assert "1-9 A-" in bar
+            await pilot.press("B")
+            assert app.bar_state.selected == 10
+            # Lowercase letters keep their meanings: a stat, not a move.
+            await pilot.press("w")
+            assert app.bar_state.selected == 10
+            assert app.bar_state.stat == "wits"
+
+    asyncio.run(play())

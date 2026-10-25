@@ -118,7 +118,7 @@ When your momentum is negative and equals your action die, the action die counts
 
 Momentum can't go below -6. If you lose momentum when you're already at -6, you must Face a Setback (rulebook page 97). You either take the extra loss from health, spirit, or supply, or you lose progress on a quest, journey, or fight.
 
-The app logs a note with the amount. You choose how to pay it and apply it with `/adjust`.
+The app logs a note with the amount, whether a move or `/adjust momentum` took the momentum. You choose how to pay it and apply it with `/adjust`.
 
 ## Conditions and debilities
 
@@ -286,7 +286,7 @@ Each kind of lasting effect ends by a different rule. Some end after one use. So
 
 ### Companions
 
-A *companion* is a helper character, like a hawk or a horse. A companion has a health meter, separate from yours. You name it with `/asset set`.
+A *companion* is a helper character, like a hawk or a horse. A companion has a health meter, separate from yours. You name it with `/asset set`, and then `/asset` commands and the Heal form take that name too.
 
 When a companion is hurt, you make Companion Endure Harm (rulebook page 94). The harm comes off its health first. Any harm left over comes off your momentum. Then you roll the higher of your heart or its health. If your companion is at 0 health and you miss with a 1 on the action die, the companion dies. The app gives you 1 experience for each of its marked abilities and removes it.
 

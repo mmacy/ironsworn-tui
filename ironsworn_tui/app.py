@@ -24,6 +24,9 @@ STAT_KEYS: dict[str, Stat] = {"e": "edge", "h": "heart", "i": "iron", "s": "shad
 STATS: dict[str, Stat] = {stat: stat for stat in STAT_KEYS.values()}
 DIGITS = "123456789"
 PICK_KEYS = DIGITS + "abcdefghijklmnopqrstuvwxyz"
+# The suggestion bar's lowercase letters pick stats and actions, so its moves past the
+# ninth take capitals.
+MOVE_KEYS = DIGITS + "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 PAY_KEYS: dict[str, Literal["obvious", "ask", "table"]] = {"o": "obvious", "a": "ask", "t": "table"}
 LOG_STYLES = {
     "message": "b",
@@ -69,6 +72,14 @@ def _choose_prompt(choose: Choose) -> str:
     if choose.minimum == choose.count:
         return f"Choose {choose.count}:" if choose.count > 1 else "Choose one:"
     return f"Choose {choose.minimum} to {choose.count}:"
+
+
+def _key_range(count: int) -> str:
+    """Return the keys that pick one of `count` moves for the hint, such as `1-9 A-F or `."""
+    keys = MOVE_KEYS[:count]
+    digits, letters = keys[: len(DIGITS)], keys[len(DIGITS) :]
+    parts = [run if len(run) == 1 else f"{run[0]}-{run[-1]}" for run in (digits, letters) if run]
+    return " ".join(parts) + " or " if parts else ""
 
 
 def _sentence(text: str) -> str:
@@ -503,7 +514,7 @@ class IronswornApp(App[None]):
         probabilities = decision.move.probabilities if decision and decision.move else {}
         parts: list[str] = []
         for index, option in enumerate(state.options):
-            key = DIGITS[index] if index < len(DIGITS) else "·"
+            key = MOVE_KEYS[index] if index < len(MOVE_KEYS) else "·"
             p = probabilities.get(option)
             label = f"{key} {option_name(engine, option)}" + (f" {p:.2f}" if p is not None else "")
             parts.append(f"[reverse]{label}[/reverse]" if index == state.selected else label)
@@ -516,7 +527,10 @@ class IronswornApp(App[None]):
         lines.append("  ".join(details))
         if state.boosts:
             lines.append(_boost_line(state.boosts))
-        hints = "Enter roll · 1-9 or arrows move · e h i s w stat · + - add · n no move · Esc back"
+        hints = (
+            f"Enter roll · {_key_range(len(state.options))}arrows move · e h i s w stat · "
+            "+ - add · n no move · Esc back"
+        )
         if option is not None:
             hints += self._abilities_hint(option)
         lines.append(f"[dim]{hints}[/dim]")
@@ -663,8 +677,9 @@ class IronswornApp(App[None]):
     def _suggest_key(self, key: str, character: str) -> bool:
         state = self.bar_state
         last = len(state.options) - 1
-        if character and character in DIGITS and int(character) <= len(state.options):
-            self.select(int(character) - 1)
+        index = MOVE_KEYS.find(character) if character else -1
+        if 0 <= index < len(state.options):
+            self.select(index)
         elif key in ("left", "up") and state.options:
             self.select(max(0, (state.selected if state.selected is not None else 1) - 1))
         elif key in ("right", "down") and state.options:

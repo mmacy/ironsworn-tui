@@ -302,3 +302,47 @@ def test_lorekeeper_browses_the_archive_once(tmp_path: Path):
     assert "corrupted" in turn.campaign.log[-1].text
     with pytest.raises(CommandError, match="one time"):
         run_command(turn, "/asset use lorekeeper")
+
+
+def test_an_unknown_vow_error_has_no_extra_quotes(tmp_path: Path):
+    turn, _, _ = engine(tmp_path)
+    with pytest.raises(CommandError) as raised:
+        run_command(turn, "/vow mark Nope")
+    assert str(raised.value) == "no vow named 'Nope'"
+    with pytest.raises(TurnError) as refused:
+        turn.make_move("fulfill_your_vow", inputs=MoveInputs(vow="Nope"))
+    assert str(refused.value) == "no vow named 'Nope'"
+
+
+def test_an_unowned_asset_error_has_no_extra_quotes(tmp_path: Path):
+    turn, _, _ = engine(tmp_path)
+    with pytest.raises(KeyError) as raised:
+        turn.campaign.character.asset("owl")
+    assert str(raised.value) == "Kira doesn't own owl"
+
+
+def test_the_asset_usage_puts_stat_changes_after_the_ability(tmp_path: Path):
+    turn, _, _ = engine(tmp_path)
+    with pytest.raises(CommandError) as raised:
+        run_command(turn, "/asset juggle")
+    assert "buy <asset> [ability [+stat -stat]]" in str(raised.value)
+    assert "upgrade <asset> <ability> [+stat -stat]" in str(raised.value)
+
+
+def test_adjust_momentum_past_minus_six_owes_face_a_setback(tmp_path: Path):
+    turn, _, _ = engine(tmp_path)
+    run_command(turn, "/adjust momentum -10")
+    assert turn.campaign.character.momentum == -6
+    texts = [entry.text for entry in turn.campaign.log[-2:]]
+    assert texts[0] == "Adjust: Momentum is now -6"
+    assert texts[1].startswith("Face a Setback: exchange 2 momentum")
+
+
+def test_asset_commands_take_a_companions_given_name(tmp_path: Path):
+    turn, _, _ = engine(tmp_path)
+    run_command(turn, "/asset set hawk name Kestrel the Swift")
+    run_command(turn, "/asset meter kestrel the swift health -1")
+    assert turn.campaign.character.asset("hawk").meters["health"] == 2
+    assert run_command(turn, "/asset show Kestrel the Swift").lines[0].startswith("Hawk")
+    run_command(turn, "/asset harm Kestrel the Swift 1")
+    assert turn.follow_ups == (OwedMove(move="companion_endure_harm", amount=1, asset="hawk"),)
