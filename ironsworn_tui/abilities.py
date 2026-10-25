@@ -13,6 +13,7 @@ from dataclasses import dataclass
 from typing import Literal
 
 from ironsworn_tui.outcomes import (
+    AddLasting,
     AddToNextMove,
     AssetDebility,
     AssetMeterChange,
@@ -24,6 +25,7 @@ from ironsworn_tui.outcomes import (
     FollowUp,
     GainExperience,
     InflictHarm,
+    InflictRolledHarm,
     MarkDebility,
     MarkExperience,
     MarkProgress,
@@ -117,6 +119,7 @@ class Boost:
         tide: True when the boost needs Turn the Tide armed.
         field: An asset field and the choice it must hold, such as Ironclad's armor.
         stat_field: A select field whose stat the move must roll, as a Masked mask's.
+        only_stat: A stat the move must roll, as an elixir's or a pelt's.
         rolled: A stat the roll must use for the boost to apply, as "Endure Stress +heart".
         needs: Other abilities of the same asset, from 1 to 3, that must be marked.
         unleash: An asset meter the player spends an amount of, as Lightbearer's light.
@@ -162,6 +165,7 @@ class Boost:
     tide: bool = False
     field: tuple[str, str] | None = None
     stat_field: str | None = None
+    only_stat: Stat | None = None
     rolled: Stat | None = None
     needs: tuple[int, ...] = ()
     unleash: str | None = None
@@ -276,7 +280,7 @@ def _ritual(asset: str, move: str) -> tuple[Boost, ...]:
     return (Boost("Perform this ritual", (move,), add=1, momentum_on_hit=1),)
 
 
-PART_3 = "Part 3 of the assets work applies this with the ritual's move."
+UPGRADES_RESULT = "Changes the result of the asset's move, which the outcomes table applies."
 
 ABILITIES: dict[tuple[str, int], Entry] = {
     # Combat talents
@@ -497,7 +501,7 @@ ABILITIES: dict[tuple[str, int], Entry] = {
             "Your spider studies someone",
             (FD,),
             roll=stat("shadow"),
-            on_hit=(Note("Use the reflection to Gather Information, and reroll any dice."),),
+            on_hit=(AddLasting("spider_reflection"),),
         ),
     ),
     ("giant_spider", 3): (
@@ -573,7 +577,7 @@ ABILITIES: dict[tuple[str, int], Entry] = {
     ("young_wyvern", 3): (Boost("Command your wyvern", (STRIKE,), roll=stat("heart"), set_harm=3),),
     # Paths
     ("alchemist", 1): AssetMove("create_elixir"),
-    ("alchemist", 2): Reminder(PART_3),
+    ("alchemist", 2): Reminder(UPGRADES_RESULT),
     ("alchemist", 3): (Boost("Prepare an elixir", ("create_elixir",), add=1, momentum_on_hit=1),),
     ("animal_kin", 1): (Boost("An animal", None, add=1, momentum_on_hit=1),),
     ("animal_kin", 2): (
@@ -656,7 +660,7 @@ ABILITIES: dict[tuple[str, int], Entry] = {
             add=1,
             roll=stat("edge"),
             momentum_on_hit=2,
-            on_strong=(Note("Add +2, one time only, on a move to interact with the audience."),),
+            on_strong=(AddLasting("audience"),),
         ),
     ),
     ("dancer", 2): (
@@ -780,7 +784,9 @@ ABILITIES: dict[tuple[str, int], Entry] = {
         Boost("Recover lost knowledge", (SWEAR,), reroll="any"),
         Boost("Recovered it", (FULFILL,), experience=1),
     ),
-    ("lorekeeper", 3): Reminder("One time only, an action rather than a move. " + PART_3),
+    ("lorekeeper", 3): Reminder(
+        "One time only, an action rather than a move: /asset use lorekeeper."
+    ),
     ("loyalist", 1): Reminder("Aid Your Ally is for play with an ally."),
     ("loyalist", 2): Reminder("Applies to an ally's move."),
     ("loyalist", 3): Reminder("Applies to an ally's move."),
@@ -851,7 +857,7 @@ ABILITIES: dict[tuple[str, int], Entry] = {
             "Push your horse harder",
             (JOURNEY,),
             late_add=1,
-            late_cost=(FollowUp(COMPANION_HARM, 1),),
+            late_cost=(FollowUp(COMPANION_HARM, 1, "horse"),),
         ),
     ),
     ("rider", 3): (
@@ -890,7 +896,7 @@ ABILITIES: dict[tuple[str, int], Entry] = {
         Boost("Slay a beast or horror", (SWEAR,), reroll="any"),
         Boost("Slew it", (FULFILL,), experience=1),
     ),
-    ("slayer", 3): Reminder("Takes a trophy after a kill. " + PART_3),
+    ("slayer", 3): Reminder("Takes a trophy after a kill: /asset use slayer ritual|sojourn."),
     ("spirit_bound", 1): (
         Boost(
             "Consult the spirit",
@@ -1003,13 +1009,13 @@ ABILITIES: dict[tuple[str, int], Entry] = {
     ("wright", 3): (Boost("Your gift", (COMPEL, BOND, TEST_BOND), reroll="any", limit="one_time"),),
     # Rituals
     ("augur", 1): AssetMove("augur"),
-    ("augur", 2): Reminder(PART_3),
+    ("augur", 2): Reminder(UPGRADES_RESULT),
     ("augur", 3): _ritual("augur", "augur"),
     ("awakening", 1): AssetMove("awaken_simulacrum"),
     ("awakening", 2): Reminder("Raises the simulacrum's health to 6, which /asset applies."),
     ("awakening", 3): _ritual("awakening", "awaken_simulacrum"),
     ("bind", 1): AssetMove("bind"),
-    ("bind", 2): Reminder(PART_3),
+    ("bind", 2): Reminder(UPGRADES_RESULT),
     ("bind", 3): _ritual("bind", "bind"),
     ("communion", 1): AssetMove("commune"),
     ("communion", 2): Reminder("Lets you commune with the long-dead; there's nothing to roll."),
@@ -1039,10 +1045,10 @@ ABILITIES: dict[tuple[str, int], Entry] = {
     ),
     ("invoke", 3): _ritual("invoke", "invoke"),
     ("keen", 1): AssetMove("keen"),
-    ("keen", 2): Reminder(PART_3),
+    ("keen", 2): Reminder(UPGRADES_RESULT),
     ("keen", 3): _ritual("keen", "keen"),
     ("leech", 1): AssetMove("draw_blood_rune"),
-    ("leech", 2): Reminder(PART_3),
+    ("leech", 2): Reminder("Lets an ally or companion take the rune's leftover points."),
     ("leech", 3): _ritual("leech", "draw_blood_rune"),
     ("lightbearer", 1): AssetMove(
         "capture_light",
@@ -1074,7 +1080,7 @@ ABILITIES: dict[tuple[str, int], Entry] = {
     ),
     ("shadow_walk", 3): _ritual("shadow_walk", "shadow_walk"),
     ("sway", 1): AssetMove("sway"),
-    ("sway", 2): Reminder(PART_3),
+    ("sway", 2): Reminder(UPGRADES_RESULT),
     ("sway", 3): _ritual("sway", "sway"),
     ("talisman", 1): AssetMove("fashion_talisman"),
     ("talisman", 2): Reminder("Lets the charm protect against all supernatural threats."),
@@ -1092,16 +1098,16 @@ ABILITIES: dict[tuple[str, int], Entry] = {
             Boost("Arrive, tethered", (ARRIVE,), momentum_on_strong=2),
         ),
     ),
-    ("tether", 2): Reminder(PART_3),
+    ("tether", 2): (Boost("Sojourn in the tethered place", (SOJOURN,), reroll="any"),),
     ("tether", 3): _ritual("tether", "tether"),
     ("totem", 1): AssetMove("focus_totem"),
     ("totem", 2): Reminder("Lets you perceive through your companion's senses."),
     ("totem", 3): _ritual("totem", "focus_totem"),
     ("visage", 1): AssetMove("paint_visage"),
-    ("visage", 2): Reminder(PART_3),
+    ("visage", 2): Reminder(UPGRADES_RESULT),
     ("visage", 3): _ritual("visage", "paint_visage"),
     ("ward", 1): AssetMove("ward"),
-    ("ward", 2): Reminder(PART_3),
+    ("ward", 2): Reminder(UPGRADES_RESULT),
     ("ward", 3): _ritual("ward", "ward"),
 }
 
@@ -1114,11 +1120,14 @@ class BoostRef:
         asset: The asset id.
         ability: The ability, from 1 to 3.
         variant: The index of the boost in the ability's entry, for an ability with a choice.
+        lasting: For a lasting effect, its index in the campaign's list; the asset and
+            ability are then those of the effect's source, or empty.
     """
 
     asset: str
     ability: int
     variant: int = 0
+    lasting: int | None = None
 
 
 @dataclass(frozen=True)
@@ -1137,7 +1146,12 @@ class AvailableBoost:
 
     @property
     def label(self) -> str:
-        """The asset, the ability, and the boost, such as "Archer 1: Trust your instincts"."""
+        """The asset, the ability, and the boost, such as "Archer 1: Trust your instincts".
+
+        A lasting effect is shown by its own name.
+        """
+        if self.ref.lasting is not None:
+            return self.boost.label
         return f"{self.asset_name} {self.ref.ability}: {self.boost.label}"
 
 
@@ -1264,3 +1278,102 @@ def adjust_outcome(
         if isinstance(effect, MarkExperience) and experience:
             adjusted.append(GainExperience(experience))
     return tuple(adjusted)
+
+
+type Expiry = Literal["use", "one", "low", "manual"]
+"""When a lasting effect ends: after one use, when the action die is a 1 on a move that
+uses it, when health, spirit, or momentum falls below +1, or when the player ends it."""
+
+
+@dataclass(frozen=True)
+class LastingKind:
+    """A kind of lasting effect: what it does to a move and when it ends.
+
+    Attributes:
+        boost: What it does when the player turns it on, like an ability's boost. Its label
+            names the effect.
+        expires: When it ends.
+    """
+
+    boost: Boost
+    expires: Expiry
+
+
+_MAGIC_SPENT = "The magic is spent."
+
+LASTING: dict[str, LastingKind] = {
+    "seeker_arrow": LastingKind(Boost("Seeker arrow", ATTACKS, reroll="any"), "use"),
+    "ravager_arrow": LastingKind(
+        Boost("Ravager arrow", ATTACKS, on_hit=(InflictRolledHarm(),)), "use"
+    ),
+    "carved_rune": LastingKind(Boost("Carved rune", ATTACKS, on_hit=(InflictRolledHarm(),)), "use"),
+    "elixir": LastingKind(Boost("Elixir", None, add=1), "low"),
+    "pelt": LastingKind(Boost("Pelt", None, add=1, on_one=(Note(_MAGIC_SPENT),)), "one"),
+    "beast_pelt": LastingKind(
+        Boost("Beast pelt", None, add=2, on_one=(Note(_MAGIC_SPENT),)), "one"
+    ),
+    "keen": LastingKind(Boost("Keen", ATTACKS, harm=1, on_one=(Note(_MAGIC_SPENT),)), "one"),
+    "keen_once": LastingKind(
+        Boost("Keen, one time only", (CIRCLE, FRAY, BATTLE), add=1, momentum_on_hit=2), "use"
+    ),
+    "blood_rune": LastingKind(
+        Boost(
+            "Blood rune",
+            None,
+            reroll="any",
+            harm=2,
+            on_hit=(Note("Take +1 health or +1 momentum for each point of harm inflicted."),),
+            after=(AssetDebility("leech", on=False),),
+        ),
+        "use",
+    ),
+    "false_identity_2": LastingKind(
+        Boost("False identity", None, add=2, on_one=(Note("Someone doubts you."),)), "manual"
+    ),
+    "false_identity_1": LastingKind(
+        Boost("False identity", None, add=1, on_one=(Note("Someone doubts you."),)), "manual"
+    ),
+    "augur": LastingKind(Boost("The crows' guidance", (JOURNEY,), add=1), "use"),
+    "simulacrum": LastingKind(Boost("Your simulacrum's aid", None, add=2), "manual"),
+    "simulacrum_wild": LastingKind(
+        Boost(
+            "Your simulacrum's aid",
+            None,
+            add=2,
+            on_one=(Note("Face Danger +heart to keep it from turning on you (formidable)."),),
+        ),
+        "manual",
+    ),
+    "commune": LastingKind(Boost("Speaking with the spirit", None, add=1), "manual"),
+    "runes": LastingKind(Boost("The runes' reading", (GI, COMPEL, BOND), add=1), "manual"),
+    "shadow_walk": LastingKind(Boost("The shadow veil", None, reroll="any"), "use"),
+    "sway": LastingKind(Boost("The wind's whisper", (COMPEL,), reroll="any"), "use"),
+    "sway_upgraded": LastingKind(
+        Boost(
+            "The wind's whisper",
+            (COMPEL,),
+            reroll="any",
+            on_strong=(AddLasting("sway_gather"),),
+        ),
+        "use",
+    ),
+    "sway_gather": LastingKind(Boost("The wind's whisper", (GI,), reroll="any"), "use"),
+    "talisman_2": LastingKind(Boost("Talisman", None, add=2, on_one=(Note(_MAGIC_SPENT),)), "one"),
+    "talisman_1": LastingKind(Boost("Talisman", None, add=1, on_one=(Note(_MAGIC_SPENT),)), "one"),
+    "totem": LastingKind(
+        Boost("Totem", None, add=1, momentum_on_hit=1, on_one=(Note(_MAGIC_SPENT),)), "one"
+    ),
+    "visage": LastingKind(
+        Boost("Visage", (SAA, COMPEL), add=2, momentum_on_hit=1, on_one=(Note(_MAGIC_SPENT),)),
+        "one",
+    ),
+    "visage_attack": LastingKind(
+        Boost("Visage", (STRIKE, CLASH, BATTLE), add=1, on_one=(Note(_MAGIC_SPENT),)), "one"
+    ),
+    "ward_harm": LastingKind(Boost("Ward", None, harm=1), "use"),
+    "ward_harm_2": LastingKind(Boost("Ward", None, harm=2), "use"),
+    "trophy_ritual": LastingKind(Boost("Trophy", RITUALS, reroll="any"), "use"),
+    "trophy_sojourn": LastingKind(Boost("Trophy", (SOJOURN,), reroll="any"), "use"),
+    "audience": LastingKind(Boost("Your audience", None, add=2), "use"),
+    "spider_reflection": LastingKind(Boost("Your spider's reflection", (GI,), reroll="any"), "use"),
+}

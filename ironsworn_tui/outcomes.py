@@ -54,11 +54,14 @@ class FollowUp:
 
     Attributes:
         move: The move id.
-        amount: The harm or stress, for Endure Harm and Endure Stress.
+        amount: The harm or stress, for Endure Harm, Endure Stress, and Companion Endure
+            Harm.
+        asset: The companion, for Companion Endure Harm.
     """
 
     move: str
     amount: int | None = None
+    asset: str | None = None
 
 
 @dataclass(frozen=True)
@@ -211,6 +214,56 @@ class MaxSpirit:
 
 
 @dataclass(frozen=True)
+class AddLasting:
+    """Start a lasting effect, such as a talisman, that later moves can use.
+
+    Attributes:
+        kind: The kind of effect, a key of
+            [`LASTING`][ironsworn_tui.abilities.LASTING].
+        stat: The stat it's tied to, for an elixir or a pelt.
+    """
+
+    kind: str
+    stat: Stat | None = None
+
+
+@dataclass(frozen=True)
+class SetAssetMeter:
+    """Set an asset's meter: to a value, or to its maximum when the value is None."""
+
+    asset: str
+    meter: str
+    value: int | None = None
+
+
+@dataclass(frozen=True)
+class AssetMeterFromActionDie:
+    """Add the action die's value to an asset's meter, as Invoke's essence does."""
+
+    asset: str
+    meter: str
+
+
+@dataclass(frozen=True)
+class CompanionHealth:
+    """Give or take companion health.
+
+    Attributes:
+        amount: The health.
+        every: True for every companion, as Make Camp's "you and any companions"; False for
+            the companion the move is about, as in Companion Endure Harm.
+    """
+
+    amount: int
+    every: bool = True
+
+
+@dataclass(frozen=True)
+class InflictRolledHarm:
+    """Inflict 1d6 extra harm on the targeted foe, as a Ravager arrow or a carved rune does."""
+
+
+@dataclass(frozen=True)
 class MaskTrack:
     """Take from the meter a Masked character's mask is tied to: health or spirit."""
 
@@ -262,6 +315,11 @@ type Effect = (
     | DiscardAsset
     | MaxSpirit
     | MaskTrack
+    | AddLasting
+    | SetAssetMeter
+    | AssetMeterFromActionDie
+    | CompanionHealth
+    | InflictRolledHarm
 )
 
 PAY_THE_PRICE = FollowUp("pay_the_price")
@@ -278,12 +336,15 @@ class MoveDetails:
         foe_harm: The targeted foe's harm, for Endure Harm after End the Fight.
         meter_above_zero: For Endure Harm or Stress, True when the meter is above 0, so
             "Shake it off" is allowed.
+        upgraded: For an asset move, True when the asset's second ability is marked, which
+            most rituals' second abilities use to change the result.
     """
 
     heal_self: bool = True
     harm: int = 2
     foe_harm: int = 1
     meter_above_zero: bool = True
+    upgraded: bool = False
 
 
 def _option(label: str, *effects: Effect) -> Option:
@@ -371,8 +432,13 @@ def _resupply(hit: Hit, details: MoveDetails) -> tuple[Effect, ...]:
 
 
 _CAMP = (
-    _option("Recuperate: +1 health", MeterChange("health", 1)),
-    _option("Partake: -1 supply, +1 health", MeterChange("supply", -1), MeterChange("health", 1)),
+    _option("Recuperate: +1 health", MeterChange("health", 1), CompanionHealth(1)),
+    _option(
+        "Partake: -1 supply, +1 health",
+        MeterChange("supply", -1),
+        MeterChange("health", 1),
+        CompanionHealth(1),
+    ),
     _option("Relax: +1 spirit", MeterChange("spirit", 1)),
     _option("Focus: +1 momentum", Momentum(1)),
     _option(
@@ -455,7 +521,7 @@ _SOJOURN = (
     _option(
         "Equip: clear unprepared, +1 supply", ClearDebility("unprepared"), MeterChange("supply", 1)
     ),
-    _option("Recuperate: +2 health", MeterChange("health", 2)),
+    _option("Recuperate: +2 health", MeterChange("health", 2), CompanionHealth(2)),
     _option("Consort: +2 spirit", MeterChange("spirit", 2)),
     _option("Provision: +2 supply", MeterChange("supply", 2)),
     _option("Plan: +2 momentum", Momentum(2)),
@@ -748,6 +814,283 @@ def _face_desolation(hit: Hit, details: MoveDetails) -> tuple[Effect, ...]:
 
 type OutcomeRule = Callable[[Hit, MoveDetails], tuple[Effect, ...]]
 
+
+# Companion Endure Harm and the moves asset abilities add. Each "As above, and ..." second
+# ability that changes a result reads `details.upgraded`.
+
+
+def _companion_endure_harm(hit: Hit, details: MoveDetails) -> tuple[Effect, ...]:
+    match hit:
+        case Hit.STRONG:
+            return (CompanionHealth(1, every=False),)
+        case Hit.WEAK:
+            return (Note("If their health is 0, they can't help you until they have at least +1."),)
+        case Hit.MISS:
+            return (
+                Momentum(-1),
+                Note(
+                    "If their health is 0, they are gravely wounded and out of action, and die "
+                    "in an hour or two without aid."
+                ),
+            )
+
+
+def _ritual(strong: tuple[Effect, ...], weak_cost: tuple[Effect, ...] = ()) -> OutcomeRule:
+    """A ritual whose weak hit is its strong hit plus a cost."""
+
+    def rule(hit: Hit, details: MoveDetails) -> tuple[Effect, ...]:
+        match hit:
+            case Hit.STRONG:
+                return strong
+            case Hit.WEAK:
+                return (*weak_cost, *strong)
+            case Hit.MISS:
+                return (PAY_THE_PRICE,)
+
+    return rule
+
+
+def _upgraded_ritual(
+    strong: tuple[Effect, ...], upgrade: tuple[Effect, ...], weak_cost: tuple[Effect, ...] = ()
+) -> OutcomeRule:
+    """A ritual whose second ability adds effects to a hit."""
+
+    def rule(hit: Hit, details: MoveDetails) -> tuple[Effect, ...]:
+        effects = (*strong, *upgrade) if details.upgraded else strong
+        return _ritual(effects, weak_cost)(hit, details)
+
+    return rule
+
+
+_STATS: tuple[Stat, ...] = ("edge", "heart", "iron", "shadow", "wits")
+_ELIXIRS: dict[Stat, str] = {
+    "edge": "Deftness",
+    "heart": "Audacity",
+    "iron": "Vigor",
+    "shadow": "Slyness",
+    "wits": "Clarity",
+}
+_PELTS: dict[Stat, str] = {
+    "edge": "Wolf",
+    "iron": "Bear",
+    "heart": "Deer",
+    "shadow": "Fox",
+    "wits": "Boar",
+}
+
+
+def _craft_arrow(hit: Hit, details: MoveDetails) -> tuple[Effect, ...]:
+    seeker, ravager = AddLasting("seeker_arrow"), AddLasting("ravager_arrow")
+    match hit:
+        case Hit.STRONG:
+            return (seeker, ravager)
+        case Hit.WEAK:
+            return (Choose((_option("Seeker", seeker), _option("Ravager", ravager))),)
+        case Hit.MISS:
+            return (PAY_THE_PRICE,)
+
+
+def _create_elixir(hit: Hit, details: MoveDetails) -> tuple[Effect, ...]:
+    if hit is Hit.MISS:
+        return (PAY_THE_PRICE,)
+    options = tuple(
+        _option(f"{name} ({stat})", AddLasting("elixir", stat)) for stat, name in _ELIXIRS.items()
+    )
+    # Alchemist's second ability: two effects in one dose, or two doses of one.
+    count = 2 if details.upgraded else 1
+    choose = Choose(options, count=count, minimum=1)
+    if hit is Hit.WEAK:
+        return (MeterChange("supply", -1), choose)
+    return (choose,)
+
+
+def _commemorate(hit: Hit, details: MoveDetails) -> tuple[Effect, ...]:
+    match hit:
+        case Hit.STRONG:
+            return (Momentum(2), MeterChange("spirit", 1))
+        case Hit.WEAK:
+            return (
+                Choose(
+                    (
+                        _option("Take +1 momentum", Momentum(1)),
+                        _option("Take +1 spirit", MeterChange("spirit", 1)),
+                    )
+                ),
+            )
+        case Hit.MISS:
+            return (PAY_THE_PRICE,)
+
+
+def _scrape_by(hit: Hit, details: MoveDetails) -> tuple[Effect, ...]:
+    match hit:
+        case Hit.STRONG:
+            return (MeterChange("supply", 1),)
+        case Hit.WEAK:
+            return (
+                Choose(
+                    (_option("-2 momentum for +1 supply", Momentum(-2), MeterChange("supply", 1)),),
+                    minimum=0,
+                ),
+            )
+        case Hit.MISS:
+            return (MarkDebility("unprepared"), Note("You are Out of Supply."))
+
+
+def _establish_false_identity(hit: Hit, details: MoveDetails) -> tuple[Effect, ...]:
+    match hit:
+        case Hit.STRONG:
+            return (AddLasting("false_identity_2"),)
+        case Hit.WEAK:
+            return (AddLasting("false_identity_1"),)
+        case Hit.MISS:
+            return (PAY_THE_PRICE,)
+
+
+def _augur(hit: Hit, details: MoveDetails) -> tuple[Effect, ...]:
+    guide = (AddLasting("augur"),) if details.upgraded else ()
+    match hit:
+        case Hit.STRONG:
+            return (Momentum(2), *guide)
+        case Hit.WEAK:
+            return (Momentum(1), *guide)
+        case Hit.MISS:
+            return (PAY_THE_PRICE,)
+
+
+def _awaken_simulacrum(hit: Hit, details: MoveDetails) -> tuple[Effect, ...]:
+    life = SetAssetMeter("awakening", "health")
+    match hit:
+        case Hit.STRONG:
+            return (life, AddLasting("simulacrum"))
+        case Hit.WEAK:
+            return (life, AddLasting("simulacrum_wild"))
+        case Hit.MISS:
+            return (PAY_THE_PRICE,)
+
+
+def _bind(hit: Hit, details: MoveDetails) -> tuple[Effect, ...]:
+    if hit is Hit.MISS:
+        return (PAY_THE_PRICE,)
+    options = [
+        _option(f"{animal} pelt: +1 {stat}", AddLasting("pelt", stat))
+        for stat, animal in _PELTS.items()
+    ]
+    if details.upgraded:
+        # Bind's second ability: a beast's pelt, for +2 with the stat you name.
+        options += [
+            _option(f"Beast pelt: +2 {stat}", AddLasting("beast_pelt", stat)) for stat in _STATS
+        ]
+    choose = Choose(tuple(options))
+    if hit is Hit.WEAK:
+        return (FollowUp("endure_stress", 2), choose)
+    return (choose,)
+
+
+def _scry(hit: Hit, details: MoveDetails) -> tuple[Effect, ...]:
+    observe = Note("You may Gather Information through observation using +shadow or +wits.")
+    match hit:
+        case Hit.STRONG:
+            return (observe,)
+        case Hit.WEAK:
+            return (
+                Choose(
+                    (
+                        _option("Your blood: Endure Harm (2 harm)", FollowUp("endure_harm", 2)),
+                        _option(
+                            "Something precious: Endure Stress (2 stress)",
+                            FollowUp("endure_stress", 2),
+                        ),
+                        _option("Provisions: -2 supply", MeterChange("supply", -2)),
+                    )
+                ),
+                observe,
+            )
+        case Hit.MISS:
+            return (PAY_THE_PRICE,)
+
+
+def _shadow_walk(hit: Hit, details: MoveDetails) -> tuple[Effect, ...]:
+    match hit:
+        case Hit.STRONG:
+            return (Momentum(1), AddLasting("shadow_walk"))
+        case Hit.WEAK:
+            return (
+                Note(
+                    "The shadows try to lead you astray. You must first Face Danger to find "
+                    "your way."
+                ),
+                Momentum(1),
+                AddLasting("shadow_walk"),
+            )
+        case Hit.MISS:
+            return (PAY_THE_PRICE,)
+
+
+def _sway(hit: Hit, details: MoveDetails) -> tuple[Effect, ...]:
+    whisper = AddLasting("sway_upgraded" if details.upgraded else "sway")
+    return _ritual((whisper,), (FollowUp("endure_stress", 1),))(hit, details)
+
+
+def _ward(hit: Hit, details: MoveDetails) -> tuple[Effect, ...]:
+    if hit is Hit.MISS:
+        return (PAY_THE_PRICE,)
+    # Ward's second ability improves each effect: +2 momentum, +2 harm, and almost certain.
+    momentum, odds = ("+2", "almost certain") if details.upgraded else ("+1", "likely")
+    options = (
+        _option(
+            "Crossing",
+            Note(f"When a foe first crosses the boundary, take {momentum} momentum with /adjust."),
+        ),
+        _option("Harm", AddLasting("ward_harm_2" if details.upgraded else "ward_harm")),
+        _option(
+            "Trap",
+            Note(f"Your ward is {odds} to trap a foe within the boundary: /ask {odds}."),
+        ),
+    )
+    count = 2 if hit is Hit.STRONG else 1
+    return (Choose(options, count=count, minimum=count),)
+
+
+ASSET_MOVE_OUTCOMES: dict[str, OutcomeRule] = {
+    "craft_arrow": _craft_arrow,
+    "carve_rune": _ritual((AddLasting("carved_rune"),), (FollowUp("endure_stress", 2),)),
+    "create_elixir": _create_elixir,
+    "commemorate": _commemorate,
+    "scrape_by": _scrape_by,
+    "establish_false_identity": _establish_false_identity,
+    "augur": _augur,
+    "awaken_simulacrum": _awaken_simulacrum,
+    "bind": _bind,
+    "commune": _ritual((AddLasting("commune"),), (FollowUp("endure_stress", 1),)),
+    "cast_runes": _ritual((AddLasting("runes"),), (Momentum(-2),)),
+    "invoke": _ritual(
+        (AssetMeterFromActionDie("invoke", "essence"),), (FollowUp("endure_stress", 2),)
+    ),
+    "keen": _upgraded_ritual(
+        (AddLasting("keen"),), (AddLasting("keen_once"),), (FollowUp("endure_stress", 2),)
+    ),
+    "draw_blood_rune": _ritual((AddLasting("blood_rune"),), (AssetDebility("leech", on=True),)),
+    "capture_light": lambda hit, details: (
+        (PAY_THE_PRICE,)
+        if hit is Hit.MISS
+        else (SetAssetMeter("lightbearer", "light", 6 if hit is Hit.STRONG else 3),)
+    ),
+    "scry": _scry,
+    "shadow_walk": _shadow_walk,
+    "sway": _sway,
+    "fashion_talisman": lambda hit, details: {
+        Hit.STRONG: (AddLasting("talisman_2"),),
+        Hit.WEAK: (AddLasting("talisman_1"),),
+        Hit.MISS: (PAY_THE_PRICE,),
+    }[hit],
+    "tether": _ritual((Note("You are tethered to this place."),), (FollowUp("endure_stress", 2),)),
+    "focus_totem": _ritual((AddLasting("totem"),), (FollowUp("endure_stress", 1),)),
+    "paint_visage": _upgraded_ritual(
+        (AddLasting("visage"),), (AddLasting("visage_attack"),), (FollowUp("endure_harm", 2),)
+    ),
+    "ward": _ward,
+}
+
 OUTCOMES: dict[str, OutcomeRule] = {
     "face_danger": _face_danger,
     "secure_an_advantage": _secure_an_advantage,
@@ -774,6 +1117,8 @@ OUTCOMES: dict[str, OutcomeRule] = {
     "endure_stress": _endure("spirit", "Embrace the darkness"),
     "face_death": _face_death,
     "face_desolation": _face_desolation,
+    "companion_endure_harm": _companion_endure_harm,
+    **ASSET_MOVE_OUTCOMES,
 }
 
 

@@ -529,6 +529,16 @@ class Datasworn:
         """
         return _lookup(self.asset_moves, move_id, "asset move")
 
+    def find_move(self, move_id: str) -> Move:
+        """Return a core move or a move an asset ability adds.
+
+        Raises:
+            UnknownIdError: If no move has the id.
+        """
+        if move_id in self.moves:
+            return self.moves[move_id]
+        return self.asset_move(move_id)
+
     def asset_for_move(self, move_id: str) -> str:
         """Return the id of the asset whose ability adds a move.
 

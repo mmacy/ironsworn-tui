@@ -28,8 +28,6 @@ ironsworn-tui is a terminal app for solo Ironsworn. A decision model reads what 
 - Clef-flash's confidence is less calibrated than Decision-1's, so the policy needs per-target thresholds before play relies on it.
 - Build step 5 is done: `campaign.py` (the saved campaign), `outcomes.py` (each move's effects per result), `policy.py` (thresholds to a suggestion), and `turn.py` (the game loop, with no UI). The module docstring of `turn.py` gives the order the TUI calls it in.
 - Known gaps in step 5, each a Note or an `/adjust` for now:
-  - Face Death and Face Desolation have outcome entries, but no table result triggers them.
-  - Companion Endure Harm waits for assets (step 8).
   - Sojourn's extra choice for a bond isn't applied.
   - Bare yourself's +1 foe harm isn't applied.
   - A rolled card that isn't resolved is lost on restart.
@@ -38,7 +36,7 @@ ironsworn-tui is a terminal app for solo Ironsworn. A decision model reads what 
 - `tests/test_style.py` fails on any `noqa`, `type: ignore`, or `pyright: ignore` in the package or tests.
 - Never use the phrase "What do you do?" in UI text or prose; the user asked for that explicitly.
 - Build step 7 is done: each answered message becomes a case in `suites/play-<context>.yaml`, saved through the running jevtester server. `n` on the suggestion bar saves a `no_move` case, and Escape saves nothing.
-- Build step 8, assets, is in progress. The user asked for every asset, not a subset (2026-10-25). The plan splits it into four pull requests. Part 1, the catalog and ownership, is done: typed asset models in `rules/datasworn.py`, owned assets in `campaign.py`, buying and upgrading in `assets.py`, and the `/asset` commands. Part 2 is done: `abilities.py` holds the hand-written ability table and the helpers that apply a boost to a result, and the turn engine and TUI apply them. Part 3, asset moves, lasting effects, and companions, is next; the table's reminders that mention part 3 list what it covers. Face Death and Face Desolation still aren't triggered from a result, so boosts for them can't be used yet.
+- Build step 8, assets, is in progress. The user asked for every asset, not a subset (2026-10-25). The plan splits it into four pull requests. Part 1, the catalog and ownership, is done: typed asset models in `rules/datasworn.py`, owned assets in `campaign.py`, buying and upgrading in `assets.py`, and the `/asset` commands. Part 2 is done: `abilities.py` holds the hand-written ability table and the helpers that apply a boost to a result, and the turn engine and TUI apply them. Part 3 is done: the 23 asset moves have outcomes and join the full move list, lasting effects (`Campaign.lasting`, `abilities.LASTING`) work like boosts and end on their own rules, Companion Endure Harm, Face Death, Face Desolation, and Scrape By are rolled follow-ups (`TurnEngine.roll_follow_up`), and the Endure tables' "The harm is mortal" and "You are overwhelmed" results owe Face Death or Face Desolation. Part 4, the decision model and assets, starts only after the user agrees.
 - Campaign files are now schema version 2, and version 1 files don't load. No campaigns existed when this changed.
 - The user said to use `decision-1@foundry` for live calls. The Ollama models aren't downloaded, and won't be while the user is on a hotspot. The user approved `clef-flash@workers-ai` as the second target for the recognizer suites.
 - The user allowed changing `~/repos/jevtester` if it makes sense, for example to send structured criteria.
