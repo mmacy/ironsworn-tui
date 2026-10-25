@@ -13,6 +13,7 @@ from ironsworn_tui.app import (
     DiceScreen,
     InputsScreen,
     IronswornApp,
+    PickScreen,
     SuggestionBar,
 )
 from ironsworn_tui.assets import buy, upgrade
@@ -468,3 +469,41 @@ def test_sacrificed_shield_skips_the_follow_up(tmp_path: Path):
 
     asyncio.run(play())
     assert turn.campaign.character.health == 5
+
+
+def test_abilities_on_the_end_the_fight_offer(tmp_path: Path):
+    turn, dice, _ = engine(tmp_path)
+    character = turn.campaign.character
+    character.experience = 5
+    buy(character, datasworn(), "revenant")
+    upgrade(character, datasworn(), "revenant", 3)
+    dice.load(6, 1, 1)
+    turn.make_move(
+        "enter_the_fray", stat="heart", inputs=MoveInputs(foes=(("Raider", Rank.DANGEROUS),))
+    )
+    turn.resolve()
+    turn.campaign.end_fight_offered = True
+
+    async def play() -> None:
+        app = IronswornApp(turn)
+        async with app.run_test(size=(120, 40)) as pilot:
+            assert "a abilities (1)" in app.render_bar()
+            await pilot.press("a")
+            await pilot.pause()
+            await pilot.press("1", "enter")
+            await pilot.pause()
+            dice.load(1, 1)
+            await pilot.press("f")
+            await pilot.pause()
+            card = app.bar_state.card
+            assert card is not None
+            assert card.boosts == ("Revenant 3: Bring death",)
+
+    asyncio.run(play())
+
+
+def test_the_picker_takes_letters_after_nine():
+    screen = PickScreen("Pick", [str(n) for n in range(12)], [])
+    assert screen.key_for(9) == "a"
+    assert screen.index_for("b") == 10
+    assert screen.index_for("z") is None

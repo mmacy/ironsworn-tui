@@ -23,6 +23,7 @@ from ironsworn_tui.turn import MoveInputs, RollCard, TurnEngine, TurnError
 STAT_KEYS: dict[str, Stat] = {"e": "edge", "h": "heart", "i": "iron", "s": "shadow", "w": "wits"}
 STATS: dict[str, Stat] = {stat: stat for stat in STAT_KEYS.values()}
 DIGITS = "123456789"
+PICK_KEYS = DIGITS + "abcdefghijklmnopqrstuvwxyz"
 PAY_KEYS: dict[str, Literal["obvious", "ask", "table"]] = {"o": "obvious", "a": "ask", "t": "table"}
 LOG_STYLES = {
     "message": "b",
@@ -228,13 +229,23 @@ class PickScreen(ModalScreen[list[int] | None]):
         with Vertical():
             yield Label(f"[b]{escape(self.title_text)}[/b]")
             yield Label(self._items_text(), id="items")
-            yield Label("[dim]1-9 turn on or off · Enter done · Esc cancel[/dim]")
+            last = self.key_for(len(self.items) - 1)
+            yield Label(f"[dim]1-{last} turn on or off · Enter done · Esc cancel[/dim]")
+
+    def key_for(self, index: int) -> str:
+        """The key that picks an item: 1 to 9, then letters."""
+        return PICK_KEYS[index]
+
+    def index_for(self, character: str) -> int | None:
+        """The item a key picks, or None."""
+        index = PICK_KEYS.find(character) if character else -1
+        return index if 0 <= index < len(self.items) else None
 
     def _items_text(self) -> str:
         lines: list[str] = []
         for index, item in enumerate(self.items):
             mark = "[x]" if index in self.picked else "[ ]"
-            lines.append(f"{index + 1} {mark} {escape(item)}")
+            lines.append(f"{self.key_for(index)} {mark} {escape(item)}")
         return "\n".join(lines)
 
     def on_key(self, event: events.Key) -> None:
@@ -244,8 +255,7 @@ class PickScreen(ModalScreen[list[int] | None]):
             self.dismiss(None)
         elif event.key == "enter":
             self.dismiss(sorted(self.picked))
-        elif character in DIGITS and int(character) <= len(self.items):
-            index = int(character) - 1
+        elif (index := self.index_for(character)) is not None:
             if index in self.picked:
                 self.picked.remove(index)
             else:
@@ -382,6 +392,8 @@ class IronswornApp(App[None]):
         self.log_new(before)
         for line in result.lines:
             self.write_log("outcome", line)
+        # A command can change what a move resolves to, as /tide does for Attack.
+        self.bar_state.boosts = []
         if result.card is not None:
             self.show_card(result.card)
         elif result.show_moves:
@@ -468,7 +480,11 @@ class IronswornApp(App[None]):
                     lines.append(_boost_line(self.bar_state.boosts))
                 return "\n".join([*lines, f"[dim]{hint}[/dim]"])
             case "offer":
-                return "[b]End the Fight[/b]\n[dim]f end the fight · Esc continue[/dim]"
+                lines = ["[b]End the Fight[/b]"]
+                if self.bar_state.boosts:
+                    lines.append(_boost_line(self.bar_state.boosts))
+                hint = "f end the fight · Esc continue" + self._abilities_hint("end_the_fight")
+                return "\n".join([*lines, f"[dim]{hint}[/dim]"])
 
     def _render_suggest(self) -> str:
         state = self.bar_state
@@ -620,7 +636,10 @@ class IronswornApp(App[None]):
                 case "follow_up":
                     return self._follow_up_key(key, character)
                 case "offer" if character == "f":
-                    self._make("end_the_fight", None, 0, MoveInputs())
+                    self._make("end_the_fight", None, 0, MoveInputs(), self._refs())
+                    return True
+                case "offer" if character == "a":
+                    self._pick_boosts("end_the_fight")
                     return True
                 case _:
                     return False

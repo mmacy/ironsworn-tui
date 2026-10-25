@@ -502,6 +502,8 @@ class TurnEngine:
         if boost.moves is not None and move not in boost.moves:
             names = ", ".join(self._move_name(m) for m in boost.moves)
             return f"{label} is for {names}"
+        if move in PROGRESS_MOVES and _only_changes_the_action_roll(boost):
+            return f"{label} needs an action roll"
         if any(not owned.marked[number - 1] for number in boost.needs):
             return f"{label} needs ability {', '.join(map(str, boost.needs))} marked"
         if boost.limit == "fight" and _use_key(ref) in campaign.fight_uses:
@@ -673,14 +675,13 @@ class TurnEngine:
             self._check_stat_fields(chosen, value[0])
         if move == "fulfill_your_vow":
             self._vow(inputs)
-        boost_adds = sum(a.boost.add for a in chosen) + sum(
-            campaign.character.asset(a.ref.asset).meters[a.boost.add_meter]
-            for a in chosen
-            if a.boost.add_meter is not None
-        )
+        boost_adds = self._boost_adds(chosen)
 
         self._record(option, stat)
         campaign.end_fight_offered = False
+        if not campaign.foes:
+            # A once-per-fight use outside a fight counts only for a fight this move starts.
+            campaign.fight_uses = []
         if tide:
             campaign.initiative = "character"
             campaign.tide_used = True
@@ -705,6 +706,15 @@ class TurnEngine:
         self._pending = pending
         campaign.add_log("roll", _describe(pending.card))
         return pending.card
+
+    def _boost_adds(self, chosen: tuple[AvailableBoost, ...]) -> int:
+        """The boosts' adds, reading any asset meter they add before its cost is paid."""
+        character = self.campaign.character
+        return sum(a.boost.add for a in chosen) + sum(
+            character.asset(a.ref.asset).meters[a.boost.add_meter]
+            for a in chosen
+            if a.boost.add_meter is not None
+        )
 
     def _check_stat_fields(self, chosen: tuple[AvailableBoost, ...], rolled_with: str) -> None:
         for available in chosen:
@@ -868,7 +878,7 @@ class TurnEngine:
             effects += boost_effects(boost, facts)
         effects = self._allowed(effects)
         endurance = pending.endurance
-        if endurance is not None and endurance.fate_triggered:
+        if endurance is not None and hit is Hit.MISS and endurance.meter_after == 0:
             effects = (*effects, self._fate_choice(move, endurance))
         fresh = not (pending.burned or pending.rerolled)
         return RollCard(
@@ -957,21 +967,19 @@ class TurnEngine:
             raise TurnError("burning momentum wouldn't improve this roll")
         card = pending.card
         character = self.campaign.character
-        before = card.action.hit if card.action is not None else card.hit
+        before = card.hit
         action, progress = card.action, card.progress
         if action is not None:
             action = burn_momentum(action)
             if pending.endurance is not None:
                 pending.endurance = dataclasses.replace(pending.endurance, roll=action)
-            after = action.hit
         else:
             assert progress is not None
             progress = _burn_one_die(progress, character.momentum)
-            after = progress.hit
         character.reset_momentum()
         pending.burned = True
         new_card = self._card(card.move, card.rolled_with, action, progress, pending)
-        if before is Hit.MISS and after is Hit.WEAK:
+        if before is Hit.MISS and new_card.hit is Hit.WEAK:
             new_card = self._burn_initiative(pending, new_card)
         pending.card = dataclasses.replace(new_card, tide=card.tide)
         self.campaign.add_log("roll", f"Burned momentum: {pending.card.hit.label}")
@@ -1333,10 +1341,20 @@ class TurnEngine:
                 can't be used.
         """
         follow_ups = self.campaign.follow_ups
+        character = self.campaign.character
+        chosen: tuple[AvailableBoost, ...] = ()
+        override: tuple[str, int] | None = None
         if self._pending is None and follow_ups and follow_ups[0].move in FATE_DEBILITIES:
-            chosen = self._check_boosts(follow_ups[0].move, boosts)
-        else:
-            chosen = ()
+            move = follow_ups[0].move
+            chosen = self._check_boosts(move, boosts)
+            rolling = [a for a in chosen if a.boost.roll is not None]
+            if rolling:
+                override = self._boost_value(rolling[0])
+            # The roll uses the meter after damage or the stat, whichever is higher; a stat
+            # field check needs the stat, so only a stat roll can satisfy one.
+            stat_name = "iron" if move == "endure_harm" else "heart"
+            self._check_stat_fields(chosen, override[0] if override else stat_name)
+        adds = self._boost_adds(chosen)
         owed = self._next_follow_up(set(FATE_DEBILITIES))
         self._use(chosen)
         skipping = [a for a in chosen if a.boost.skip]
@@ -1349,8 +1367,6 @@ class TurnEngine:
             self.save()
             return None
         amount = owed.amount if owed.amount is not None else self._foe_harm()
-        character = self.campaign.character
-        adds = sum(a.boost.add for a in chosen)
         action_die = self.rng.randint(1, 6)
         dice = roll_challenge_dice(self.rng)
         if owed.move == "endure_harm":
@@ -1379,9 +1395,8 @@ class TurnEngine:
         if endurance.setback:
             self.campaign.add_log("note", _setback_note(endurance.setback))
         rolled_with, value = endurance.stat, endurance.roll.value
-        rolling = [a for a in chosen if a.boost.roll is not None]
-        if rolling:
-            rolled_with, value = self._boost_value(rolling[0])
+        if override is not None:
+            rolled_with, value = override
             roll = evaluate_action(value, adds, endurance.momentum_after, action_die, dice)
             endurance = dataclasses.replace(endurance, roll=roll)
         details = MoveDetails(meter_above_zero=endurance.meter_after > 0)
@@ -1481,6 +1496,30 @@ _EMPTY_CARD = RollCard(
     outcome_text="",
     hit=Hit.MISS,
 )
+
+
+def _only_changes_the_action_roll(boost: Boost) -> bool:
+    """True when a boost does nothing but change an action roll: an add, a stat, or a late add."""
+    changes_roll = bool(
+        boost.add or boost.add_meter or boost.roll or boost.stat_field or boost.late_add
+    )
+    rest = dataclasses.replace(
+        boost,
+        add=0,
+        add_meter=None,
+        roll=None,
+        stat_field=None,
+        late_add=0,
+        late_cost=(),
+        before=(),
+        on_one=(),
+        unleash=None,
+        limit=None,
+        needs=(),
+        tide=False,
+        field=None,
+    )
+    return changes_roll and rest == Boost(boost.label, boost.moves)
 
 
 def _use_key(ref: BoostRef) -> str:

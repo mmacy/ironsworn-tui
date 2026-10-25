@@ -6,7 +6,7 @@ import pytest
 
 from ironsworn_tui.abilities import BoostRef
 from ironsworn_tui.assets import buy, set_field, upgrade
-from ironsworn_tui.campaign import OwedMove, ProgressTrack
+from ironsworn_tui.campaign import Campaign, OwedMove, ProgressTrack
 from ironsworn_tui.outcomes import (
     Choose,
     FollowUp,
@@ -14,6 +14,7 @@ from ironsworn_tui.outcomes import (
     MaskTrack,
     MeterChange,
     Momentum,
+    SetInitiative,
 )
 from ironsworn_tui.rules.datasworn import datasworn
 from ironsworn_tui.rules.dice import Hit
@@ -401,3 +402,98 @@ def test_reroll_only_after_a_miss(tmp_path: Path):
     assert not card.can_reroll
     with pytest.raises(TurnError, match="reroll"):
         turn.reroll([0])
+
+
+def test_a_once_per_fight_use_outside_a_fight_doesnt_carry_into_one(tmp_path: Path):
+    turn, dice, _ = engine(tmp_path)
+    give(turn, "cutthroat", 3)
+    dice.load(6, 1, 1)
+    turn.make_move("secure_an_advantage", boosts=[BoostRef("cutthroat", 3)])
+    turn.resolve([[1]])
+    fight(turn, dice)
+    assert any(a.ref == BoostRef("cutthroat", 3) for a in turn.boosts_for("secure_an_advantage"))
+
+
+def test_counted_miss_at_zero_offers_the_fate_choice(tmp_path: Path):
+    turn, dice, _ = engine(tmp_path)
+    give(turn, "berserker", 3)
+    turn.campaign.character.health = 1
+    turn.campaign.follow_ups.append(OwedMove(move="endure_harm", amount=2))
+    # Iron 1 + 6 = 7 against 6 and 9: a weak hit on the dice, counted as a miss.
+    dice.load(6, 6, 9)
+    card = turn.endure(boosts=[BoostRef("berserker", 3)])
+    assert card is not None
+    assert card.hit is Hit.MISS
+    labels = [o.label for e in card.effects if isinstance(e, Choose) for o in e.options]
+    assert "Roll on the table" in labels
+
+
+def test_endure_adds_an_asset_meter(tmp_path: Path):
+    turn, dice, _ = engine(tmp_path)
+    give(turn, "fortune_hunter")
+    turn.campaign.character.asset("fortune_hunter").meters["wealth"] = 3
+    turn.campaign.follow_ups.append(OwedMove(move="endure_harm", amount=1))
+    dice.load(1, 9, 10)
+    card = turn.endure(boosts=[BoostRef("fortune_hunter", 1, 2)])
+    assert card is not None
+    assert card.action is not None
+    assert card.action.adds == 3
+    assert turn.campaign.character.asset("fortune_hunter").meters["wealth"] == 2
+
+
+def test_endure_checks_the_mask(tmp_path: Path):
+    turn, _, _ = engine(tmp_path)
+    give(turn, "masked")
+    set_field(turn.campaign.character, datasworn(), "masked", "material", "whisperwood")
+    turn.campaign.follow_ups.append(OwedMove(move="endure_harm", amount=1))
+    before = turn.campaign.model_copy(deep=True)
+    with pytest.raises(TurnError, match="wits"):
+        turn.endure(boosts=[BoostRef("masked", 1)])
+    assert turn.campaign == before
+
+
+def test_roll_only_boosts_arent_offered_on_progress_moves(tmp_path: Path):
+    turn, _, _ = engine(tmp_path)
+    give(turn, "fortune_hunter")
+    labels = [a.label for a in turn.boosts_for("fulfill_your_vow")]
+    assert "Fortune Hunter 1: Paid" in labels
+    assert "Fortune Hunter 1: Leverage wealth" not in labels
+
+
+def test_veteran_initiative_needs_a_counted_weak_hit(tmp_path: Path):
+    turn, dice, _ = engine(tmp_path)
+    give(turn, "veteran")
+    give(turn, "improviser", 3)
+    fight(turn, dice)
+    turn.campaign.initiative = "foe"
+    turn.campaign.character.momentum = 7
+    dice.load(1, 4, 9)
+    turn.make_move(
+        "attack", stat="iron", boosts=[BoostRef("veteran", 1), BoostRef("improviser", 3)]
+    )
+    card = turn.burn()
+    assert card.hit is Hit.MISS
+    assert SetInitiative("character") not in card.effects
+
+
+def test_old_saves_take_the_first_vow_as_the_background_vow(tmp_path: Path):
+    turn, _, _ = engine(tmp_path)
+    data = turn.campaign.model_dump(mode="json")
+    data["background_vow"] = None
+    loaded = Campaign.model_validate(data)
+    assert loaded.background_vow == "Avenge my village"
+
+
+def test_veteran_takes_initiative_on_a_burned_miss(tmp_path: Path):
+    turn, dice, _ = engine(tmp_path)
+    give(turn, "veteran")
+    fight(turn, dice)
+    turn.campaign.initiative = "foe"
+    turn.campaign.character.momentum = 7
+    dice.load(1, 4, 9)
+    turn.make_move("attack", stat="iron", boosts=[BoostRef("veteran", 1)])
+    card = turn.burn()
+    assert card.hit is Hit.WEAK
+    assert card.effects[-1] == SetInitiative("character")
+    turn.resolve()
+    assert turn.campaign.initiative == "character"

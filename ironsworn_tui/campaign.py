@@ -4,7 +4,7 @@ import os
 from pathlib import Path
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from ironsworn_tui.moves import Context, Initiative
 from ironsworn_tui.rules.datasworn import Datasworn, Stat, datasworn
@@ -338,6 +338,13 @@ class Campaign(_Model):
     fight_uses: list[str] = Field(default_factory=list[str])
     background_vow: str | None = None
     log: list[LogEntry] = Field(default_factory=list[LogEntry])
+
+    @model_validator(mode="after")
+    def _background_vow_from_first_vow(self) -> Campaign:
+        # Campaigns saved before `background_vow` existed started with the background vow.
+        if self.background_vow is None and self.vows:
+            self.background_vow = self.vows[0].name
+        return self
 
     @property
     def context(self) -> Context:
