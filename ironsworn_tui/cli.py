@@ -187,7 +187,11 @@ def make_parser() -> argparse.ArgumentParser:
     n.add_argument("name", help="The character's name, which also names the campaign file.")
     n.add_argument("--description", required=True, help="A few words, such as 'a hunter'.")
     n.add_argument("--stats", required=True, help="edge=3,heart=2,iron=2,shadow=1,wits=1")
-    n.add_argument("--assets", required=True, help="Three asset ids, such as archer,hawk,wright.")
+    n.add_argument(
+        "--assets",
+        required=True,
+        help="Three asset ids. A companion adds its starting ability: archer,hawk:2,wright.",
+    )
     n.add_argument("--vow", required=True, help="The background vow.")
     n.add_argument("--rank", default="epic", help="The background vow's rank.")
     n.add_argument("--harm", type=int, choices=[1, 2], default=2, help="2 with a deadly weapon.")

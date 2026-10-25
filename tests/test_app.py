@@ -67,6 +67,21 @@ def test_a_command_from_the_input_line(tmp_path: Path):
     assert turn.campaign.character.health == 3
 
 
+def test_the_panel_lists_assets(tmp_path: Path):
+    turn, _, _ = engine(tmp_path)
+
+    async def play() -> None:
+        app = IronswornApp(turn)
+        async with app.run_test(size=(120, 40)) as pilot:
+            await pilot.press(*"/asset set hawk name Kestrel", "enter")
+            await pilot.pause()
+            panel = str(app.query_one(CharacterPanel).render())
+            assert "Archer: 1" in panel
+            assert "Hawk (Kestrel): 2, health 3/3" in panel
+
+    asyncio.run(play())
+
+
 def test_a_miss_leads_to_pay_the_price(tmp_path: Path):
     turn, dice, decider = engine(tmp_path)
     decider.answers.append(("face_danger", "iron", 0.95))

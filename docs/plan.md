@@ -17,7 +17,6 @@ The app has no LLM narrator. In solo Ironsworn the player writes the fiction, so
 - Co-op play, Ironsworn: Delve, and Ironsworn: Starforged.
 - A web UI.
 - Reading or writing the Ironsworn plugin's campaign files (`CHARACTER.md`, `VOWS.md`, and the rest). Claude writes those files as prose, so the app would have to parse free text to read them. Campaigns are JSON, as [Campaign state](#campaign-state) describes.
-- Applying asset abilities in the first version. The player adds an asset's bonus by hand with an add key. Build step 8 covers assets.
 
 ## Sources
 
@@ -224,6 +223,37 @@ uv run --project ~/repos/jevtester jevtester --config jevtester.toml report <run
 
 `jevtester probe` checks how much the answers depend on option order.
 
+## Assets
+
+The user asked for every asset, not a subset. There are 78 assets with 234 abilities. Datasworn gives each ability's text, the moves it enhances, any stat or asset meter it lets a move roll instead, and the moves a ritual adds. It doesn't encode the bonuses themselves, such as +1, +1 momentum on a hit, +2 harm, or a reroll. Those come from a hand-written table in `assets.py`, keyed by asset id and ability index, and a test checks every marked-ability text against its entry.
+
+### Owning assets
+
+- The character owns a list of assets. Each owned asset records which of its three abilities are marked, its meter values (a companion's health, a warband's strength), its text fields (a companion's name, a Devotant's god and stat), and its choice (Ironclad's armor).
+- A new asset starts with the abilities Datasworn marks as enabled. Companions, Battle-scarred, and Shadow-kin start with none, so the player picks one.
+- `/asset buy` spends 3 experience on a new asset, and `/asset upgrade` spends 2 to mark an ability, as Advance says. Animal Kin, Ritualist, and Weaponmaster take 1 off for their kind of asset.
+- Marking some abilities changes the character once: Battle-scarred and Shadow-kin move stat points, and Battle-scarred lowers maximum health. The app applies these when the ability is marked.
+- An asset can count as a debility: Oathbreaker always, Commander at 0 strength, Fated after its protection is used, Leech while the rune is unquenched, and Ironclad when geared for war (which marks encumbered). These lower maximum momentum like any debility.
+- The character panel lists each asset with its marked abilities and meters.
+
+### Abilities on a roll
+
+- When the player picks a move, the app lists the marked abilities that enhance it. The player turns on the ones whose condition holds in the fiction, such as "by hunting". The app can't judge the fiction, so it never turns one on by itself.
+- Each ability's entry says what it does: an add, a stat or asset meter to roll instead, momentum on a hit or strong hit, extra harm or a set amount of harm, a cost before rolling (supply, momentum, or an asset meter), a reroll of any dice, a weak hit counted as a miss or a strong hit as a weak hit, a choice of one of several effects, and a limit of once per fight or one time only.
+- Some abilities act when something else happens rather than on a roll: on burning momentum (Swordmaster, Veteran, Banner-sworn, Wayfinder, Revenant), on marking experience for a vow (the +1 experience abilities), on filling a progress box (Bonded, Fated), or at Face Death (Owl). The turn engine calls the table at those points.
+- A reroll is a new step on the roll card: the player picks which dice to roll again.
+- What remains is text the player reads and applies with `/adjust`: envisioning, asking the oracle, and effects on allies, who don't exist in solo play.
+
+### Asset moves and lasting effects
+
+- 23 abilities add a move, such as each ritual's move, Craft Arrow, and Scrape By. The app adds them to the full move list once the character owns the ability, and the outcomes table gets an entry for each.
+- Many results grant a lasting effect: an elixir, a bound pelt, a keen, a talisman, a blood rune, a ward. The campaign keeps a list of these. Each has the same kind of entry as an ability, and ends after one use, on an action die of 1, or when the player removes it. They appear in the same list as abilities when the player picks a move.
+- Companion Endure Harm joins the suffer moves when the character has a companion. A companion at 0 health that dies is removed, and the character takes 1 experience for each marked ability.
+
+### Asking the model
+
+The model still sees only the core moves. Adding asset moves or ability conditions to its questions changes every question set, so it needs its own experiment first. That's the last part of step 8, and it starts only after the user agrees.
+
 ## Build order
 
 Each step ends with a command that shows it works. Every step also passes the gates in the handoff.
@@ -235,7 +265,11 @@ Each step ends with a command that shows it works. Every step also passes the ga
 5. **Outcomes, campaign, and turn loop.** `outcomes.py`, the pydantic models, JSON persistence, character creation, foes, and `turn.py`. Done when a test plays a scripted session with fixed dice and a fixture decision through `turn.py`: swear a vow, Face Danger, Enter the Fray against two foes, Strike, a miss that leads to Pay the Price, Turn the Tide, End the Fight, then save and reload, with the meters, progress, and initiative checked after each move.
 6. **TUI.** The four-part screen, focus handling, the commands, the roll card, outcome choices, and momentum burn. Done when Textual's `run_test()` pilot, using a fixture decision, drives a turn from typing to an applied outcome, and a second test runs a `/` command.
 7. **Case logging.** Save each turn as a case through the running jevtester server. Done when a scripted session through `turn.py` adds cases to the right suites, and `jevtester run` and `jevtester report` run on them.
-8. **Assets.** Apply asset abilities that add to a roll or offer another stat. Ask the model whether an asset applies only once the app can apply it.
+8. **Assets**, in four pull requests:
+   1. **Catalog and ownership.** Typed asset models, owned assets with marks, meters, and fields, `/asset` commands that spend experience, one-time changes from marked abilities, assets that count as debilities, and the panel. Done when a test buys and upgrades assets with experience and the campaign saves and loads them.
+   2. **Abilities on a roll.** The ability table and the turn engine's hooks: adds, other stats, momentum, harm, costs, rerolls, result changes, limits, and the burn and experience hooks. Done when a test makes each kind of roll with an ability on and checks the result, and a test checks every enhancing ability has an entry.
+   3. **Asset moves, lasting effects, and companions.** The 23 asset moves, their outcomes, the lasting effects list, and Companion Endure Harm. Done when a scripted session performs a ritual, uses its effect, and has a companion endure harm.
+   4. **The model and assets.** An experiment on adding asset moves and ability conditions to the questions. Starts only after the user agrees.
 
 ## Risks
 

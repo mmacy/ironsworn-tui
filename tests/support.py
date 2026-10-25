@@ -77,7 +77,7 @@ def _choice(question: dict[str, Any], choice: str, top: float) -> dict[str, Any]
 
 
 def kira() -> Character:
-    return create_character(datasworn(), "Kira", "a hunter", STATS, ["archer", "hawk", "wright"])
+    return create_character(datasworn(), "Kira", "a hunter", STATS, ["archer", "hawk:2", "wright"])
 
 
 def engine(tmp_path: Path) -> tuple[TurnEngine, Dice, FixtureDecider]:

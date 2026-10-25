@@ -11,11 +11,11 @@ from textual.screen import ModalScreen
 from textual.widgets import Input, Label, RichLog, Static
 
 from ironsworn_tui.campaign import Campaign, ProgressTrack
-from ironsworn_tui.commands import CommandError, parse_foes, parse_rank, run_command
+from ironsworn_tui.commands import CommandError, asset_summary, parse_foes, parse_rank, run_command
 from ironsworn_tui.moves import ATTACK, CANNOT_TELL, NO_MOVE, stat_choices
 from ironsworn_tui.outcomes import Choose
 from ironsworn_tui.policy import Suggestion
-from ironsworn_tui.rules.datasworn import Stat
+from ironsworn_tui.rules.datasworn import Datasworn, Stat
 from ironsworn_tui.rules.progress import TICKS_PER_BOX, Rank
 from ironsworn_tui.turn import MoveInputs, RollCard, TurnEngine, TurnError
 
@@ -70,7 +70,7 @@ def _sentence(text: str) -> str:
 class CharacterPanel(Static):
     """The character's stats, meters, vows, bonds, foes, and journey."""
 
-    def show(self, campaign: Campaign) -> None:
+    def show(self, campaign: Campaign, data: Datasworn) -> None:
         """Redraw the panel from the campaign."""
         c = campaign.character
         s = c.stats
@@ -86,6 +86,8 @@ class CharacterPanel(Static):
         ]
         if campaign.next_add:
             lines.append(f"Next move {campaign.next_add:+d}")
+        lines += ["", "[b]Assets[/b]"]
+        lines += [escape(asset_summary(data, owned)) for owned in c.assets]
         lines += ["", "[b]Vows[/b]"]
         lines += [f"{escape(v.name)} ({v.rank.name.lower()})\n  {_boxes(v)}" for v in campaign.vows]
         lines += ["", f"Bonds {campaign.bonds // TICKS_PER_BOX}/10"]
@@ -264,7 +266,7 @@ class IronswornApp(App[None]):
 
     def refresh_all(self) -> None:
         """Redraw the panel and the suggestion bar."""
-        self.query_one(CharacterPanel).show(self.engine.campaign)
+        self.query_one(CharacterPanel).show(self.engine.campaign, self.engine.data)
         self.bar.update(self.render_bar())
 
     def log_new(self, before: int) -> None:

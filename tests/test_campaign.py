@@ -20,7 +20,7 @@ from ironsworn_tui.rules.errors import UnknownIdError
 from ironsworn_tui.rules.progress import Rank
 
 STATS: dict[Stat, int] = {"edge": 2, "heart": 2, "iron": 1, "shadow": 1, "wits": 3}
-ASSETS = ["archer", "hawk", "wright"]
+ASSETS = ["archer", "hawk:2", "wright"]
 
 
 def kira() -> Character:
@@ -50,7 +50,7 @@ def test_create_character_needs_three_real_assets():
     with pytest.raises(ValueError, match="assets"):
         create_character(datasworn(), "Kira", "a hunter", STATS, ["archer"])
     with pytest.raises(UnknownIdError):
-        create_character(datasworn(), "Kira", "a hunter", STATS, ["archer", "hawk", "laser"])
+        create_character(datasworn(), "Kira", "a hunter", STATS, ["archer", "hawk:2", "laser"])
 
 
 def test_condition_stops_its_meter_from_increasing():
@@ -148,7 +148,7 @@ def test_save_and_load_round_trip(tmp_path: Path):
     path = tmp_path / "campaigns" / "kira.json"
     campaign.save(path)
     assert Campaign.load(path) == campaign
-    assert '"schema_version": 1' in path.read_text()
+    assert '"schema_version": 2' in path.read_text()
     assert not path.with_suffix(".json.tmp").exists()
 
 
