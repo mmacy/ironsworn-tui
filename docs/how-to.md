@@ -2,7 +2,7 @@
 
 If you haven't played yet, start with the [tutorial](getting-started.md). For how a move works in the rules, see [How Ironsworn plays in the app](playing.md). For every option of a command, see the [reference](reference.md).
 
-Run the `uv run` commands from the ironsworn-tui folder. In the app, you type actions and `/` commands on the input line at the bottom, which says "Action or /command". The keys in these guides work when the suggestion bar above the input line has focus. The app gives it focus whenever it has something for you to pick. Press Tab to move focus between the log, the bar, and the input line.
+Run the `uv run` commands from the ironsworn-tui folder. In the app, you type actions and `/` commands on the input line at the bottom, which says "Action or /command". The keys in these guides work when the suggestion bar above the input line has focus. The app gives it focus whenever it has something for you to pick. Press Tab to move focus between the log, the bar, and the input line. After a `/` on the input line, Tab completes the command instead.
 
 ## How to set up the model target
 
@@ -230,25 +230,48 @@ Use this when you want the oracle to answer a question or inspire a detail.
 To ask a yes or no question:
 
 1. Decide how likely a yes is: `almost certain`, `likely`, `50/50`, `unlikely`, or `small chance`.
-2. Type `/ask` and the likelihood:
+2. Type `/ask`, the likelihood, and, if you like, the question:
 
    ```text
-   /ask likely
+   /ask almost certain Do I know which castle I'm in?
    ```
 
-The log shows the answer, such as "Ask the Oracle (likely), 69: yes". When the roll is a match (11, 22, and so on to 99, or 100), it adds "match".
+The log shows the answer with your question, such as "Ask (almost certain): Do I know which castle I'm in? 34: yes". When the roll is a match (11, 22, and so on to 99, or 100), it adds "match". `/ask help` explains the odds.
 
 To roll on a table:
 
-1. Type `/oracle` and the table's short name or full id:
+1. Type `/oracle ` with a space. The input line lists the tables in dim text.
+2. Type part of a name to narrow the list, such as `name`, press Up or Down to pick a table, and press Tab to complete it.
+3. Add a question if you like, and press Enter:
 
    ```text
-   /oracle action
+   /oracle location Where does the trail lead?
    ```
 
-The log shows the table, the roll, and the result, such as "Oracle classic/action_and_theme/action, 18: Deflect". Some useful short names are `action`, `theme`, `region`, `location`, `role`, `goal`, and `trouble`.
+The log shows the table, your question, the roll, and the result, such as "Oracle (location): Where does the trail lead? 18: Ruin". `/oracle help` lists the tables in groups and says what each one gives.
 
-If a short name matches more than one table, the app lists the full ids it could mean. Type one of them instead, such as `/oracle classic/place/descriptor`.
+## How to keep notes
+
+Use this to record a clue, a name, or a question you want to come back to.
+
+1. Type `/note` and the text:
+
+   ```text
+   /note The ferryman is named Oda
+   ```
+
+The note appears in the log in bold italic, and it's saved with the campaign.
+
+## How to find a command or its options
+
+Use this when you don't remember a command's name or what it takes.
+
+1. Type `/`. The input line lists every command in dim text after the cursor.
+2. Type letters to narrow the list. Names that start with the letters come first, then names that contain them.
+3. Press Up or Down to select an option, and press Tab to complete it. When more follows, Tab adds a space and the line lists the next options, such as your vows after `/vow mark `.
+4. Press Escape to hide the list. Tab shows it again.
+
+Type `/help` for every command with a summary, or add `help` after a command, such as `/asset help`, for what it does and an example.
 
 ## How to spend experience on an asset
 

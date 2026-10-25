@@ -4,12 +4,13 @@ import asyncio
 from pathlib import Path
 
 from textual.pilot import Pilot
-from textual.widgets import Input
+from textual.widgets import Input, RichLog
 
 from ironsworn_tui.abilities import BoostRef
 from ironsworn_tui.app import (
     AbilitiesScreen,
     CharacterPanel,
+    CommandInput,
     DiceScreen,
     InputsScreen,
     IronswornApp,
@@ -18,7 +19,6 @@ from ironsworn_tui.app import (
 )
 from ironsworn_tui.assets import buy, upgrade
 from ironsworn_tui.campaign import Campaign, OwedMove
-from ironsworn_tui.commands import COMMANDS
 from ironsworn_tui.decide import DecideError, Decision, JsonObject
 from ironsworn_tui.rules.datasworn import datasworn
 from ironsworn_tui.rules.progress import Rank
@@ -79,11 +79,104 @@ def test_a_command_from_the_input_line(tmp_path: Path):
     assert turn.campaign.character.health == 3
 
 
-def test_the_idle_hint_lists_every_command(tmp_path: Path):
+def test_the_idle_hint_points_to_help(tmp_path: Path):
     turn, _, _ = engine(tmp_path)
     hint = IronswornApp(turn).render_bar()
-    shown = set(hint.removeprefix("[dim]").removesuffix("[/dim]").split(" · "))
-    assert {f"/{name}" for name in COMMANDS} <= shown
+    assert "/help" in hint
+    assert "Tab complete" in hint
+
+
+def test_typing_a_slash_shows_the_options_as_ghost_text(tmp_path: Path):
+    turn, _, _ = engine(tmp_path)
+
+    async def play() -> None:
+        app = IronswornApp(turn)
+        async with app.run_test(size=(120, 40)) as pilot:
+            line = app.query_one(CommandInput)
+            await pilot.press(*"/or")
+            assert line.ghost() == " [oracle]"
+            await pilot.press("tab")
+            assert line.value == "/oracle "
+            assert line.ghost().startswith(" [action | theme | ")
+            assert line.ghost().endswith("more]")
+            await pilot.press("t")
+            assert line.ghost().startswith(" [theme | ")
+            await pilot.press("tab")
+            assert line.value == "/oracle theme "
+            assert isinstance(app.focused, CommandInput)
+
+    asyncio.run(play())
+
+
+def test_arrows_move_the_selection_and_tab_completes_it(tmp_path: Path):
+    turn, dice, _ = engine(tmp_path)
+    dice.load(40)
+
+    async def play() -> None:
+        app = IronswornApp(turn)
+        async with app.run_test(size=(120, 40)) as pilot:
+            line = app.query_one(CommandInput)
+            await pilot.press(*"/ask ")
+            await pilot.press("down", "down")
+            assert line.selected == 2
+            await pilot.press("up")
+            await pilot.press("tab")
+            assert line.value == "/ask likely "
+            await pilot.press(*"Is the gate open?", "enter")
+            await pilot.pause()
+
+    asyncio.run(play())
+    assert turn.campaign.log[-1].text.startswith("Ask (likely): Is the gate open? ")
+
+
+def test_escape_leaves_completion(tmp_path: Path):
+    turn, _, _ = engine(tmp_path)
+
+    async def play() -> None:
+        app = IronswornApp(turn)
+        async with app.run_test(size=(120, 40)) as pilot:
+            line = app.query_one(CommandInput)
+            await pilot.press(*"/vow ")
+            assert line.ghost()
+            await pilot.press("escape")
+            assert line.ghost() == ""
+            await pilot.press("tab")
+            assert line.value == "/vow "
+            assert line.ghost().startswith(" [swear")
+            await pilot.press("s")
+            assert line.ghost() == " [swear | forsake]"
+
+    asyncio.run(play())
+
+
+def test_text_without_a_slash_has_no_completion(tmp_path: Path):
+    turn, _, _ = engine(tmp_path)
+
+    async def play() -> None:
+        app = IronswornApp(turn)
+        async with app.run_test(size=(120, 40)) as pilot:
+            line = app.query_one(CommandInput)
+            await pilot.press(*"I wait")
+            assert line.ghost() == ""
+            await pilot.press("tab")
+            assert not isinstance(app.focused, CommandInput)
+
+    asyncio.run(play())
+
+
+def test_help_shows_in_the_log(tmp_path: Path):
+    turn, _, _ = engine(tmp_path)
+
+    async def play() -> None:
+        app = IronswornApp(turn)
+        async with app.run_test(size=(120, 40)) as pilot:
+            await pilot.press(*"/oracle help", "enter")
+            await pilot.pause()
+            text = "\n".join(line.text for line in app.query_one(RichLog).lines)
+            assert "Spark an idea" in text
+
+    asyncio.run(play())
+    assert not any("Spark an idea" in entry.text for entry in turn.campaign.log)
 
 
 def test_the_panel_lists_assets(tmp_path: Path):

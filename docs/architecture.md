@@ -37,8 +37,9 @@ The app works without a server. `ironsworn-tui play --no-model` starts none, and
 |---|---|
 | `__main__.py` | Runs the CLI for `python -m ironsworn_tui`. |
 | `cli.py` | The `ironsworn-tui` command and its subcommands: `new`, `play`, `suggest`, and `write-suites`. It loads the settings, starts the jevtester server, and creates the turn engine and the app. |
-| `app.py` | The Textual app: the character panel, the log, the suggestion bar, the input line, and the pop-up screens for inputs, boosts, and dice. It calls the turn engine and the commands for everything except drawing the screen. |
-| `commands.py` | The `/` commands, like `/oracle`, `/vow`, and `/asset`. It has no UI code. |
+| `app.py` | The Textual app: the character panel, the log, the suggestion bar, the input line with its command completion (`CommandInput`), and the pop-up screens for inputs, boosts, and dice. It calls the turn engine and the commands for everything except drawing the screen. |
+| `commands.py` | The `/` commands, like `/oracle`, `/vow`, and `/asset`, and `REGISTRY`, which describes each command's arguments, options, and help. It has no UI code. |
+| `registry.py` | The registry's building blocks: `Arg`, `Command`, and `Registry`, which parses a command line, completes it, and writes its help and usage. Parsing, completion, and help all read the same registry, so they can't disagree. It has no UI code. |
 | `turn.py` | The turn engine, `TurnEngine`. It takes one chat message from text to applied outcome, with no UI code. |
 | `campaign.py` | The saved campaign: the character, vows, bonds, foes, journey, follow-ups, lasting effects, and log. The campaign is a set of pydantic models, saved as JSON. |
 | `assets.py` | Owning assets: buying and upgrading them with experience, and changing their meters, fields, and debilities. |
@@ -89,7 +90,7 @@ The code is in layers. Each layer may import from the layers below it, and never
 | 3. Outcomes and abilities | `outcomes.py`, `abilities.py` | The campaign model, the turn engine, the decision code, the commands, or the UI |
 | 4. Campaign model | `campaign.py`, `assets.py` | Outcomes, abilities, the turn engine, the decision code, the commands, or the UI |
 | 5. Turn engine | `turn.py` | The commands, the app, the CLI, or Textual |
-| 6. Commands | `commands.py` | The app, the CLI, or Textual |
+| 6. Commands | `registry.py`, `commands.py` | The app, the CLI, or Textual |
 | 7. App and CLI | `app.py`, `cli.py` | Nothing is above them |
 
 The decision code sits beside layers 2 to 4. `criteria.py`, `decide.py`, `settings.py`, `policy.py`, and `cases.py` import only `moves.py`, `rules/`, and each other. Inside the package, the turn engine, the CLI, and `experiment.py` import them, and `app.py` imports the `Suggestion` type from `policy.py`. Only the CLI uses `experiment.py`.
@@ -209,10 +210,10 @@ A lasting effect works the same way. Add a `LastingKind` to `LASTING`, and an `A
 
 ### Add a `/` command
 
-1. In `commands.py`, add the name to `COMMANDS` and a `case` to the `match` in `run_command`. Write a `_name(engine, rest) -> CommandResult` function. Raise `CommandError` for bad arguments. Change the campaign through a `TurnEngine` method where one exists, log what changed, and call `engine.save()`.
-2. If your command needs new engine behavior, add a public method to `TurnEngine` in `turn.py`.
-3. Add the command to the hint line that `IronswornApp.render_bar` shows in `idle` mode, in `app.py`. That list is written by hand, and `test_the_idle_hint_lists_every_command` in `tests/test_app.py` fails until it names every command in `COMMANDS`.
-4. Test the command in `tests/test_commands.py` with `run_command(engine, "/name ...")`. Document it in `docs/reference.md`.
+1. In `commands.py`, write a `_name(engine, values) -> CommandResult` function. `values` holds one string for each argument given, already checked against the argument's options. Raise `UsageError` for a bad argument the registry can't check, so the error shows the usage, and `CommandError` for anything else. Change the campaign through a `TurnEngine` method where one exists, log what changed, and call `engine.save()`.
+2. Add a `Command` to `REGISTRY` with the name, a one-line summary, the function, and an `Arg` for each argument. Give an `Arg` fixed options as a tuple, or a function of the engine and the earlier values for options that depend on the campaign, such as vow names. For a command with forms, such as `/vow swear`, give `subcommands` instead. Write `help` for a new player and at least one example. Completion, `/help`, and the usage in errors come from this entry.
+3. If your command needs new engine behavior, add a public method to `TurnEngine` in `turn.py`.
+4. Test the command in `tests/test_commands.py` with `run_command(engine, "/name ...")`, and its options in `tests/test_registry.py` with `REGISTRY.complete`. `test_every_command_has_plain_help` checks the help. Document it in `docs/reference.md`.
 
 ### Add a key or a bar mode
 

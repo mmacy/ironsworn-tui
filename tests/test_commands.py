@@ -6,8 +6,8 @@ from pathlib import Path
 import pytest
 
 from ironsworn_tui.campaign import Campaign, Lasting, OwedMove
-from ironsworn_tui.commands import CommandError, find_table, parse_foes, run_command
-from ironsworn_tui.rules.datasworn import datasworn
+from ironsworn_tui.commands import parse_foes, run_command
+from ironsworn_tui.registry import CommandError
 from ironsworn_tui.rules.dice import Hit
 from ironsworn_tui.rules.progress import Rank
 from ironsworn_tui.turn import MoveInputs, TurnError
@@ -26,12 +26,27 @@ def test_oracle_by_short_name(tmp_path: Path):
     turn, dice, _ = engine(tmp_path)
     dice.load(2)
     run_command(turn, "/oracle action")
-    assert turn.campaign.log[-1].text == "Oracle classic/action_and_theme/action, 2: Clash"
+    assert turn.campaign.log[-1].text == "Oracle (action): 2: Clash"
 
 
-def test_ambiguous_or_unknown_oracle_names_are_refused():
-    with pytest.raises(CommandError, match="no oracle"):
-        find_table(datasworn(), "weather")
+def test_oracle_records_the_question(tmp_path: Path):
+    turn, dice, _ = engine(tmp_path)
+    dice.load(2)
+    run_command(turn, "/oracle action What does the stranger want?")
+    assert turn.campaign.log[-1].text == "Oracle (action): What does the stranger want? 2: Clash"
+
+
+def test_ironlander_name_rolls_on_either_table(tmp_path: Path):
+    turn, dice, _ = engine(tmp_path)
+    dice.load(2, 1)
+    run_command(turn, "/oracle ironlander-name")
+    assert turn.campaign.log[-1].text == "Oracle (ironlander-name): 1: Segura"
+
+
+def test_unknown_oracle_names_are_refused(tmp_path: Path):
+    turn, _, _ = engine(tmp_path)
+    with pytest.raises(CommandError, match="no table named 'weather'"):
+        run_command(turn, "/oracle weather")
 
 
 @pytest.mark.parametrize(("roll", "answer"), [(26, "yes"), (25, "no")])
@@ -39,7 +54,26 @@ def test_ask_the_oracle(tmp_path: Path, roll: int, answer: str):
     turn, dice, _ = engine(tmp_path)
     dice.load(roll)
     run_command(turn, "/ask likely")
-    assert turn.campaign.log[-1].text == f"Ask the Oracle (likely), {roll}: {answer}"
+    assert turn.campaign.log[-1].text == f"Ask (likely): {roll}: {answer}"
+
+
+def test_ask_records_the_question(tmp_path: Path):
+    turn, dice, _ = engine(tmp_path)
+    dice.load(34)
+    run_command(turn, "/ask almost certain Do I know which castle I'm in?")
+    assert (
+        turn.campaign.log[-1].text == "Ask (almost certain): Do I know which castle I'm in? 34: yes"
+    )
+
+
+def test_note_logs_free_text(tmp_path: Path):
+    turn, _, _ = engine(tmp_path)
+    run_command(turn, "/note The ferryman is named Oda")
+    assert turn.campaign.log[-1].kind == "player_note"
+    assert turn.campaign.log[-1].text == "The ferryman is named Oda"
+    assert Campaign.load(tmp_path / "kira.json").log[-1].text == "The ferryman is named Oda"
+    with pytest.raises(CommandError, match="Usage: /note <text>"):
+        run_command(turn, "/note")
 
 
 def test_ask_needs_a_likelihood(tmp_path: Path):
@@ -74,7 +108,6 @@ ADJUSTMENTS: list[tuple[str, Callable[[Campaign], bool]]] = [
     ("/adjust momentum +3", lambda c: c.character.momentum == 5),
     ("/adjust wounded mark", lambda c: c.character.debilities == ["wounded"]),
     ("/adjust bonds 2", lambda c: c.bonds == 2),
-    ('/adjust vow "Avenge my village" 4', lambda c: c.vows[0].ticks == 4),
     ("/adjust vow Avenge my village 4", lambda c: c.vows[0].ticks == 4),
     ("/adjust harm 1", lambda c: c.character.harm == 1),
 ]
@@ -100,7 +133,7 @@ def test_adjust_fight_end(tmp_path: Path):
 
 def test_bad_adjust_shows_the_usage(tmp_path: Path):
     turn, _, _ = engine(tmp_path)
-    with pytest.raises(CommandError, match="usage"):
+    with pytest.raises(CommandError, match="no 'luck' option"):
         run_command(turn, "/adjust luck 3")
 
 
@@ -117,7 +150,7 @@ def test_moves_shows_the_full_list(tmp_path: Path):
 
 def test_unknown_command_lists_the_commands(tmp_path: Path):
     turn, _, _ = engine(tmp_path)
-    with pytest.raises(CommandError, match="/oracle"):
+    with pytest.raises(CommandError, match="/help"):
         run_command(turn, "/dance")
 
 
@@ -132,7 +165,7 @@ def test_parse_foes():
 
 def test_target_needs_a_name(tmp_path: Path):
     turn, _, _ = engine(tmp_path)
-    with pytest.raises(CommandError, match="usage"):
+    with pytest.raises(CommandError, match="Usage: /target <foe>"):
         run_command(turn, "/target")
 
 
@@ -211,11 +244,11 @@ def test_asset_discard(tmp_path: Path):
     [
         ("/asset buy laser", "no asset"),
         ("/asset buy slayer", "experience"),
-        ("/asset upgrade archer", "usage"),
-        ("/asset upgrade archer two", "usage"),
+        ("/asset upgrade archer", "Usage"),
+        ("/asset upgrade archer two", "isn't a number"),
         ("/asset buy shadow_kin 1 heart", "stat change"),
-        ("/asset meter hawk health", "usage"),
-        ("/asset juggle", "usage"),
+        ("/asset meter hawk health", "Usage"),
+        ("/asset juggle", "no 'juggle' option"),
     ],
 )
 def test_asset_errors(tmp_path: Path, command: str, message: str):
@@ -309,7 +342,7 @@ def test_an_unknown_vow_error_has_no_extra_quotes(tmp_path: Path):
     turn, _, _ = engine(tmp_path)
     with pytest.raises(CommandError) as raised:
         run_command(turn, "/vow mark Nope")
-    assert str(raised.value) == "no vow named 'Nope'"
+    assert str(raised.value).splitlines()[0] == "vow must be one of: Avenge my village, not 'Nope'"
     with pytest.raises(TurnError) as refused:
         turn.make_move("fulfill_your_vow", inputs=MoveInputs(vow="Nope"))
     assert str(refused.value) == "no vow named 'Nope'"
@@ -325,9 +358,8 @@ def test_an_unowned_asset_error_has_no_extra_quotes(tmp_path: Path):
 def test_the_asset_usage_puts_stat_changes_after_the_ability(tmp_path: Path):
     turn, _, _ = engine(tmp_path)
     with pytest.raises(CommandError) as raised:
-        run_command(turn, "/asset juggle")
-    assert "buy <asset> [ability [+stat -stat]]" in str(raised.value)
-    assert "upgrade <asset> <ability> [+stat -stat]" in str(raised.value)
+        run_command(turn, "/asset buy")
+    assert "/asset buy <asset> [1|2|3] [<stat change> ...]" in str(raised.value)
 
 
 def test_adjust_momentum_past_minus_six_owes_face_a_setback(tmp_path: Path):

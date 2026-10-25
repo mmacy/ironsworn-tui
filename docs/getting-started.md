@@ -230,21 +230,35 @@ Type `/vow` to list your vows and their progress.
 Solo play has no game master to answer questions about the world. The oracle answers them instead. Say you want to know whether Blarg's brother is in the camp. You think he probably is. Type:
 
 ```text
-/ask likely
+/ask likely Is my brother in the camp?
 ```
 
-The log shows the answer, such as `Ask the Oracle (likely), 69: yes`. The word after `/ask` is how likely you think a yes is: `almost certain`, `likely`, `50/50`, `unlikely`, or `small chance`.
+The log keeps your question with the answer, such as `Ask (likely): Is my brother in the camp? 69: yes`. The word after `/ask` is how likely you think a yes is: `almost certain`, `likely`, `50/50`, `unlikely`, or `small chance`. The question is optional.
+
+You don't have to remember the likelihoods. Type `/ask ` and the input line shows them in dim text, such as `[almost certain | likely | 50/50 | unlikely | small chance | help]`. Type a letter or two to narrow the list, press Up or Down to pick one, and press Tab to complete it. This works for every command: type `/` to see them all.
+
+![The input line after typing /oracle and a space. Dim text after the cursor lists the oracle tables, starting with action and theme, and counts the rest.](images/completion.svg)
 
 When you need an idea instead of a yes or no, roll on an oracle table. Type `/oracle action`, then `/oracle theme`:
 
 ```text
-Oracle classic/action_and_theme/action, 13: Surrender
-Oracle classic/action_and_theme/theme, 47: Freedom
+Oracle (action): 13: Surrender
+Oracle (theme): 47: Freedom
 ```
 
 Read the two words together and decide what they mean. "Surrender" and "freedom" might mean a raider offers to free the brother in exchange for safe passage. Type what Blarg does about it, and keep playing.
 
-![The log after marking the vow and asking the oracle. It shows "Reach a Milestone: Free my brother from the raiders is at 2/10", "Ask the Oracle (likely), 69: yes", and the oracle table results Surrender and Freedom. The vow's track in the character panel has two filled boxes.](images/oracle.svg)
+To keep track of what you learn, write a note. It's saved in the log:
+
+```text
+/note The raider who offered the deal is called Orrin
+```
+
+## Get help in the app
+
+Type `/help` to list every command with a one-line summary. Add `help` after any command to learn what it's for, when to use it, and its options, such as `/oracle help` or `/vow swear help`. If you mistype a command, the log shows how to write it and which help to read.
+
+![The log after marking the vow and asking the oracle. It shows "Reach a Milestone: Free my brother from the raiders is at 2/10", "Ask (likely): Is my brother in the camp? 69: yes", and the oracle table results Surrender and Freedom. The vow's track in the character panel has two filled boxes.](images/oracle.svg)
 
 ## Quit and resume
 

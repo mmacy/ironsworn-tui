@@ -170,10 +170,18 @@ async def oracle(
     await swear(app, pilot, dice, decider)
     await type_line(pilot, "/vow mark Free my brother from the raiders")
     dice.load(69)
-    await type_line(pilot, "/ask likely")
+    await type_line(pilot, "/ask likely Is my brother in the camp?")
     dice.load(13, 47)
     await type_line(pilot, "/oracle action")
     await type_line(pilot, "/oracle theme")
+
+
+async def completion(
+    app: IronswornApp, pilot: Pilot[None], dice: Dice, decider: FixtureDecider
+) -> None:
+    """The input line's completion: the oracle tables as ghost text after `/oracle `."""
+    await swear(app, pilot, dice, decider)
+    await press(pilot, *"/oracle ")
 
 
 def set_up_fight(turn: TurnEngine, dice: Dice) -> None:
@@ -212,6 +220,7 @@ SCREENS: dict[str, Drive] = {
     "turn-record": turn_record,
     "abilities": abilities,
     "oracle": oracle,
+    "completion": completion,
     "fight": fight,
 }
 

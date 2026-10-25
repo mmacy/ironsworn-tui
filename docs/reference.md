@@ -200,6 +200,8 @@ A move adds these entries to the log, in this order. The app saves them all in t
 | Bold yellow | A `Next:` line, when the result asks for something the app doesn't do: imagining what happens, with how to ask the oracle; an owed move, with what it does and its key; or the End the Fight offer. |
 | Yellow | A note, such as an error or something to apply yourself. |
 | Dim | A command you ran, and what it changed. |
+| Bold italic | A note you wrote with `/note`. |
+| Blue | Help from `/help` or `<command> help`. It isn't saved to the campaign log. |
 
 Changes made before the roll, such as a new vow or Endure Harm's damage, appear before the roll entry. Progress shows in boxes, and in ticks when it isn't whole boxes. A box is 4 ticks.
 
@@ -208,7 +210,7 @@ Changes made before the roll, such as a new vow or Endure Harm's damage, appear 
 | Key | Action |
 |---|---|
 | Ctrl+Q | Quit. The campaign is already saved. |
-| Tab, Shift+Tab | Move focus between the log, the suggestion bar, and the input line. |
+| Tab, Shift+Tab | Move focus between the log, the suggestion bar, and the input line. On the input line after a `/`, Tab completes instead. |
 | Ctrl+P | Open the command palette of Textual, the framework the app is built on. |
 
 ### Input line
@@ -216,6 +218,13 @@ Changes made before the roll, such as a new vow or Endure Harm's damage, appear 
 | Key | Action |
 |---|---|
 | Enter | Send the line. Empty lines are ignored. |
+| Tab | After a `/`, complete the selected option. It adds a space when more can follow. After Escape, show the options again. |
+| Up, Down | After a `/`, select the previous or next option. The selection wraps around. |
+| Escape | After a `/`, hide the options until the text changes. |
+
+When the text starts with `/` and the cursor is at the end, the input line shows the options for the argument you're on as dim text after the cursor, such as `[action | theme | role | +22 more]`. The selected option is highlighted. Typing filters the options: those that start with what you typed come first, then those that contain it. Case doesn't matter, and `-`, `_`, and spaces match each other. With more options than fit, the line shows a window around the selection and counts the rest. For free text, such as a scene or a question, it shows a name in angle brackets, such as `<question>`.
+
+![The input line after typing /oracle and a space. Dim text after the cursor lists the oracle tables, starting with action and theme, and counts the rest.](images/completion.svg)
 
 What Enter does with the text:
 
@@ -329,19 +338,24 @@ Some moves ask for details before they roll. The form shows one field for each d
 
 ## Commands
 
-Type a command in the input line and press Enter. The command name is case-sensitive and lowercase. An unknown command shows the list of commands. An error appears as a yellow note in the log, and it changes nothing. Every command that changes the campaign writes a log entry and saves the campaign file. Lines a command only shows, such as a list, aren't saved to the campaign log.
+Type a command in the input line and press Enter. Command and option names don't depend on case. An error appears as a yellow note in the log, and it changes nothing. A mistyped command suggests the closest name. A bad argument shows the command's usage and points to its help. Every command that changes the campaign writes a log entry and saves the campaign file. Lines a command only shows, such as a list or help, aren't saved to the campaign log.
+
+Every command takes `help` as its first option, such as `/oracle help`, and so does every subcommand, such as `/vow swear help`. The help says what the command is for, gives its usage and an example, and lists its options. `/help` lists every command with a summary.
 
 Names you type:
 
-- **Vow and foe names** must match exactly, including case.
+- **Vow and foe names** match in any case, and the log uses the name as it was written.
 - **Asset names** can be the id (`cave_lion`), the id with hyphens (`cave-lion`), or the asset's name (`Cave Lion`). An owned companion also answers to its given name (`Kestrel`), set with `/asset set <companion> name <value>`. An asset's id or name wins over a given name that matches it. Case doesn't matter.
-- **Ranks** are `troublesome`, `dangerous`, `formidable`, `extreme`, and `epic`. Case doesn't matter.
+- **Ranks** are `troublesome`, `dangerous`, `formidable`, `extreme`, and `epic`.
 - **Stat changes** in `/asset buy` and `/asset upgrade` are `+<stat>` or `-<stat>`, one per stat point.
 
 | Command | What it does |
 |---|---|
+| [`/help`](#help) | Lists the commands, or explains one. |
+| [`/moves`](#moves) | Shows every move in the context. |
 | [`/oracle`](#oracle) | Rolls on an oracle table. |
 | [`/ask`](#ask) | Asks the yes or no oracle. |
+| [`/note`](#note) | Writes a note in the log. |
 | [`/vow`](#vow) | Lists, swears, marks, fulfills, or forsakes vows. |
 | [`/scene`](#scene) | Sets the scene text. |
 | [`/target`](#target) | Picks the foe an attack targets. |
@@ -350,54 +364,73 @@ Names you type:
 | [`/endure`](#endure) | Owes Endure Harm or Endure Stress. |
 | [`/asset`](#asset) | Lists, shows, buys, and changes assets. |
 | [`/effects`](#effects) | Lists or ends lasting effects. |
-| [`/moves`](#moves) | Shows every move in the context. |
+
+Errors every command can show:
+
+| Error | Cause |
+|---|---|
+| `There's no /<name> command. Did you mean /<command>? Type /help to see the commands.` | The command name isn't known. The suggestion appears when a name is close. |
+| `/<command> has no '<word>' option. It has: <options>` | The word after the command isn't one of its subcommands. |
+| `It needs a value for <argument>` | A required argument is missing. The usage follows. |
+| `<argument> must be one of: <options>, not '<text>'` | The argument isn't one of a short list of options. The usage follows. |
+| `No <argument> named '<text>'` | The argument isn't one of a long list, such as the oracle tables or the assets. The usage follows. |
+| `'<text>' isn't a number` | A number argument isn't a whole number. The usage follows. |
+| `There's more than it takes: '<text>'` | Text is left after the last argument. The usage follows. |
+
+### /help
+
+```text
+/help [<command>]
+```
+
+`/help` lists every command with its summary. `/help <command>` shows the same help as `/<command> help`. Changes nothing.
 
 ### /oracle
 
 ```text
-/oracle <table>
+/oracle <table> [<question>]
 ```
 
-Rolls on an oracle table, writes the result to the log, and saves. `<table>` is a full table id or any ending of one after a `/`, such as `action`, `region`, or `character/descriptor`. Some tables roll on other tables, and those results appear indented below.
+Rolls on an oracle table, writes the result to the log, and saves. The question, if you give one, is logged with the result. Some tables roll on other tables, and those results appear indented below. `ironlander-name` rolls on one of the two Ironlander name tables, as the rulebook says. `/oracle help` lists the tables in these groups and says what each gives.
 
-Tables, by full id:
-
-- `classic/action_and_theme/action`, `classic/action_and_theme/theme`
-- `classic/character/descriptor`, `classic/character/goal`, `classic/character/role`
-- `classic/fate/ask_the_oracle/almost_certain`, `.../fifty_fifty`, `.../likely`, `.../small_chance`, `.../unlikely`
-- `classic/fate/pay_the_price/pay_the_price`
-- `classic/name/elf`, `classic/name/ironlander/a`, `classic/name/ironlander/b`, `classic/name/other/giants`, `classic/name/other/trolls`, `classic/name/other/varou`
-- `classic/place/coastal_waters_location`, `classic/place/descriptor`, `classic/place/location`, `classic/place/region`
-- `classic/settlement/name`, `classic/settlement/name/creature`, `classic/settlement/name/environmental_aspect`, `classic/settlement/name/historical_event`, `classic/settlement/name/landscape_feature`, `classic/settlement/name/manmade_edifice`, `classic/settlement/name/old_world_language`, `classic/settlement/name/something_else`, `classic/settlement/quick_name/prefix`, `classic/settlement/quick_name/suffix`, `classic/settlement/trouble`
-- `classic/suffer/endure_harm/endure_harm`, `classic/suffer/endure_stress/endure_stress`
-- `classic/turning_point/challenge_rank`, `classic/turning_point/combat_action`, `classic/turning_point/major_plot_twist`, `classic/turning_point/mystic_backlash`
-
-| Error | Cause |
+| Group | Tables |
 |---|---|
-| `usage: /oracle <table>` | No table given. |
-| `no oracle table named '<name>'` | No table id is or ends with the name. |
-| `'<name>' could be: <ids>` | More than one table matches, such as `descriptor`. Use a longer ending. |
+| Spark an idea | `action`, `theme` |
+| Characters | `role`, `goal`, `descriptor` |
+| Names | `ironlander-name`, `elf-name`, `giant-name`, `varou-name`, `troll-name` |
+| Places | `region`, `location`, `coastal-location`, `place-descriptor` |
+| Settlements | `settlement-name`, `quick-name-prefix`, `quick-name-suffix`, `settlement-trouble` |
+| Turning points | `plot-twist`, `combat-action`, `mystic-backlash`, `challenge-rank` |
+| Fate | `pay-the-price` |
 
 ```text
-/oracle action
-Oracle classic/action_and_theme/action, 42: Demand
+/oracle location Where does the trail lead?
+Oracle (location): Where does the trail lead? 18: Ruin
 ```
 
 ### /ask
 
 ```text
-/ask <likelihood>
+/ask <likelihood> [<question>]
 ```
 
-Asks the yes or no oracle (Ask the Oracle), writes the answer to the log, and saves. `<likelihood>` is `almost certain`, `likely`, `50/50`, `unlikely`, or `small chance`, in any case. The log adds `, match` when the roll is a match.
-
-| Error | Cause |
-|---|---|
-| `likelihood must be one of: almost certain, likely, 50/50, unlikely, small chance` | The likelihood is missing or not on the list. |
+Asks the yes or no oracle (Ask the Oracle), writes the answer to the log, and saves. `<likelihood>` is `almost certain`, `likely`, `50/50`, `unlikely`, or `small chance`. The question, if you give one, is logged with the answer. The log adds `, match` when the roll is a match.
 
 ```text
-/ask likely
-Ask the Oracle (likely), 84: yes
+/ask almost certain Do I know which castle I'm in?
+Ask (almost certain): Do I know which castle I'm in? 34: yes
+```
+
+### /note
+
+```text
+/note <text>
+```
+
+Writes a note in the log, in bold italic, and saves it with the campaign. Use it for a question, a clue, or a name.
+
+```text
+/note The ferryman is named Oda
 ```
 
 ### /vow
@@ -422,12 +455,9 @@ Ask the Oracle (likely), 84: yes
 
 | Error | Cause |
 |---|---|
-| `usage: /vow swear <rank> <vow>` | The rank or the vow is missing. |
-| `rank must be one of: troublesome, dangerous, formidable, extreme, epic` | The first word after `swear` isn't a rank. |
-| `name the vow` | You have more than one vow and gave no name. |
-| `"no vow named '<vow>'"` | No active vow has that name. |
+| `Name the vow` | You have more than one vow and gave no name. |
+| `There are no vows` | `mark`, `fulfill`, or `forsake` with no vows. |
 | `Make the owed <move> first` | A follow-up is owed (`swear`, `fulfill`, `forsake`). |
-| `usage: /vow [swear <rank> <vow> \| mark \| fulfill \| forsake <vow>]` | The word after `/vow` isn't one of the forms. |
 
 ```text
 /vow swear dangerous Find my brother
@@ -444,10 +474,6 @@ Reach a Milestone: Find my brother is at 2/10
 
 Replaces the scene text, which the decision model reads with each message. Logs `Scene: <text>` and saves.
 
-| Error | Cause |
-|---|---|
-| `usage: /scene <text>` | No text given. |
-
 ```text
 /scene A ruined watchtower in the rain
 Scene: A ruined watchtower in the rain
@@ -463,8 +489,7 @@ Picks the foe in the current fight that attacks target. Logs `Target: <foe>` and
 
 | Error | Cause |
 |---|---|
-| `usage: /target <foe>` | No name given. |
-| `No foe named '<foe>' in the fight` | No foe in the fight has that exact name. |
+| `foe must be one of: <foes>, not '<text>'` | No foe in the fight has that name. |
 
 ```text
 /target Raider chief
@@ -484,7 +509,6 @@ Target: Raider chief
 |---|---|
 | `Turn the Tide needs a fight where the foe has initiative` | There's no fight, or you have initiative. |
 | `Turn the Tide was already used in this fight` | It can be used once in each fight. |
-| `usage: /tide [off]` | Any word other than `off`. |
 
 ```text
 /tide
@@ -502,7 +526,7 @@ Turn the Tide is armed
 /adjust fight end
 ```
 
-Changes a value by hand, without a move. `<n>` and `<ticks>` are whole numbers, positive or negative, such as `-2` or `+1`. Each form logs `Adjust:` and the new value, and saves. A progress track has 40 ticks, 4 to a box. Arguments are split as a shell splits them, so you can quote a name.
+Changes a value by hand, without a move. `<n>` and `<ticks>` are whole numbers, positive or negative, such as `-2` or `+1`. Each form logs `Adjust:` and the new value, and saves. A progress track has 40 ticks, 4 to a box. A name can have spaces, such as `/adjust vow Find my brother 4`.
 
 | Form | What it changes |
 |---|---|
@@ -520,9 +544,6 @@ After any form but `fight end`, lasting effects that last only while health, spi
 
 | Error | Cause |
 |---|---|
-| `usage: /adjust ...` | The form isn't on the list, or has the wrong number of arguments. |
-| `'<text>' isn't a number` | The amount isn't a whole number. |
-| `no vow named '<name>'`, `no foe named '<name>'` | No vow or foe has that exact name. |
 | `there's no journey` | `journey` with no active journey. |
 
 ```text
@@ -543,9 +564,7 @@ Owes Endure Harm (`harm`) or Endure Stress (`stress`) for `<n>` harm or stress, 
 
 | Error | Cause |
 |---|---|
-| `usage: /endure harm [<n>] or /endure stress <n>` | The form isn't `harm` with an optional amount, or `stress` with an amount. |
 | `name the harm or stress; only a foe's harm in a fight is known` | `/endure harm` has no amount outside a fight, or `/endure stress` has none. |
-| `'<text>' isn't a number` | The amount isn't a whole number. |
 | `the harm or stress must be at least 1` | The amount is 0 or less. |
 
 ```text
@@ -559,14 +578,13 @@ Blarg faces 2 harm
 /asset
 /asset list [<category>]
 /asset show <asset>
-/asset buy <asset> [<ability> [+<stat> -<stat> ...]]
-/asset upgrade <asset> <ability> [+<stat> -<stat> ...]
+/asset buy <asset> [1|2|3] [<stat change> ...]
+/asset upgrade <asset> <ability> [<stat change> ...]
 /asset meter <asset> <meter> <n>
 /asset set <asset> <field> <value>
 /asset debility <asset> on|off
 /asset harm <companion> <n>
-/asset use lorekeeper
-/asset use slayer ritual|sojourn
+/asset use lorekeeper|slayer [<for>]
 /asset discard <asset>
 ```
 
@@ -589,16 +607,13 @@ Animal Kin 2 (companions other than Kindred), Ritualist 3 (rituals), and Weaponm
 
 | Error | Cause |
 |---|---|
-| `usage: /asset [...]` | The form isn't on the list, or has the wrong arguments. |
-| `no asset named '<word>'; /asset list shows them` | No asset matches the name. |
-| `categories: combat_talent, companion, path, ritual` | The category isn't one of these. Write `combat_talent` with an underscore. |
+| `Slayer's trophy is for a ritual or a sojourn` | `use slayer` without `ritual` or `sojourn`. |
 | `that costs <n> experience, and <character> has <m>` | Not enough experience. |
 | `<character> already owns <Asset>` | `buy` for an owned asset. |
 | `<character> doesn't own <id>` | The form needs an owned asset. |
 | `<Asset>'s ability <n> is already marked` | `upgrade` for a marked ability. |
 | `<Asset>'s abilities are numbered 1 to 3` | The ability number is out of range. |
 | `<Asset> starts with no ability marked; pick one from 1 to 3` | `buy` without `<ability>` for an asset that needs it. |
-| `write a stat change as +stat or -stat, such as +wits, not '<word>'` | A stat change isn't written as `+<stat>` or `-<stat>`. |
 | `<Asset>'s ability <n> doesn't change a stat` | Stat changes for an ability that makes none. |
 | `Shadow-Kin: lower heart by 1 and raise shadow by up to 2` | Shadow-Kin 1's changes don't match the ability. |
 | `Battle-Scarred: lower edge or iron by 1, and raise wits or heart by 2, or each by 1` | Battle-Scarred 1's changes don't match the ability. |
@@ -607,7 +622,6 @@ Animal Kin 2 (companions other than Kindred), Ritualist 3 (rituals), and Weaponm
 | `<Asset> has no meter '<meter>'` | The asset has no such meter. |
 | `<Asset> has no field '<field>'; it has: <fields>` | The asset has no such field. |
 | `<Asset>'s <field> must be one of: <choices>` | The value isn't one of the field's choices. |
-| `<id> isn't a companion <character> has` | `harm` for an asset that isn't an owned companion. |
 | `browsing the archive needs Lorekeeper's third ability` | `use lorekeeper` without the ability. |
 | `the archive's forbidden depths can be browsed one time only` | `use lorekeeper` a second time. |
 | `taking a trophy needs Slayer's third ability` | `use slayer` without the ability. |
@@ -636,7 +650,6 @@ Cave Lion: 1, health 4/4
 | Error | Cause |
 |---|---|
 | `there's no lasting effect <number>` | No effect has that number. |
-| `usage: /effects [end <number>]` | Any other form. |
 
 ```text
 /effects
@@ -651,7 +664,7 @@ Cave Lion: 1, health 4/4
 /moves
 ```
 
-Shows every move in the context, then Aid Your Ally and the moves your assets add, in the suggestion bar in [suggest mode](#suggest-mode), with none selected. Changes nothing until you roll. Any text after `/moves` is ignored.
+Shows every move in the context, then Aid Your Ally and the moves your assets add, in the suggestion bar in [suggest mode](#suggest-mode), with none selected. Changes nothing until you roll.
 
 ## Settings
 
