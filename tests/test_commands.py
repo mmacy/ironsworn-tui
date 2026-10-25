@@ -346,3 +346,14 @@ def test_asset_commands_take_a_companions_given_name(tmp_path: Path):
     assert run_command(turn, "/asset show Kestrel the Swift").lines[0].startswith("Hawk")
     run_command(turn, "/asset harm Kestrel the Swift 1")
     assert turn.follow_ups == (OwedMove(move="companion_endure_harm", amount=1, asset="hawk"),)
+
+
+def test_endure_harm_without_an_amount_takes_the_foes_harm(tmp_path: Path):
+    turn, dice, _ = engine(tmp_path)
+    dice.load(6, 1, 1)
+    turn.make_move(
+        "enter_the_fray", stat="heart", inputs=MoveInputs(foes=(("Wyrm", Rank.EXTREME),))
+    )
+    turn.resolve()
+    run_command(turn, "/endure harm")
+    assert turn.follow_ups == (OwedMove(move="endure_harm", amount=4),)

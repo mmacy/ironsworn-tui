@@ -148,7 +148,7 @@ def test_save_and_load_round_trip(tmp_path: Path):
     path = tmp_path / "campaigns" / "kira.json"
     campaign.save(path)
     assert Campaign.load(path) == campaign
-    assert '"schema_version": 2' in path.read_text()
+    assert '"schema_version": 3' in path.read_text()
     assert not path.with_suffix(".json.tmp").exists()
 
 
@@ -202,4 +202,19 @@ def test_ending_a_fight_clears_its_state():
         None,
         False,
         False,
+    )
+
+
+def test_ending_a_fight_restores_harm_and_foe_harm():
+    campaign = new_campaign(kira(), "Avenge my village", Rank.EPIC)
+    campaign.foes = [Foe(name="Rival", rank=Rank.DANGEROUS)]
+    campaign.initiative = "character"
+    campaign.foe_harm_bonus = 1
+    campaign.harm_after_fight = 2
+    campaign.character.harm = 1
+    campaign.end_fight()
+    assert (campaign.character.harm, campaign.foe_harm_bonus, campaign.harm_after_fight) == (
+        2,
+        0,
+        None,
     )

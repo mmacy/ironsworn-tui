@@ -121,7 +121,9 @@ The module docstring of `turn.py` gives the order the app calls the engine in. T
 
 `TurnEngine.suggest` does steps 1 to 3 in one call, with no worker thread. The tests use it.
 
-The engine stores the owed follow-ups, the next move's add, Turn the Tide, and the End the Fight offer in the campaign, so they survive a restart. It doesn't store a rolled card that isn't resolved, or a decision waiting for a move.
+The engine stores the owed follow-ups, the next move's add, Turn the Tide, the End the Fight offer, Draw the Circle's harm boasts, and a rolled card that isn't resolved in the campaign, so they survive a restart. It doesn't store a decision waiting for a move.
+
+`TurnEngine.save` writes the waiting card to `Campaign.pending_card` as a `SavedCard`: the move, the dice, the boosts, and the facts the outcome depends on. The card's effects aren't saved. When an engine starts on a campaign with a saved card, `TurnEngine._restore` works the effects out again with `_card`, against the campaign as it was saved with the card. So a new fact that changes a card's effects must go in `_Pending` and `SavedCard` too, or a restored card can differ.
 
 ## Key data types
 
@@ -146,7 +148,7 @@ The effect kinds fall into these groups:
 
 - Meters and momentum: `Momentum`, `MeterChange`, `MomentumFromMeter`, and `MaxSpirit`.
 - Progress and tracks: `MarkProgress`, `CompleteVow`, `Recommit`, `EndJourney`, `RemoveTarget`, `InflictHarm`, and `InflictRolledHarm`.
-- Fights: `SetInitiative`.
+- Fights: `SetInitiative`, `FoeHarmForFight`, and `HarmForFight`.
 - Moves to come: `FollowUp`, `AddToNextMove`, and `RollTable`.
 - Debilities, experience, and stats: `MarkDebility`, `ClearDebility`, `MarkExperience`, `GainExperience`, `ExperiencePerAbility`, and `RaiseStat`.
 - Assets and companions: `AssetMeterChange`, `AssetMeterFromRank`, `AssetMeterFromActionDie`, `SetAssetMeter`, `AssetDebility`, `DiscardAsset`, `CompanionHealth`, `MaskTrack`, and `AddLasting`.
@@ -173,7 +175,7 @@ The rulebook says to make a move that a result calls for, like Pay the Price aft
 
 The Datasworn models in `rules/datasworn.py` are frozen, so no code can change the one cached copy. The move and asset models also reject unknown keys, so a renamed Datasworn key fails at load instead of being dropped. The campaign models reject unknown keys and check each value when it's assigned, so a bad value fails where it's set, not at the next save. They aren't frozen, because the engine changes the campaign in place. `Campaign.load` also runs `Campaign.check`, which raises an error if parts disagree, like a target that isn't one of the foes.
 
-`Campaign.schema_version` is `Literal[2]`, so a file with any other version doesn't load. Raise `SCHEMA_VERSION` when a change would make old files load wrongly. There's no code to migrate old files, because no campaigns existed when the version last changed.
+`Campaign.schema_version` is `Literal[3]`, so a file with any other version doesn't load. Raise `SCHEMA_VERSION` when the campaign format changes. There's no code to migrate old files.
 
 ### No credentials are stored
 

@@ -279,6 +279,20 @@ class Option:
 
 
 @dataclass(frozen=True)
+class FoeHarmForFight:
+    """Add to each foe's harm until the fight ends, as Draw the Circle's "Bare yourself" does."""
+
+    amount: int
+
+
+@dataclass(frozen=True)
+class HarmForFight:
+    """Set the character's harm until the fight ends, as Draw the Circle's "Hold no iron" does."""
+
+    harm: int
+
+
+@dataclass(frozen=True)
 class Choose:
     """A choice for the player: `minimum` to `count` of the options, each once."""
 
@@ -320,6 +334,8 @@ type Effect = (
     | AssetMeterFromActionDie
     | CompanionHealth
     | InflictRolledHarm
+    | FoeHarmForFight
+    | HarmForFight
 )
 
 PAY_THE_PRICE = FollowUp("pay_the_price")
@@ -338,6 +354,8 @@ class MoveDetails:
             "Shake it off" is allowed.
         upgraded: For an asset move, True when the asset's second ability is marked, which
             most rituals' second abilities use to change the result.
+        bond: For Sojourn, True when the character shares a bond with the community, so they
+            choose one more (rulebook page 71).
     """
 
     heal_self: bool = True
@@ -345,6 +363,7 @@ class MoveDetails:
     foe_harm: int = 1
     meter_above_zero: bool = True
     upgraded: bool = False
+    bond: bool = False
 
 
 def _option(label: str, *effects: Effect) -> Option:
@@ -544,24 +563,26 @@ _SOJOURN = (
 _SOJOURN_FOCUS = Note(
     "You may focus on one recover action and roll +heart again: +2 more on a strong hit, +1 "
     "more on a weak hit, and on a miss you lose that action's benefits. If you share a bond, "
-    "choose one more."
+    "add +1."
 )
 
 
 def _sojourn(hit: Hit, details: MoveDetails) -> tuple[Effect, ...]:
     match hit:
         case Hit.STRONG:
-            return (Choose(_SOJOURN, count=2, minimum=2), _SOJOURN_FOCUS)
+            count = 3 if details.bond else 2
+            return (Choose(_SOJOURN, count=count, minimum=count), _SOJOURN_FOCUS)
         case Hit.WEAK:
-            return (Choose(_SOJOURN), _SOJOURN_FOCUS)
+            count = 2 if details.bond else 1
+            return (Choose(_SOJOURN, count=count, minimum=count), _SOJOURN_FOCUS)
         case Hit.MISS:
             return (PAY_THE_PRICE,)
 
 
 _BOASTS = (
     _option("Grant first strike: your foe has initiative", Momentum(1), SetInitiative("foe")),
-    _option("Bare yourself: your foe's harm is +1", Momentum(1), Note("Your foe's harm is +1.")),
-    _option("Hold no iron: your harm is 1", Momentum(1), Note("Your harm is 1.")),
+    _option("Bare yourself: your foe's harm is +1", Momentum(1), FoeHarmForFight(1)),
+    _option("Hold no iron: your harm is 1", Momentum(1), HarmForFight(1)),
     _option("Bloody yourself: Endure Harm (1 harm)", Momentum(1), FollowUp("endure_harm", 1)),
     _option("To the death", Momentum(1), Note("This fight must end with death.")),
 )
@@ -570,7 +591,8 @@ _BOASTS = (
 def _draw_the_circle(hit: Hit, details: MoveDetails) -> tuple[Effect, ...]:
     match hit:
         case Hit.STRONG:
-            return (Momentum(1), Choose(_BOASTS, count=2, minimum=0))
+            # The rulebook allows up to three boasts (page 73). Datasworn says two.
+            return (Momentum(1), Choose(_BOASTS, count=3, minimum=0))
         case Hit.WEAK:
             return (Choose(_BOASTS, minimum=0),)
         case Hit.MISS:

@@ -228,7 +228,7 @@ The bar takes keys only while it has focus. It shows the keys it takes on its la
 | Suggest | The model answered, or you ran `/moves`. | Moves to choose from, the stat, the add, and turned-on abilities. |
 | Card | A move was rolled. | The roll card: the result, its outcome, and any choices. |
 | Follow-up | A follow-up move is owed. | The owed move. |
-| Offer | A strong hit on an attack lets you make End the Fight. | The offer. |
+| Offer | A strong hit on a move in a fight lets you make End the Fight. | The offer. |
 
 #### Suggest mode
 
@@ -314,6 +314,7 @@ Some moves ask for details before they roll. The form shows one field for each d
 | Destination | Undertake a Journey (a new journey) | The journey's destination. |
 | Treat | Heal | `yourself` (the default when empty), `someone else`, or a companion's asset name, id, or given name. |
 | Amount | A move with Lightbearer's unleashed light turned on | How much of the asset's meter to spend, as a whole number. |
+| Bond | Sojourn | `yes` when you share a bond with the community, or `no` (the default when empty). `yes` adds +1 to the roll and lets you choose one more option on a hit. |
 
 | Key | Action |
 |---|---|
@@ -528,14 +529,16 @@ Adjust: Find my brother is now 12 ticks
 ### /endure
 
 ```text
-/endure harm|stress <n>
+/endure harm [<n>]
+/endure stress <n>
 ```
 
-Owes Endure Harm (`harm`) or Endure Stress (`stress`) for `<n>` harm or stress, which must be at least 1. Use it when the fiction hurts your character and no move result owed the roll, such as a foe's attack or Pay the Price. The move joins the end of the follow-up list, and the suggestion bar asks you to roll it. Logs `<name> faces <n> harm` or `<name> faces <n> stress`, and saves.
+Owes Endure Harm (`harm`) or Endure Stress (`stress`) for `<n>` harm or stress, which must be at least 1. In a fight, `/endure harm` with no amount uses the targeted foe's harm, plus 1 after Draw the Circle's "Bare yourself" boast. Use it when the fiction hurts your character and no move result owed the roll, such as a foe's attack or Pay the Price. The move joins the end of the follow-up list, and the suggestion bar asks you to roll it. Logs `<name> faces <n> harm` or `<name> faces <n> stress`, and saves.
 
 | Error | Cause |
 |---|---|
-| `usage: /endure harm\|stress <n>` | The form isn't `harm` or `stress` followed by an amount. |
+| `usage: /endure harm [<n>] or /endure stress <n>` | The form isn't `harm` with an optional amount, or `stress` with an amount. |
+| `name the harm or stress; only a foe's harm in a fight is known` | `/endure harm` has no amount outside a fight, or `/endure stress` has none. |
 | `'<text>' isn't a number` | The amount isn't a whole number. |
 | `the harm or stress must be at least 1` | The amount is 0 or less. |
 

@@ -4,13 +4,14 @@ from pathlib import Path
 
 import pytest
 
-from ironsworn_tui.campaign import Campaign, OwedMove
+from ironsworn_tui.abilities import BoostRef
+from ironsworn_tui.campaign import Campaign, Lasting, OwedMove
 from ironsworn_tui.moves import Context
 from ironsworn_tui.outcomes import Choose, Note
 from ironsworn_tui.rules.dice import Hit
 from ironsworn_tui.rules.oracles import OracleResult, YesNo
 from ironsworn_tui.rules.progress import Rank
-from ironsworn_tui.turn import MoveInputs, TurnEngine, TurnError
+from ironsworn_tui.turn import MoveInputs, RollCard, TurnEngine, TurnError
 from tests.support import Dice, engine
 
 
@@ -579,3 +580,232 @@ def test_aid_your_ally_miss_pays_the_price(tmp_path: Path):
     turn.make_move("aid_your_ally", stat="edge")
     turn.resolve()
     assert turn.follow_ups == (OwedMove(move="pay_the_price"),)
+
+
+def first_choice(card: RollCard) -> Choose:
+    return next(effect for effect in card.effects if isinstance(effect, Choose))
+
+
+def test_sojourn_asks_whether_you_share_a_bond(tmp_path: Path):
+    turn, _, _ = engine(tmp_path)
+    assert turn.inputs_needed("sojourn") == ("bond",)
+
+
+def test_sojourn_with_a_bond_adds_1_and_one_more_choice(tmp_path: Path):
+    turn, dice, _ = engine(tmp_path)
+    kira = turn.campaign.character
+    kira.spirit, kira.supply = 2, 2
+    # Heart 2 + 3 + 1 for the bond = 6 against 5 and 6 is a weak hit: choose one, and one more.
+    dice.load(3, 5, 6)
+    card = turn.make_move("sojourn", inputs=MoveInputs(bond=True))
+    assert card is not None
+    assert card.action is not None
+    assert (card.hit, card.action.adds) == (Hit.WEAK, 1)
+    choice = first_choice(card)
+    assert (choice.minimum, choice.count) == (2, 2)
+    turn.resolve([[4, 5]])
+    assert (kira.spirit, kira.supply) == (4, 4)
+
+
+def test_sojourn_without_a_bond_chooses_two_on_a_strong_hit(tmp_path: Path):
+    turn, dice, _ = engine(tmp_path)
+    dice.load(6, 1, 1)
+    card = turn.make_move("sojourn")
+    assert card is not None
+    assert card.action is not None
+    assert card.action.adds == 0
+    choice = first_choice(card)
+    assert (choice.minimum, choice.count) == (2, 2)
+    dice.load(6, 1, 1)
+    turn.resolve([[3, 6]])
+    card = turn.make_move("sojourn", inputs=MoveInputs(bond=True))
+    assert card is not None
+    assert first_choice(card).count == 3
+
+
+def draw_the_circle(turn: TurnEngine, dice: Dice, boasts: list[int]) -> None:
+    """Draw the Circle against a dangerous rival with a strong hit, and make the boasts."""
+    dice.load(6, 1, 1)
+    turn.make_move("draw_the_circle", inputs=MoveInputs(foes=(("Rival", Rank.DANGEROUS),)))
+    turn.resolve([boasts])
+
+
+def test_draw_the_circle_allows_up_to_three_boasts(tmp_path: Path):
+    turn, dice, _ = engine(tmp_path)
+    draw_the_circle(turn, dice, [0, 1, 2])
+    assert turn.campaign.character.momentum == 6
+    assert turn.campaign.initiative == "foe"
+
+
+def test_bare_yourself_adds_1_to_the_foes_harm_until_the_fight_ends(tmp_path: Path):
+    turn, dice, _ = engine(tmp_path)
+    campaign = turn.campaign
+    draw_the_circle(turn, dice, [1])
+    assert campaign.foe_harm_bonus == 1
+    turn.endure("endure_harm", None)
+    assert turn.follow_ups == (OwedMove(move="endure_harm", amount=3),)
+    dice.load(6, 1, 1)
+    turn.roll_follow_up()
+    turn.resolve([[1]])
+    assert campaign.character.health == 2
+    turn.end_fight("the rival yields")
+    assert campaign.foe_harm_bonus == 0
+
+
+def test_bare_yourself_raises_the_harm_end_the_fight_can_cost(tmp_path: Path):
+    turn, dice, _ = engine(tmp_path)
+    draw_the_circle(turn, dice, [1])
+    # A strong hit on Strike marks 24 ticks, so End the Fight rolls 6 against 4 and 9.
+    dice.load(6, 1, 1)
+    turn.make_move("attack", stat="iron")
+    turn.resolve()
+    dice.load(4, 9)
+    turn.make_move("end_the_fight")
+    assert turn.resolve([[0]]) == (OwedMove(move="endure_harm", amount=3),)
+
+
+def test_endure_harm_without_an_amount_needs_a_fight(tmp_path: Path):
+    turn, _, _ = engine(tmp_path)
+    with pytest.raises(TurnError, match="fight"):
+        turn.endure("endure_harm", None)
+
+
+def test_hold_no_iron_sets_your_harm_to_1_until_the_fight_ends(tmp_path: Path):
+    turn, dice, _ = engine(tmp_path)
+    campaign = turn.campaign
+    kira = campaign.character
+    draw_the_circle(turn, dice, [2])
+    assert kira.harm == 1
+    # A strong hit on Strike inflicts 1 + 1 harm: 2 boxes each against a dangerous foe.
+    dice.load(6, 1, 1)
+    turn.make_move("attack", stat="iron")
+    turn.resolve()
+    assert campaign.foes[0].ticks == 16
+    turn.end_fight("the rival yields")
+    assert kira.harm == 2
+    assert Campaign.load(tmp_path / "kira.json").character.harm == 2
+
+
+def test_hold_no_iron_ends_when_end_the_fight_beats_the_last_foe(tmp_path: Path):
+    turn, dice, _ = engine(tmp_path)
+    draw_the_circle(turn, dice, [2])
+    turn.campaign.foes[0].ticks = 40
+    turn.campaign.initiative = "character"
+    dice.load(6, 1, 1)
+    turn.make_move("attack", stat="iron")
+    turn.resolve()
+    dice.load(1, 1)
+    turn.make_move("end_the_fight")
+    turn.resolve()
+    assert turn.campaign.foes == []
+    assert turn.campaign.character.harm == 2
+
+
+def test_any_strong_hit_in_a_fight_offers_end_the_fight(tmp_path: Path):
+    turn, dice, _ = engine(tmp_path)
+    fight(turn, dice, ("Raider", Rank.DANGEROUS))
+    campaign = turn.campaign
+    campaign.foes[0].ticks = 8
+    dice.load(6, 1, 1)
+    turn.make_move("face_danger", stat="edge")
+    turn.resolve()
+    assert campaign.end_fight_offered
+    turn.decline_end_fight()
+    dice.load(6, 1, 1)
+    turn.make_move("secure_an_advantage", stat="wits")
+    turn.resolve([[0]])
+    assert campaign.end_fight_offered
+
+
+def test_a_strong_hit_on_a_suffer_move_offers_no_end_the_fight(tmp_path: Path):
+    turn, dice, _ = engine(tmp_path)
+    fight(turn, dice, ("Raider", Rank.DANGEROUS))
+    turn.campaign.foes[0].ticks = 8
+    turn.endure("endure_harm", 1)
+    dice.load(6, 1, 1)
+    turn.roll_follow_up()
+    turn.resolve([[1]])
+    assert not turn.campaign.end_fight_offered
+
+
+def reloaded(turn: TurnEngine, tmp_path: Path, dice: Dice) -> TurnEngine:
+    """A new engine on the saved campaign, as after quitting and reopening the app."""
+    path = tmp_path / "kira.json"
+    return TurnEngine(Campaign.load(path), turn.data, dice, turn.thresholds, path=path)
+
+
+def test_an_unresolved_card_survives_a_restart(tmp_path: Path):
+    turn, dice, _ = engine(tmp_path)
+    dice.load(3, 4, 6)
+    card = turn.make_move("face_danger", stat="edge")
+    again = reloaded(turn, tmp_path, dice)
+    assert again.card == card
+    again.resolve([[3]])
+    assert again.campaign.character.supply == 4
+    assert reloaded(again, tmp_path, dice).card is None
+
+
+def test_a_reloaded_card_can_still_burn_momentum(tmp_path: Path):
+    turn, dice, _ = engine(tmp_path)
+    turn.campaign.character.momentum = 8
+    dice.load(1, 6, 7)
+    card = turn.make_move("face_danger", stat="edge")
+    assert card is not None
+    assert card.burn_available
+    again = reloaded(turn, tmp_path, dice)
+    burned = again.burn()
+    assert burned.hit is Hit.STRONG
+    assert reloaded(again, tmp_path, dice).card == burned
+
+
+def test_a_reloaded_vow_card_marks_the_saved_vow(tmp_path: Path):
+    turn, dice, _ = engine(tmp_path)
+    dice.load(6, 1, 1)
+    card = turn.make_move("swear_an_iron_vow", inputs=MoveInputs(vow="Find Ash", rank=Rank.EPIC))
+    again = reloaded(turn, tmp_path, dice)
+    assert again.card == card
+    again.resolve()
+    assert [vow.name for vow in again.campaign.vows] == ["Avenge my village", "Find Ash"]
+    assert again.campaign.character.momentum == 4
+
+
+def test_a_reloaded_endure_harm_card_keeps_the_harm_taken(tmp_path: Path):
+    turn, dice, _ = engine(tmp_path)
+    turn.endure("endure_harm", 5)
+    dice.load(1, 9, 9)
+    card = turn.roll_follow_up()
+    assert card is not None
+    again = reloaded(turn, tmp_path, dice)
+    assert again.card == card
+    assert again.campaign.character.health == 0
+    again.resolve([[0]])
+    assert again.campaign.character.debilities == ["wounded"]
+
+
+def test_a_reloaded_end_the_fight_card(tmp_path: Path):
+    turn, dice, _ = engine(tmp_path)
+    fight(turn, dice, ("Raider", Rank.DANGEROUS))
+    turn.campaign.foes[0].ticks = 40
+    dice.load(6, 1, 1)
+    turn.make_move("attack", stat="iron")
+    turn.resolve()
+    dice.load(1, 1)
+    card = turn.make_move("end_the_fight")
+    again = reloaded(turn, tmp_path, dice)
+    assert again.card == card
+    again.resolve()
+    assert again.campaign.foes == []
+
+
+def test_a_reloaded_card_keeps_a_used_up_lasting_boost(tmp_path: Path):
+    turn, dice, _ = engine(tmp_path)
+    turn.campaign.lasting.append(Lasting(kind="trophy_sojourn"))
+    dice.load(1, 9, 9)
+    card = turn.make_move("sojourn", boosts=[BoostRef("", 0, lasting=0)])
+    assert card is not None
+    assert card.can_reroll
+    assert turn.campaign.lasting == []
+    again = reloaded(turn, tmp_path, dice)
+    assert again.card == card
+    dice.load(1, 1)
+    assert again.reroll([1, 2]).hit is Hit.STRONG

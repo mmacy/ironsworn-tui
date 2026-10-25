@@ -24,9 +24,9 @@ at once. The player's next move, or [`no_move`][ironsworn_tui.turn.TurnEngine.no
 saves the message as a jevtester case. [`skip`][ironsworn_tui.turn.TurnEngine.skip] leaves
 it unsaved.
 
-The owed follow-ups, the next move's add, Turn the Tide, and the End the Fight offer are
-saved in the campaign, so they survive a restart. A rolled card that isn't resolved isn't,
-and neither is a message waiting for a move: its case is lost.
+The owed follow-ups, the next move's add, Turn the Tide, the End the Fight offer, and a
+rolled card that isn't resolved are saved in the campaign, so they survive a restart. A
+message waiting for a move isn't: its case is lost.
 """
 
 import dataclasses
@@ -59,6 +59,8 @@ from ironsworn_tui.campaign import (
     Meter,
     OwedMove,
     ProgressTrack,
+    SavedBoost,
+    SavedCard,
     meter_max,
     setback_note,
 )
@@ -90,8 +92,10 @@ from ironsworn_tui.outcomes import (
     Effect,
     EndJourney,
     ExperiencePerAbility,
+    FoeHarmForFight,
     FollowUp,
     GainExperience,
+    HarmForFight,
     InflictHarm,
     InflictRolledHarm,
     MarkDebility,
@@ -142,7 +146,10 @@ PROGRESS_MOVES = {
     "end_the_fight",
     "write_your_epilogue",
 }
-ATTACKS = {"strike", "clash"}
+BOND_ADD = 1
+# Moves whose strong hit doesn't allow End the Fight: those that start a fight or settle it
+# another way, progress moves, and the follow-ups that suffer or face a fate.
+NOT_DECISIVE = {"enter_the_fray", "draw_the_circle", "battle"}
 # The meter a Masked character's mask is tied to, by material.
 MASK_TRACKS: dict[str, Meter] = {
     "thunderwood": "health",
@@ -197,6 +204,8 @@ class MoveInputs:
         heal_self: For Heal, True when the character mends their own wounds.
         amount: How much of an asset meter to spend, for Lightbearer's unleashed light.
         companion: For Heal, the companion asset being healed.
+        bond: For Sojourn, True when the character shares a bond with the community. The
+            player says so; the app doesn't work it out.
     """
 
     vow: str | None = None
@@ -206,6 +215,7 @@ class MoveInputs:
     heal_self: bool = True
     amount: int | None = None
     companion: str | None = None
+    bond: bool = False
 
 
 NO_INPUTS = MoveInputs()
@@ -262,6 +272,9 @@ class _Pending:
     automatic: bool = False
     companion: str | None = None
     lasting: list[Lasting] = dataclasses.field(default_factory=list[Lasting])
+    tide: bool = False
+    burn_initiative: bool = False
+    amount: int | None = None
 
 
 class TurnEngine:
@@ -308,7 +321,9 @@ class TurnEngine:
         unknown = [lasting.kind for lasting in campaign.lasting if lasting.kind not in LASTING]
         if unknown:
             raise ValueError(f"unknown lasting effects: {', '.join(unknown)}")
-        self._pending: _Pending | None = None
+        self._pending: _Pending | None = (
+            self._restore(campaign.pending_card) if campaign.pending_card is not None else None
+        )
         self._initiative_set = False
         self._harm = 0
         self._companion: str | None = None
@@ -439,8 +454,9 @@ class TurnEngine:
     def inputs_needed(self, option: str) -> tuple[str, ...]:
         """Return the fields the player must fill in before a move, such as `vow` and `rank`.
 
-        Fields: `vow`, `rank`, `foes`, `destination`, and `treat` (for Heal: yourself or
-        someone else).
+        Fields: `vow`, `rank`, `foes`, `destination`, `treat` (for Heal: yourself or
+        someone else), and `bond` (for Sojourn: whether the character shares a bond with the
+        community).
         """
         campaign = self.campaign
         match option:
@@ -452,6 +468,8 @@ class TurnEngine:
                 return ("destination", "rank")
             case "heal":
                 return ("treat",)
+            case "sojourn":
+                return ("bond",)
             case "fulfill_your_vow" | "forsake_your_vow" if len(campaign.vows) > 1:
                 return ("vow",)
             case _:
@@ -597,11 +615,7 @@ class TurnEngine:
     def _lasting_boosts(self) -> list[AvailableBoost]:
         found: list[AvailableBoost] = []
         for index, lasting in enumerate(self.campaign.lasting):
-            boost = LASTING[lasting.kind].boost
-            if lasting.stat is not None:
-                boost = dataclasses.replace(
-                    boost, label=f"{boost.label} ({lasting.stat})", only_stat=lasting.stat
-                )
+            boost = _lasting_boost(lasting)
             found.append(AvailableBoost(BoostRef("", 0, lasting=index), "", boost))
         return found
 
@@ -692,12 +706,7 @@ class TurnEngine:
             have = self.campaign.character.asset(available.ref.asset).meters[meter]
             if inputs.amount is None or not 1 <= inputs.amount <= have:
                 raise TurnError(f"choose how much {meter} to unleash, from 1 to {have}")
-            boost = dataclasses.replace(
-                available.boost,
-                before=(AssetMeterChange(available.ref.asset, meter, -inputs.amount),),
-                set_harm=1 + inputs.amount,
-            )
-            changed.append(dataclasses.replace(available, boost=boost))
+            changed.append(_unleashed(available, inputs.amount))
         return tuple(changed)
 
     def _use(self, boosts: tuple[AvailableBoost, ...]) -> None:
@@ -809,6 +818,8 @@ class TurnEngine:
             automatic=automatic,
             companion=inputs.companion,
             lasting=used,
+            tide=tide,
+            amount=inputs.amount,
         )
         if automatic:
             card = self._card(move, "automatic", None, None, pending)
@@ -816,14 +827,16 @@ class TurnEngine:
             card = self._progress_card(move, vow, pending)
         else:
             pending.value = value[1]
-            pending.adds = adds + boost_adds + campaign.next_add + (TIDE_ADD if tide else 0)
+            bond = BOND_ADD if move == "sojourn" and inputs.bond else 0
+            pending.adds = adds + boost_adds + campaign.next_add + (TIDE_ADD if tide else 0) + bond
             campaign.next_add = 0
             roll = self._roll(pending.value, pending.adds)
             card = self._card(move, value[0], roll, None, pending)
-        pending.card = dataclasses.replace(card, tide=tide)
+        pending.card = card
         self._pending = pending
-        campaign.add_log("roll", _describe(pending.card))
-        return pending.card
+        campaign.add_log("roll", _describe(card))
+        self.save()
+        return card
 
     def _boost_adds(self, chosen: tuple[AvailableBoost, ...]) -> int:
         """The boosts' adds, reading any asset meter they add before its cost is paid."""
@@ -855,6 +868,7 @@ class TurnEngine:
             harm=self.campaign.character.harm,
             foe_harm=self._foe_harm(),
             upgraded=upgraded,
+            bond=move == "sojourn" and inputs.bond,
         )
 
     def _vow(self, inputs: MoveInputs) -> ProgressTrack:
@@ -1018,6 +1032,8 @@ class TurnEngine:
         endurance = pending.endurance
         if endurance is not None and hit is Hit.MISS and endurance.meter_after == 0:
             effects = (*effects, self._fate_choice(move, endurance))
+        if pending.burn_initiative:
+            effects = (*effects, SetInitiative("character"))
         fresh = not (pending.burned or pending.rerolled)
         return RollCard(
             move=move,
@@ -1028,6 +1044,7 @@ class TurnEngine:
             effects=effects,
             outcome_text=plain_text(text),
             hit=hit,
+            tide=pending.tide,
             boosts=tuple(a.label for a in pending.boosts),
             burn_available=self._burn_available(action, progress, pending),
             can_reroll=fresh and _reroll_allowed(boosts, hit),
@@ -1088,8 +1105,11 @@ class TurnEngine:
         return Choose(tuple(options))
 
     def _foe_harm(self) -> int:
+        """The targeted foe's harm, with any boast that raises it for the fight."""
         foe = self.campaign.target_foe()
-        return foe.harm if foe is not None else 1
+        if foe is None:
+            return 1
+        return foe.harm + self.campaign.foe_harm_bonus
 
     def burn(self) -> RollCard:
         """Burn momentum on the roll card, and reset momentum.
@@ -1117,23 +1137,27 @@ class TurnEngine:
         character.reset_momentum()
         pending.burned = True
         new_card = self._card(card.move, card.rolled_with, action, progress, pending)
-        if before is Hit.MISS and new_card.hit is Hit.WEAK:
-            new_card = self._burn_initiative(pending, new_card)
-        pending.card = dataclasses.replace(new_card, tide=card.tide)
-        self.campaign.add_log("roll", f"Burned momentum: {pending.card.hit.label}")
-        return pending.card
+        if before is Hit.MISS and new_card.hit is Hit.WEAK and self._burn_initiative(pending):
+            new_card = self._card(card.move, card.rolled_with, action, progress, pending)
+        pending.card = new_card
+        self.campaign.add_log("roll", f"Burned momentum: {new_card.hit.label}")
+        self.save()
+        return new_card
 
-    def _burn_initiative(self, pending: _Pending, card: RollCard) -> RollCard:
-        """Veteran: take initiative, once per fight, when burning turns a miss to a weak hit."""
+    def _burn_initiative(self, pending: _Pending) -> bool:
+        """Veteran: take initiative, once per fight, when burning turns a miss to a weak hit.
+
+        Returns:
+            True when a boost takes initiative.
+        """
         campaign = self.campaign
         for available in pending.boosts:
             key = _use_key(available.ref) + ":initiative"
             if available.boost.burn_initiative and campaign.foes and key not in campaign.fight_uses:
                 campaign.fight_uses.append(key)
-                return dataclasses.replace(
-                    card, effects=(*card.effects, SetInitiative("character"))
-                )
-        return card
+                pending.burn_initiative = True
+                return True
+        return False
 
     def reroll(self, dice: Sequence[int]) -> RollCard:
         """Reroll some of the card's dice, as a boost allows.
@@ -1183,9 +1207,10 @@ class TurnEngine:
             progress = evaluate_progress(progress.ticks, (first, second))
         pending.rerolled = True
         new_card = self._card(card.move, card.rolled_with, action, progress, pending)
-        pending.card = dataclasses.replace(new_card, tide=card.tide)
-        self.campaign.add_log("roll", f"Rerolled: {_describe(pending.card)}")
-        return pending.card
+        pending.card = new_card
+        self.campaign.add_log("roll", f"Rerolled: {_describe(new_card)}")
+        self.save()
+        return new_card
 
     def late_add(self) -> RollCard:
         """Take a boost's add after rolling, as Improviser's and Wright's allow, and its cost.
@@ -1205,9 +1230,10 @@ class TurnEngine:
             pending.value, pending.adds, action.momentum, action.action_die, action.challenge_dice
         )
         new_card = self._card(card.move, card.rolled_with, action, None, pending)
-        pending.card = dataclasses.replace(new_card, tide=card.tide)
-        self.campaign.add_log("roll", f"Added after rolling: {_describe(pending.card)}")
-        return pending.card
+        pending.card = new_card
+        self.campaign.add_log("roll", f"Added after rolling: {_describe(new_card)}")
+        self.save()
+        return new_card
 
     def resolve(self, choices: Sequence[Sequence[int]] = ()) -> tuple[OwedMove, ...]:
         """Apply the roll card's effects, and save.
@@ -1252,8 +1278,10 @@ class TurnEngine:
         if campaign.foes and not self._initiative_set:
             campaign.initiative = "character" if hit is Hit.STRONG else "foe"
         foe = campaign.target_foe()
+        # Any move framed as decisive can set up End the Fight (rulebook page 82). The player
+        # declines the offer when it wasn't.
         campaign.end_fight_offered = (
-            card.move in ATTACKS
+            card.move not in NOT_DECISIVE | PROGRESS_MOVES | set(ROLLED_FOLLOW_UPS)
             and hit is Hit.STRONG
             and foe is not None
             and foe.ticks >= TICKS_PER_BOX
@@ -1407,6 +1435,14 @@ class TurnEngine:
                 campaign.add_log("outcome", f"Extra harm: {roll}")
                 if foe is not None:
                     foe.mark(roll)
+            case FoeHarmForFight(amount=amount):
+                if campaign.foes:
+                    campaign.foe_harm_bonus += amount
+            case HarmForFight(harm=harm):
+                if campaign.foes:
+                    if campaign.harm_after_fight is None:
+                        campaign.harm_after_fight = character.harm
+                    character.harm = harm
             case MaskTrack(amount=amount):
                 masked = character.asset_or_none("masked")
                 material = masked.fields.get("material") if masked is not None else None
@@ -1491,13 +1527,14 @@ class TurnEngine:
     def _end_the_fight(self, chosen: tuple[AvailableBoost, ...]) -> RollCard:
         campaign = self.campaign
         if not campaign.end_fight_offered:
-            raise TurnError("End the Fight needs a strong hit on a Strike or Clash first")
+            raise TurnError("End the Fight needs a strong hit in the fight first")
         campaign.end_fight_offered = False
         self._use(chosen)
         pending = _Pending(card=_EMPTY_CARD, details=self._details(), vow=None, boosts=chosen)
         pending.card = self._progress_card("end_the_fight", None, pending)
         self._pending = pending
         campaign.add_log("roll", _describe(pending.card))
+        self.save()
         return pending.card
 
     def roll_follow_up(self, boosts: Sequence[BoostRef] = ()) -> RollCard | None:
@@ -1568,6 +1605,7 @@ class TurnEngine:
             pending.card = self._card(owed.move, "automatic", None, None, pending)
             self._pending = pending
             self.campaign.add_log("roll", _describe(pending.card))
+            self.save()
             return pending.card
         action_die = self.rng.randint(1, 6)
         dice = roll_challenge_dice(self.rng)
@@ -1600,6 +1638,7 @@ class TurnEngine:
         pending.card = card
         self._pending = pending
         self.campaign.add_log("roll", _describe(card) + lost)
+        self.save()
         return card
 
     def _endure(
@@ -1751,13 +1790,23 @@ class TurnEngine:
         self.campaign.add_log("outcome", line)
         self.save()
 
-    def endure(self, move: Literal["endure_harm", "endure_stress"], amount: int) -> None:
+    def endure(self, move: Literal["endure_harm", "endure_stress"], amount: int | None) -> None:
         """Owe Endure Harm or Endure Stress, for harm or stress the player applies from the
         fiction, such as Pay the Price's or a foe's attack.
 
+        Args:
+            move: Endure Harm or Endure Stress.
+            amount: The harm or stress. None for Endure Harm means the targeted foe's harm,
+                with any boast that raises it.
+
         Raises:
-            TurnError: If the amount isn't at least 1.
+            TurnError: If the amount isn't at least 1, or it's None outside a fight or for
+                Endure Stress.
         """
+        if amount is None:
+            if move != "endure_harm" or not self.campaign.foes:
+                raise TurnError("name the harm or stress; only a foe's harm in a fight is known")
+            amount = self._foe_harm()
         if amount < 1:
             raise TurnError("the harm or stress must be at least 1")
         self.campaign.follow_ups.append(OwedMove(move=move, amount=amount))
@@ -1879,9 +1928,99 @@ class TurnEngine:
         return result
 
     def save(self) -> None:
-        """Save the campaign, if the engine has a path."""
+        """Save the campaign, with the roll card waiting for choices, if the engine has a path."""
+        self.campaign.pending_card = self._saved() if self._pending is not None else None
         if self.path is not None:
             self.campaign.save(self.path)
+
+    def _saved(self) -> SavedCard:
+        """The waiting roll card, as the campaign saves it."""
+        pending = self._pending
+        assert pending is not None
+        card, details = pending.card, pending.details
+        lasting = iter(pending.lasting)
+        boosts = [
+            SavedBoost(
+                asset=a.ref.asset,
+                ability=a.ref.ability,
+                variant=a.ref.variant,
+                lasting=next(lasting) if a.ref.lasting is not None else None,
+            )
+            for a in pending.boosts
+        ]
+        return SavedCard(
+            move=card.move,
+            rolled_with=card.rolled_with,
+            action=card.action,
+            progress=card.progress,
+            endurance=pending.endurance,
+            boosts=boosts,
+            vow=pending.vow.name if pending.vow is not None else None,
+            companion=pending.companion,
+            amount=pending.amount,
+            heal_self=details.heal_self,
+            bond=details.bond,
+            harm=details.harm,
+            foe_harm=details.foe_harm,
+            meter_above_zero=details.meter_above_zero,
+            upgraded=details.upgraded,
+            value=pending.value,
+            adds=pending.adds,
+            tide=pending.tide,
+            rerolled=pending.rerolled,
+            late=pending.late,
+            burned=pending.burned,
+            automatic=pending.automatic,
+            burn_initiative=pending.burn_initiative,
+        )
+
+    def _restore(self, saved: SavedCard) -> _Pending:
+        """Rebuild a saved roll card against the campaign it was saved with.
+
+        The boosts' costs were paid before the card was saved, so they aren't checked or paid
+        again.
+        """
+        boosts: list[AvailableBoost] = []
+        for index, each in enumerate(saved.boosts):
+            if each.lasting is not None:
+                boost = _lasting_boost(each.lasting)
+                boosts.append(AvailableBoost(BoostRef("", 0, lasting=index), "", boost))
+                continue
+            boost = entry_boosts(ABILITIES[(each.asset, each.ability)])[each.variant]
+            ref = BoostRef(each.asset, each.ability, each.variant)
+            available = AvailableBoost(ref, self.data.asset(each.asset).name, boost)
+            if boost.unleash is not None and saved.amount is not None:
+                available = _unleashed(available, saved.amount)
+            boosts.append(available)
+        pending = _Pending(
+            card=_EMPTY_CARD,
+            details=MoveDetails(
+                heal_self=saved.heal_self,
+                harm=saved.harm,
+                foe_harm=saved.foe_harm,
+                meter_above_zero=saved.meter_above_zero,
+                upgraded=saved.upgraded,
+                bond=saved.bond,
+            ),
+            vow=self.campaign.vow(saved.vow) if saved.vow is not None else None,
+            endurance=saved.endurance,
+            boosts=tuple(boosts),
+            value=saved.value,
+            adds=saved.adds,
+            rerolled=saved.rerolled,
+            late=saved.late,
+            burned=saved.burned,
+            automatic=saved.automatic,
+            companion=saved.companion,
+            lasting=[each.lasting for each in saved.boosts if each.lasting is not None],
+            tide=saved.tide,
+            burn_initiative=saved.burn_initiative,
+            amount=saved.amount,
+        )
+        pending.card = self._card(
+            saved.move, saved.rolled_with, saved.action, saved.progress, pending
+        )
+        return pending
 
 
 _EMPTY_CARD = RollCard(
@@ -1924,6 +2063,28 @@ def _only_changes_the_action_roll(boost: Boost) -> bool:
         field=None,
     )
     return changes_roll and rest == Boost(boost.label, boost.moves)
+
+
+def _lasting_boost(lasting: Lasting) -> Boost:
+    """The boost a lasting effect gives, limited to its stat if it has one."""
+    boost = LASTING[lasting.kind].boost
+    if lasting.stat is None:
+        return boost
+    return dataclasses.replace(
+        boost, label=f"{boost.label} ({lasting.stat})", only_stat=lasting.stat
+    )
+
+
+def _unleashed(available: AvailableBoost, amount: int) -> AvailableBoost:
+    """Lightbearer's unleashed light: spend the amount from its meter for 1 + amount harm."""
+    meter = available.boost.unleash
+    assert meter is not None
+    boost = dataclasses.replace(
+        available.boost,
+        before=(AssetMeterChange(available.ref.asset, meter, -amount),),
+        set_harm=1 + amount,
+    )
+    return dataclasses.replace(available, boost=boost)
 
 
 def _lasting_label(lasting: Lasting) -> str:

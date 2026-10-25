@@ -285,17 +285,17 @@ def _amount(text: str) -> int:
 
 def _endure(engine: TurnEngine, rest: str) -> CommandResult:
     match rest.split():
-        case ["harm" | "stress" as what, amount]:
+        case ["harm" | "stress" as what, *amount] if len(amount) <= 1:
             move: Literal["endure_harm", "endure_stress"] = (
                 "endure_harm" if what == "harm" else "endure_stress"
             )
             try:
-                engine.endure(move, _amount(amount))
+                engine.endure(move, _amount(amount[0]) if amount else None)
             except TurnError as error:
                 raise CommandError(str(error)) from error
             return CommandResult()
         case _:
-            raise CommandError("usage: /endure harm|stress <n>")
+            raise CommandError("usage: /endure harm [<n>] or /endure stress <n>")
 
 
 def _adjust(engine: TurnEngine, rest: str) -> CommandResult:
