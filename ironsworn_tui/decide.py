@@ -55,8 +55,8 @@ class TurnState:
     """What the app knows about the turn, and the part of it the decision model sees.
 
     Attributes:
-        name: The character's name, such as "Kira".
-        character: The character's name and a few words about them, such as "Kira, a hunter".
+        name: The character's name, such as "Blarg".
+        character: The character's name and a few words about them, such as "Blarg, the Destructor".
         situation: The scene, as the player last described it with `/scene`.
         context: The context, which decides the `move` options. The model sees it as a sentence
             in `circumstances`.
@@ -82,7 +82,7 @@ class TurnState:
 
     @property
     def circumstances(self) -> str:
-        """The context and initiative as a sentence, such as "Kira is exploring"."""
+        """The context and initiative as a sentence, such as "Blarg is exploring"."""
         match self.context, self.initiative:
             case Context.FIGHT, "character":
                 return f"{self.name} is in a fight and has initiative."

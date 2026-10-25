@@ -23,7 +23,7 @@ This page records the vendor guidance on writing requests for decision models, a
 
 Build step 3 applied:
 
-- The state has `character`, `circumstances`, `situation`, and `player_says`. `circumstances` is a sentence such as "Kira is in a fight, and the foe has initiative", in place of a `context` id and a null `initiative`.
+- The state has `character`, `circumstances`, `situation`, and `player_says`. `circumstances` is a sentence such as "Blarg is in a fight, and the foe has initiative", in place of a `context` id and a null `initiative`.
 - The `move` question asks "Which move does the action in `player_says` trigger, given `circumstances` and `situation`?" Every stat question, including the one for an attack, asks "How does the character go about the action in `player_says`?", with no move name.
 - Each guide criterion is a concrete situation. Criteria for moves that overlap name the line between them: Face Danger overcomes a danger directly, while Secure an Advantage sets up an edge for an action still to come, and Gather Information learns facts. Make Camp is away from any settlement, and Sojourn is in a community.
 - `no_move` and `cannot_tell` describe situations instead of negations, and they come last in every list.

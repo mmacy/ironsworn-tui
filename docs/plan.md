@@ -113,8 +113,8 @@ The state is JSON with the character's situation and the player's text:
 
 ```json
 {
-  "character": "Kira, a hunter",
-  "circumstances": "Kira is on a journey, and no fight is under way.",
+  "character": "Blarg, the Destructor",
+  "circumstances": "Blarg is on a journey, and no fight is under way.",
   "situation": "Pinned behind a cart. Two raiders with bows hold the ridge above the road.",
   "player_says": "I creep along the ditch to get behind the ridge where they can't see me."
 }

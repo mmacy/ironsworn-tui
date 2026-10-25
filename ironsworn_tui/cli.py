@@ -221,11 +221,11 @@ def make_parser() -> argparse.ArgumentParser:
         default=None,
         help="Who has initiative. Used only with --context fight (default: character).",
     )
-    s.add_argument("--name", default="Kira", help="The character's name (default: Kira).")
+    s.add_argument("--name", default="Blarg", help="The character's name (default: Blarg).")
     s.add_argument(
         "--character",
-        default="Kira, a hunter",
-        help="The character as the model sees it (default: 'Kira, a hunter').",
+        default="Blarg, the Destructor",
+        help="The character as the model sees it (default: 'Blarg, the Destructor').",
     )
     s.add_argument(
         "--situation", default="", help="The scene, as /scene sets it in play (default: none)."

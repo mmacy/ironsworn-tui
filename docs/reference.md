@@ -125,8 +125,8 @@ Asks the decision model which move one message triggers. It starts jevtester, se
 | `<text>` | Yes | | The message, as the player would type it. |
 | `--context` | No | `exploring` | The context, which sets the moves the model chooses from. |
 | `--initiative` | No | `character` in a fight | Who has initiative. Ignored unless `--context fight`. |
-| `--name` | No | `Kira` | The character's name. |
-| `--character` | No | `Kira, a hunter` | The character, as the model sees it. |
+| `--name` | No | `Blarg` | The character's name. |
+| `--character` | No | `Blarg, the Destructor` | The character, as the model sees it. |
 | `--situation` | No | Empty | The scene, as [`/scene`](#scene) sets it in play. |
 | `--style` | No | `guide` | How the request describes each move. `guide` uses short criteria. `trigger` uses the move's trigger text from the rules data. |
 | `--target` | No | `target` in [`ironsworn-tui.toml`](#settings) | The jevtester target to ask. |
