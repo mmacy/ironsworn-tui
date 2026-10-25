@@ -22,7 +22,7 @@ from ironsworn_tui.commands import COMMANDS
 from ironsworn_tui.decide import DecideError, Decision, JsonObject
 from ironsworn_tui.rules.datasworn import datasworn
 from ironsworn_tui.rules.progress import Rank
-from ironsworn_tui.turn import MoveInputs
+from ironsworn_tui.turn import MoveInputs, TurnEngine
 from tests.support import engine
 
 
@@ -667,5 +667,46 @@ def test_moves_past_the_ninth_take_capital_letters(tmp_path: Path):
             await pilot.press("w")
             assert app.bar_state.selected == 10
             assert app.bar_state.stat == "wits"
+
+    asyncio.run(play())
+
+
+def test_sojourn_asks_about_a_bond(tmp_path: Path):
+    turn, dice, decider = engine(tmp_path)
+    decider.answers.append(("sojourn", None, 0.95))
+
+    async def play() -> None:
+        app = IronswornApp(turn)
+        async with app.run_test(size=(120, 40)) as pilot:
+            await pilot.press(*"I rest in Bleakhold", "enter")
+            await settle(app, pilot)
+            await pilot.press("enter")
+            await pilot.pause()
+            assert isinstance(app.screen, InputsScreen)
+            dice.load(3, 5, 6)
+            await pilot.press(*"yes", "enter")
+            await pilot.pause()
+            assert app.bar_state.mode == "card"
+
+    asyncio.run(play())
+    card = turn.card
+    assert card is not None
+    assert card.action is not None
+    assert card.action.adds == 1
+
+
+def test_a_card_waiting_at_restart_is_shown_again(tmp_path: Path):
+    turn, dice, _ = engine(tmp_path)
+    dice.load(3, 4, 6)
+    card = turn.make_move("face_danger", stat="edge")
+    path = tmp_path / "kira.json"
+    again = TurnEngine(Campaign.load(path), turn.data, dice, turn.thresholds, path=path)
+
+    async def play() -> None:
+        app = IronswornApp(again)
+        async with app.run_test(size=(120, 40)) as pilot:
+            await pilot.pause()
+            assert app.bar_state.mode == "card"
+            assert app.bar_state.card == card
 
     asyncio.run(play())

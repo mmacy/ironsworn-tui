@@ -193,8 +193,8 @@ To attack a different foe, type `/target` and its name, such as `/target Archer`
 
 To end the fight:
 
-1. After a strong hit on Strike or Clash, when the target has at least one full box, the bar shows "End the Fight".
-2. Press f to roll End the Fight. Press Escape instead to keep fighting.
+1. After a strong hit on a move in the fight, such as Strike, Clash, or Face Danger, when the target has at least one full box, the bar shows "End the Fight".
+2. If you meant the move as a decisive action, press f to roll End the Fight. Press Escape instead to keep fighting.
 3. Pick any choices on the card, then press Enter.
 
 On a hit, the foe leaves the fight. When no foes are left, the "Fight" section leaves the panel, and the move list goes back to the moves you use outside a fight.
@@ -401,7 +401,7 @@ If you press a before an Endure Harm or Endure Stress roll, you can turn on the 
 
 Pay the Price only logs what happens. If the price is harm or stress, or a foe's attack hurts you, owe the roll yourself:
 
-1. Type `/endure harm 2` for 2 harm, or `/endure stress 1` for 1 stress. Use the foe's harm for an attack: 1 for troublesome, up to 5 for epic.
+1. Type `/endure harm 2` for 2 harm, or `/endure stress 1` for 1 stress. For a foe's attack, type `/endure harm` with no amount, and the app uses the targeted foe's harm, including Draw the Circle's "Bare yourself" boast.
 2. The bar shows Endure Harm or Endure Stress. Press Enter to roll.
 
 For other prices, such as lost supply, use `/adjust`, as the next guide shows.
@@ -429,14 +429,6 @@ Use this when a number is wrong, or when the log tells you to apply something yo
 Each box is 4 ticks. The debilities are `wounded`, `shaken`, `unprepared`, `encumbered`, `maimed`, `corrupted`, `cursed`, and `tormented`. For an asset's meter, use `/asset meter` instead.
 
 You can't use `/adjust` while a roll card is open. Press Enter to apply the card first.
-
-These rules aren't applied by the app yet. Use `/adjust` for each one:
-
-- Sojourn: if you share a bond, you choose one more action. For example, type `/adjust spirit 2` for Consort.
-- Draw the Circle offers up to two boasts. The rulebook allows three. To take a third boast, apply it yourself: `/adjust momentum 1`, plus the boast's effect.
-- Draw the Circle's "Bare yourself" boast makes your foe's harm +1, and the app doesn't add it. Each time that foe harms you, add 1 to the harm you type in `/endure harm`.
-- Draw the Circle's "Hold no iron" boast makes your harm 1. Type `/adjust harm 1`, and `/adjust harm 2` when the fight ends.
-- A roll card you haven't applied is lost if you quit. Press Enter on the card before you quit. If you lose one, make the move again, or apply its result with `/adjust`.
 
 The log also asks you to use `/adjust` in a few places. For example:
 

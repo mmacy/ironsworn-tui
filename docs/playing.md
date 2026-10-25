@@ -192,13 +192,25 @@ Battle settles a whole fight with one roll, if you don't want to play out each e
 
 A fight can also end without End the Fight, for example when you flee or the foe surrenders. Use `/adjust` to end it.
 
-#### Where the app differs from the rulebook in fights
+#### When the app offers End the Fight
 
-The rulebook lets you make End the Fight after any strong hit meant as a decisive action. The app offers End the Fight only after a strong hit on Strike or Clash, when the targeted foe has at least one full box of progress. Then the bar shows "f end the fight." If a different move earned you the chance, the app can't offer End the Fight. Make another attack instead.
+The rulebook lets you make End the Fight after any strong hit on a move meant as a decisive action (rulebook page 82). Only you know whether a move was meant that way. So the app offers End the Fight after a strong hit on any move you make in a fight, such as Strike, Clash, Face Danger, or Secure an Advantage. The bar shows "f end the fight." Press Escape to keep fighting when the move wasn't decisive.
+
+The app doesn't offer it after Enter the Fray, Draw the Circle, or Battle, after a suffer move such as Endure Harm, or when the targeted foe has no full box of progress. With no full box, End the Fight can't score a hit.
+
+#### Draw the Circle
+
+Draw the Circle starts a duel (rulebook page 73). On a strong hit, you can choose up to three boasts, and on a weak hit, one. The app applies each boast:
+
+- **Grant first strike:** Your foe has initiative.
+- **Bare yourself:** Your foe's harm is +1 until the fight ends. End the Fight's "It's worse than you thought" cost, and `/endure harm` with no amount, use the higher harm.
+- **Hold no iron:** Your harm is 1 until the fight ends. The app then sets it back to what it was.
+- **Bloody yourself:** You owe Endure Harm for 1 harm.
+- **To the death:** The app logs it. The fiction decides what it means.
 
 ### Bonds
 
-A *bond* is a close tie to a person or community (rulebook page 36). When you Forge a Bond, the app marks one tick on your bonds track. Some moves add +1 when you share a bond with someone. The app can't tell whether you do, so add the +1 yourself with `+` before you roll. When your character retires, Write Your Epilogue rolls against your bonds track.
+A *bond* is a close tie to a person or community (rulebook page 36). When you Forge a Bond, the app marks one tick on your bonds track. Some moves add +1 when you share a bond with someone. The app can't tell whether you do. For Sojourn, the app asks: answer `yes` in the Bond field, and the app adds the +1 and lets you choose one more recovery option on a hit (rulebook page 71). Don't also add the +1 yourself. For other moves, like Compel or Draw the Circle, add the +1 yourself with `+` before you roll. When your character retires, Write Your Epilogue rolls against your bonds track.
 
 The rulebook lets you start with up to three background bonds. Name them with `--bond` when you create your character, and the app marks a tick for each. To add a bond later, use `/adjust bonds`.
 
@@ -223,7 +235,7 @@ The rulebook says to let new assets come from the story. Whether that fits is up
 
 ## Moves the app requires next
 
-Some results call for another move right away. The app keeps a list of these *follow-up moves* and asks you to make each one in order. Until you do, you can't make another move. You can still use `/` commands. The list is saved, so it survives a restart.
+Some results call for another move right away. The app keeps a list of these *follow-up moves* and asks you to make each one in order. Until you do, you can't make another move. You can still use `/` commands. The list is saved, so it survives a restart. So is a roll card you haven't applied: if you quit with a card open, the app shows the same card, with the same dice, when you come back.
 
 The follow-ups are:
 
@@ -240,7 +252,7 @@ The rules resolve these moves before anything else happens, so the app blocks ot
 
 ### When the fiction means harm
 
-Some harm doesn't come from a move result the app can read. Pay the Price may decide your character is hurt, or a foe may strike while you act. The app can't judge the fiction, so you tell it: `/endure harm 2` owes Endure Harm for 2 harm, and `/endure stress 1` owes Endure Stress. You then roll the move as usual, with its chance to shake off the harm.
+Some harm doesn't come from a move result the app can read. Pay the Price may decide your character is hurt, or a foe may strike while you act. The app can't judge the fiction, so you tell it: `/endure harm 2` owes Endure Harm for 2 harm, and `/endure stress 1` owes Endure Stress. In a fight, `/endure harm` with no amount uses the targeted foe's harm. You then roll the move as usual, with its chance to shake off the harm.
 
 ## Oracles
 
@@ -303,11 +315,4 @@ The app can't tell when your companion is hurt in the fiction. When it is, use `
 
 ## Known gaps
 
-The app doesn't yet handle a few rules. For each one, apply the effect yourself, usually with `/adjust`:
-
-- **Sojourn's extra choice for a bond:** If you share a bond with the community, Sojourn lets you choose one more recovery option. The app doesn't offer it. Apply the extra option with `/adjust`.
-- **Draw the Circle's "Bare yourself":** This boast gives your foe +1 harm. The app logs it as a note but doesn't apply it. When the foe hurts you, add 1 to the harm you type in `/endure harm`.
-- **Draw the Circle's boasts:** The app offers up to two boasts on a strong hit, as its rules data does. The rulebook allows up to three.
-- **A roll card is lost on restart:** If you close the app before you apply a roll card, the roll is lost. The app saves owed follow-ups, but not the card. Finish each card before you quit.
-
-When a result needs something the app doesn't do, the app logs a note. [How-to guides](how-to.md) shows how to fix a mistake with `/adjust`.
+The app has no known gaps in the rules it applies. When a result needs something the app doesn't do, the app logs a note. [How-to guides](how-to.md) shows how to fix a mistake with `/adjust`.

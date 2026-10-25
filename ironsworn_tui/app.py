@@ -42,6 +42,7 @@ FIELD_HINTS = {
     "destination": "The destination",
     "treat": "yourself, someone else, or a companion",
     "amount": "How much to spend",
+    "bond": "yes or no",
 }
 DICE_LABELS = ("Action die", "First challenge die", "Second challenge die")
 
@@ -298,6 +299,9 @@ def _inputs(values: dict[str, str], companions: dict[str, str]) -> MoveInputs:
     amount = values.get("amount")
     if amount is not None and not amount.isdigit():
         raise CommandError("amount must be a number")
+    bond = (values.get("bond") or "no").lower()
+    if bond not in ("yes", "y", "no", "n"):
+        raise CommandError("bond must be yes or no")
     return MoveInputs(
         vow=values.get("vow") or None,
         rank=rank,
@@ -306,6 +310,7 @@ def _inputs(values: dict[str, str], companions: dict[str, str]) -> MoveInputs:
         heal_self=treat in ("yourself", "self"),
         companion=companion,
         amount=int(amount) if amount is not None else None,
+        bond=bond in ("yes", "y"),
     )
 
 

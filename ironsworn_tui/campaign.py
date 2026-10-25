@@ -8,11 +8,13 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from ironsworn_tui.moves import Context, Initiative
+from ironsworn_tui.rules.action import ActionRoll
 from ironsworn_tui.rules.datasworn import Datasworn, Stat, datasworn
 from ironsworn_tui.rules.momentum import MomentumBounds, adjust_momentum, momentum_bounds
-from ironsworn_tui.rules.progress import TICKS_PER_BOX, TRACK_TICKS, Rank
+from ironsworn_tui.rules.progress import TICKS_PER_BOX, TRACK_TICKS, ProgressRoll, Rank
+from ironsworn_tui.rules.suffer import Endurance
 
-SCHEMA_VERSION = 2
+SCHEMA_VERSION = 3
 METER_MAX = 5
 STARTING_STATS = (3, 2, 2, 1, 1)
 STARTING_ASSETS = 3
@@ -324,6 +326,80 @@ class Lasting(_Model):
     stat: Stat | None = None
 
 
+class SavedBoost(_Model):
+    """A boost turned on for the roll card waiting for the player's choices.
+
+    Attributes:
+        asset: The asset id, or empty for a lasting effect with no asset.
+        ability: The ability, from 1 to 3, or 0 for a lasting effect.
+        variant: The index of the boost in the ability's entry.
+        lasting: For a lasting effect, the effect itself. It may have ended when the move
+            used it, so it's saved whole rather than by its place in the list.
+    """
+
+    asset: str
+    ability: int
+    variant: int = 0
+    lasting: Lasting | None = None
+
+
+class SavedCard(_Model):
+    """The roll card waiting for the player's choices, so it survives a restart.
+
+    The card's effects aren't saved. The turn engine works them out again from the move, the
+    dice, and these facts, against the campaign as it was saved with the card.
+
+    Attributes:
+        move: The move id.
+        rolled_with: What the roll used, such as "iron" or "progress".
+        action: The action roll, for an action-roll move.
+        progress: The progress roll, for a progress move.
+        endurance: The damage and roll, for Endure Harm or Endure Stress.
+        boosts: The boosts the player turned on.
+        vow: The name of the move's vow, if it has one.
+        companion: The companion the move is for, as for Heal or Companion Endure Harm.
+        amount: The amount of an asset meter unleashed, for Lightbearer.
+        heal_self: For Heal, True when the character mends their own wounds.
+        bond: For Sojourn, True when the character shares a bond with the community.
+        harm: The harm the character inflicts.
+        foe_harm: The targeted foe's harm.
+        meter_above_zero: For Endure Harm or Stress, True when the meter is above 0.
+        upgraded: For an asset move, True when the asset's second ability is marked.
+        value: The stat or meter value rolled with.
+        adds: The adds on the action roll.
+        tide: True when Turn the Tide was armed for this move.
+        rerolled: True when dice were rerolled.
+        late: True when an add was taken after rolling.
+        burned: True when momentum was burned.
+        automatic: True when a boost made the result an automatic strong hit.
+        burn_initiative: True when burning momentum took initiative, as Veteran's does.
+    """
+
+    move: str
+    rolled_with: str
+    action: ActionRoll | None = None
+    progress: ProgressRoll | None = None
+    endurance: Endurance | None = None
+    boosts: list[SavedBoost] = Field(default_factory=list[SavedBoost])
+    vow: str | None = None
+    companion: str | None = None
+    amount: int | None = None
+    heal_self: bool = True
+    bond: bool = False
+    harm: int = 2
+    foe_harm: int = 1
+    meter_above_zero: bool = True
+    upgraded: bool = False
+    value: int = 0
+    adds: int = 0
+    tide: bool = False
+    rerolled: bool = False
+    late: bool = False
+    burned: bool = False
+    automatic: bool = False
+    burn_initiative: bool = False
+
+
 type LogKind = Literal["message", "roll", "outcome", "note", "command"]
 
 
@@ -353,12 +429,17 @@ class Campaign(_Model):
         tide_armed: True when Turn the Tide is armed for the next move.
         end_fight_offered: True when the last result allows End the Fight.
         fight_uses: The once-per-fight boosts used in this fight, as `asset:ability`.
+        foe_harm_bonus: Added to each foe's harm until the fight ends, as Draw the Circle's
+            "Bare yourself" boast does.
+        harm_after_fight: The character's harm to restore when the fight ends, after Draw the
+            Circle's "Hold no iron" boast set it to 1. None when no boast changed it.
+        pending_card: The roll card waiting for the player's choices, if any.
         background_vow: The name of the background vow, which Fated counts.
         lasting: The lasting effects, such as a talisman, in the order they started.
         log: The turn log.
     """
 
-    schema_version: Literal[2] = SCHEMA_VERSION
+    schema_version: Literal[3] = SCHEMA_VERSION
     character: Character
     vows: list[ProgressTrack] = Field(default_factory=list[ProgressTrack])
     bonds: int = Field(default=0, ge=0, le=TRACK_TICKS)
@@ -373,6 +454,9 @@ class Campaign(_Model):
     tide_armed: bool = False
     end_fight_offered: bool = False
     fight_uses: list[str] = Field(default_factory=list[str])
+    foe_harm_bonus: int = Field(default=0, ge=0)
+    harm_after_fight: int | None = Field(default=None, ge=1, le=2)
+    pending_card: SavedCard | None = None
     background_vow: str | None = None
     lasting: list[Lasting] = Field(default_factory=list[Lasting])
     log: list[LogEntry] = Field(default_factory=list[LogEntry])
@@ -420,7 +504,8 @@ class Campaign(_Model):
             self.end_fight()
 
     def end_fight(self) -> None:
-        """End the fight, however it ended: clear the foes, initiative, and Turn the Tide."""
+        """End the fight, however it ended: clear the foes, initiative, and Turn the Tide, and
+        undo Draw the Circle's boasts that last for the duel."""
         self.foes = []
         self.target = None
         self.initiative = None
@@ -428,6 +513,10 @@ class Campaign(_Model):
         self.tide_armed = False
         self.end_fight_offered = False
         self.fight_uses = []
+        self.foe_harm_bonus = 0
+        if self.harm_after_fight is not None:
+            self.character.harm = self.harm_after_fight
+            self.harm_after_fight = None
 
     def add_log(self, kind: LogKind, text: str) -> None:
         """Add a line to the log."""
@@ -482,6 +571,8 @@ class Campaign(_Model):
             problems.append("initiative must be set exactly when there's a fight")
         if len(set(foe_names)) != len(foe_names):
             problems.append("two foes share a name")
+        if not self.foes and (self.foe_harm_bonus or self.harm_after_fight is not None):
+            problems.append("a boast's change to harm is kept outside a fight")
         vow_names = [vow.name for vow in self.vows]
         if len(set(vow_names)) != len(vow_names):
             problems.append("two vows share a name")
