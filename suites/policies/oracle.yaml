@@ -1,0 +1,82 @@
+# Turns the oracle answers into the likelihood or table the suggestion bar preselects.
+name: oracle
+
+# Set from the oracle experiment on decision-1@foundry (experiments/results.md). Every kind answer
+# was right, at confidence 0.51 or more. No likelihood at probability 0.4 or more was wrong, and
+# both wrong likelihoods were below 0.32.
+thresholds:
+  # At or above act on the kind answer's confidence, and at or above pick on the chosen likelihood's
+  # or table's probability, the bar preselects it. Below either, the bar preselects nothing.
+  act: 0.5
+  pick: 0.4
+
+bands:
+  kind: {act: act, confirm: act}
+
+composites:
+  # The probability of the chosen option.
+  likelihood_p:
+    likelihood: 1.0
+  table_p:
+    table: 1.0
+
+# One rule per likelihood and per table. The action is the option id.
+rules:
+  - action: escalate
+    when: {kind: cannot_tell}
+  - action: almost_certain
+    when: {kind: yes_no, likelihood: almost_certain, likelihood_p: {at_least: pick}}
+  - action: likely
+    when: {kind: yes_no, likelihood: likely, likelihood_p: {at_least: pick}}
+  - action: fifty_fifty
+    when: {kind: yes_no, likelihood: fifty_fifty, likelihood_p: {at_least: pick}}
+  - action: unlikely
+    when: {kind: yes_no, likelihood: unlikely, likelihood_p: {at_least: pick}}
+  - action: small_chance
+    when: {kind: yes_no, likelihood: small_chance, likelihood_p: {at_least: pick}}
+  - action: action
+    when: {kind: table, table: action, table_p: {at_least: pick}}
+  - action: theme
+    when: {kind: table, table: theme, table_p: {at_least: pick}}
+  - action: role
+    when: {kind: table, table: role, table_p: {at_least: pick}}
+  - action: goal
+    when: {kind: table, table: goal, table_p: {at_least: pick}}
+  - action: descriptor
+    when: {kind: table, table: descriptor, table_p: {at_least: pick}}
+  - action: ironlander-name
+    when: {kind: table, table: ironlander-name, table_p: {at_least: pick}}
+  - action: elf-name
+    when: {kind: table, table: elf-name, table_p: {at_least: pick}}
+  - action: giant-name
+    when: {kind: table, table: giant-name, table_p: {at_least: pick}}
+  - action: varou-name
+    when: {kind: table, table: varou-name, table_p: {at_least: pick}}
+  - action: troll-name
+    when: {kind: table, table: troll-name, table_p: {at_least: pick}}
+  - action: region
+    when: {kind: table, table: region, table_p: {at_least: pick}}
+  - action: location
+    when: {kind: table, table: location, table_p: {at_least: pick}}
+  - action: coastal-location
+    when: {kind: table, table: coastal-location, table_p: {at_least: pick}}
+  - action: place-descriptor
+    when: {kind: table, table: place-descriptor, table_p: {at_least: pick}}
+  - action: settlement-name
+    when: {kind: table, table: settlement-name, table_p: {at_least: pick}}
+  - action: quick-name-prefix
+    when: {kind: table, table: quick-name-prefix, table_p: {at_least: pick}}
+  - action: quick-name-suffix
+    when: {kind: table, table: quick-name-suffix, table_p: {at_least: pick}}
+  - action: settlement-trouble
+    when: {kind: table, table: settlement-trouble, table_p: {at_least: pick}}
+  - action: plot-twist
+    when: {kind: table, table: plot-twist, table_p: {at_least: pick}}
+  - action: combat-action
+    when: {kind: table, table: combat-action, table_p: {at_least: pick}}
+  - action: mystic-backlash
+    when: {kind: table, table: mystic-backlash, table_p: {at_least: pick}}
+  - action: challenge-rank
+    when: {kind: table, table: challenge-rank, table_p: {at_least: pick}}
+
+default: escalate

@@ -263,6 +263,19 @@ To roll on a table:
 
 The log shows the table, your question, the roll, and the result, such as "Oracle (location): Where does the trail lead? 18: Ruin". `/oracle help` lists the tables in groups and says what each one gives.
 
+To let the app pick the table or the likelihood:
+
+1. Type `/oracle` and the question, with no table:
+
+   ```text
+   /oracle Do I know which castle I'm in?
+   ```
+
+2. The suggestion bar shows the question and the oracles to roll. When the decision model is confident, it selects one: a likelihood, such as `Ask unlikely`, for a yes or no question, or a table, such as `location`.
+3. Press Enter to roll the selected one, or press another option's key first. When nothing is selected, pick one with its key.
+
+The log shows the answer with your question, as if you had typed `/ask` or `/oracle` with the table. Press Escape to leave the question without a roll.
+
 ## How to keep notes
 
 Use this to record a clue, a name, or a question you want to come back to.

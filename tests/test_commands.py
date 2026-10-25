@@ -43,10 +43,9 @@ def test_ironlander_name_rolls_on_either_table(tmp_path: Path):
     assert turn.campaign.log[-1].text == "Oracle (ironlander-name): 1: Segura"
 
 
-def test_unknown_oracle_names_are_refused(tmp_path: Path):
+def test_a_word_that_is_no_table_is_a_question(tmp_path: Path):
     turn, _, _ = engine(tmp_path)
-    with pytest.raises(CommandError, match="no table named 'weather'"):
-        run_command(turn, "/oracle weather")
+    assert run_command(turn, "/oracle weather").oracle_question == "weather"
 
 
 @pytest.mark.parametrize(("roll", "answer"), [(26, "yes"), (25, "no")])

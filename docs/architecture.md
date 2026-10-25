@@ -1,6 +1,6 @@
 # Architecture
 
-ironsworn-tui is a terminal app for the solo role-playing game *Ironsworn*. It's written in Python 3.14 with [Textual](https://textual.textualize.io/), a framework for terminal user interfaces. The player types what their character does. In Ironsworn, an action can trigger a *move*, a rule like Face Danger that the player rolls dice for. A *decision model* suggests which move that action triggers, and with which stat. A decision model is a hosted model that answers multiple-choice questions with a probability for each option. The player confirms the suggestion with a key, and the app rolls the dice and applies the outcome.
+ironsworn-tui is a terminal app for the solo role-playing game *Ironsworn*. It's written in Python 3.14 with [Textual](https://textual.textualize.io/), a framework for terminal user interfaces. The player types what their character does. In Ironsworn, an action can trigger a *move*, a rule like Face Danger that the player rolls dice for. A *decision model* suggests which move that action triggers, and with which stat. A decision model is a hosted model that answers multiple-choice questions with a probability for each option. It also suggests how to answer a question the player types after `/oracle`: with Ask the Oracle at a likelihood, or with a roll on an oracle table. The player confirms the suggestion with a key, and the app rolls the dice and applies the outcome.
 
 The code is in layers, from the Ironsworn rules at the bottom to the Textual screen at the top. For the project's status and working rules, see [`handoff.md`](handoff.md).
 
@@ -10,7 +10,7 @@ The app doesn't call a decision model directly. It goes through jevtester, a sep
 
 - When `ironsworn-tui play` starts, the app starts `jevtester serve` as a subprocess on a free port on `127.0.0.1`. It stops the server on exit.
 - The app sends each turn's questions to the server's `POST /api/decide` endpoint. The server sends them to one hosted *target* and returns the answers.
-- The app saves each answered turn as a test case through `POST /api/suites/{name}/cases`. jevtester writes the case to `suites/play-<context>.yaml` in this repository. The *context* is `exploring`, `journey`, or `fight`, and the app offers a different set of moves in each.
+- The app saves each answered turn as a test case through `POST /api/suites/{name}/cases`. jevtester writes the case to `suites/play-<context>.yaml` in this repository. The *context* is `exploring`, `journey`, or `fight`, and the app offers a different set of moves in each. Answered oracle questions go to `suites/play-oracle.yaml`.
 
 A target is a model at a provider, named `model@provider`. The default is `decision-1@foundry`, which is Microsoft-Decision-1 on Azure Foundry. The *recognizer experiment*, which measured how often a target picks the right move for hand-written player messages, also used `clef-flash@workers-ai`. That's Clef-flash on Cloudflare Workers AI. `jevtester.toml` lists the targets, and `ironsworn-tui.toml` picks the one the app asks.
 
@@ -39,6 +39,7 @@ The app works without a server. `ironsworn-tui play --no-model` starts none, and
 | `cli.py` | The `ironsworn-tui` command and its subcommands: `new`, `play`, `suggest`, and `write-suites`. It loads the settings, starts the jevtester server, and creates the turn engine and the app. |
 | `app.py` | The Textual app: the character panel, the log, the suggestion bar, the input line with its command completion (`CommandInput`), and the pop-up screens for inputs, boosts, and dice. It calls the turn engine and the commands for everything except drawing the screen. |
 | `commands.py` | The `/` commands, like `/oracle`, `/vow`, and `/asset`, and `REGISTRY`, which describes each command's arguments, options, and help. It has no UI code. |
+| `oracles.py` | The oracles the player rolls: the likelihoods for `/ask`, the oracle tables by short name, and `ASKED_TABLES`, the tables the decision model can suggest. |
 | `registry.py` | The registry's building blocks: `Arg`, `Command`, and `Registry`, which parses a command line, completes it, and writes its help and usage. Parsing, completion, and help all read the same registry, so they can't disagree. It has no UI code. |
 | `turn.py` | The turn engine, `TurnEngine`. It takes one chat message from text to applied outcome, with no UI code. |
 | `campaign.py` | The saved campaign: the character, vows, bonds, foes, journey, follow-ups, lasting effects, and log. The campaign is a set of pydantic models, saved as JSON. |
@@ -46,12 +47,12 @@ The app works without a server. `ironsworn-tui play --no-model` starts none, and
 | `outcomes.py` | What each move's result does to the campaign, as a hand-written table of effects. |
 | `abilities.py` | What each asset ability does to a roll, as a hand-written table of boosts. It also defines the lasting effects. |
 | `moves.py` | Which moves the chat can trigger in each context, and the stat question for each move. |
-| `criteria.py` | The descriptions of the `move` question's options, in two styles. Play uses `guide`. `trigger` uses the trigger text from Datasworn, a machine-readable copy of Ironsworn's moves, assets, and oracle tables. The recognizer experiment still uses `trigger`. |
-| `decide.py` | Builds the decision request, runs `jevtester serve`, sends requests to it, and parses the answers. |
-| `policy.py` | Turns a decision into a suggestion, with the confidence thresholds in `suites/policies/moves.yaml`. |
-| `cases.py` | Builds the jevtester case for an answered turn, labeled with what the player did. |
+| `criteria.py` | The descriptions of the `move` question's options, in two styles, and of the oracle questions' options. Play uses `guide`. `trigger` uses the trigger text from Datasworn, a machine-readable copy of Ironsworn's moves, assets, and oracle tables. The recognizer experiment still uses `trigger`. |
+| `decide.py` | Builds the turn's and the oracle's decision requests, runs `jevtester serve`, sends requests to it, and parses the answers. |
+| `policy.py` | Turns a decision into a suggestion, with the thresholds in `suites/policies/moves.yaml` and `suites/policies/oracle.yaml`. |
+| `cases.py` | Builds the jevtester case for an answered turn or oracle question, labeled with what the player did. |
 | `settings.py` | Reads `ironsworn-tui.toml`: the jevtester checkout, the target, and the campaigns folder. |
-| `experiment.py` | The recognizer experiment. It turns hand-written player messages into jevtester question sets and suites. |
+| `experiment.py` | The recognizer experiments. It turns hand-written player messages and oracle questions into jevtester question sets and suites. |
 
 ### The `ironsworn_tui/rules` package
 
@@ -73,8 +74,8 @@ The rules package is a typed port of `iron.py` from the Ironsworn referee plugin
 | Folder | What it contains |
 |---|---|
 | `ironsworn_tui/data/datasworn/` | The Datasworn data for Ironsworn, copied unchanged from the referee plugin. `datasworn.py` reads `moves.yaml`, `npcs.yaml`, `rules.yaml`, and the YAML files in `assets/` and `oracles/`. No code reads `atlas.yaml` or `truths.yaml` yet. `LICENSE.md` gives the upstream commit and the licenses. |
-| `suites/` | jevtester files. `play-<context>.yaml` contains the cases saved in play. `recognizer-*.yaml` are the experiment's suites, `question-sets/` contains the questions each suite asks, and `policies/` contains the thresholds. `write-suites` regenerates the question sets and recognizer suites. It never rewrites a play suite, because play suites contain the cases saved in play. |
-| `experiments/` | `recognizer-phrasings.yaml`, the hand-written player messages the recognizer suites are built from, and `results.md`, the accuracy results. |
+| `suites/` | jevtester files. `play-<context>.yaml` and `play-oracle.yaml` contain the cases saved in play. `recognizer-*.yaml` are the experiments' suites, `question-sets/` contains the questions each suite asks, and `policies/` contains the thresholds. `write-suites` regenerates the question sets and recognizer suites. It never rewrites a play suite, because play suites contain the cases saved in play. |
+| `experiments/` | `recognizer-phrasings.yaml`, the hand-written player messages the move recognizer suites are built from; `oracle-phrasings.yaml`, the hand-written oracle questions `recognizer-oracle` is built from; and `results.md`, the accuracy results. |
 | `scripts/` | `screenshots.py`, which draws the SVG screenshots in `docs/images/`. |
 | `tests/` | The tests. `tests/fixtures/` contains recorded jevtester responses. |
 | `diary/` | The dev diary, one entry per milestone. It isn't part of the docs site. |
@@ -86,14 +87,14 @@ The code is in layers. Each layer may import from the layers below it, and never
 | Layer | Modules | Must not import |
 |---|---|---|
 | 1. Rules and Datasworn models | `rules/*` | Anything outside `rules/` |
-| 2. Moves and contexts | `moves.py` | Anything but `rules/` |
+| 2. Moves, contexts, and oracles | `moves.py`, `oracles.py` | Anything but `rules/` |
 | 3. Outcomes and abilities | `outcomes.py`, `abilities.py` | The campaign model, the turn engine, the decision code, the commands, or the UI |
 | 4. Campaign model | `campaign.py`, `assets.py` | Outcomes, abilities, the turn engine, the decision code, the commands, or the UI |
 | 5. Turn engine | `turn.py` | The commands, the app, the CLI, or Textual |
 | 6. Commands | `registry.py`, `commands.py` | The app, the CLI, or Textual |
 | 7. App and CLI | `app.py`, `cli.py` | Nothing is above them |
 
-The decision code sits beside layers 2 to 4. `criteria.py`, `decide.py`, `settings.py`, `policy.py`, and `cases.py` import only `moves.py`, `rules/`, and each other. Inside the package, the turn engine, the CLI, and `experiment.py` import them, and `app.py` imports the `Suggestion` type from `policy.py`. Only the CLI uses `experiment.py`.
+The decision code sits beside layers 2 to 4. `criteria.py`, `decide.py`, `settings.py`, `policy.py`, and `cases.py` import only `moves.py`, `oracles.py`, `rules/`, and each other. Inside the package, the turn engine, the CLI, and `experiment.py` import them, and `app.py` imports the `Suggestion` and `OracleSuggestion` types from `policy.py`. Only the CLI uses `experiment.py`.
 
 Only `app.py` imports Textual or Rich. Inside the package, only `cli.py` imports `app.py`. So the tests can drive whole turns through `TurnEngine` and `run_command` without a screen.
 
@@ -121,6 +122,13 @@ The module docstring of `turn.py` gives the order the app calls the engine in. T
 
 `TurnEngine.suggest` does steps 1 to 3 in one call, with no worker thread. The tests use it.
 
+## An oracle question, end to end
+
+1. **The player types `/oracle <question>` with no table.** The `table` argument is a *skip* argument (`Arg.skip`): text that isn't a table's name goes to the `question` argument, and `table` is empty. `_oracle` returns a `CommandResult` with `oracle_question`. With a table, `_oracle` calls `TurnEngine.roll_table` instead, and `/ask` calls `TurnEngine.ask_yes_no`.
+2. **The app asks the decision model.** `IronswornApp.ask_oracle` keeps any move suggestion on the bar as `BarState.resume`, and runs `TurnEngine.decide_oracle` in a worker thread. It builds an `OracleState` (the character, the scene, and the question) and sends `decide.build_oracle_request`, which asks three questions in one request: `kind` (`yes_no`, `table`, or `cannot_tell`), `likelihood` (five options), and `table` (the 22 tables in `oracles.ASKED_TABLES`). Every question has 26 options or fewer, so it fits a target with `max_options = 26`, and needs no category question first. `parse_oracle_decision` returns an `OracleDecision`.
+3. **The policy makes a suggestion.** `policy.suggest_oracle` puts the kind the model chose first: the likelihoods or the tables, each most probable first. The band is `act`, which preselects the first option, when the `kind` confidence is at least `act` and the chosen likelihood's or table's probability at least `pick`, from `suites/policies/oracle.yaml`. Otherwise it's `escalate`. When the request failed or the kind is `cannot_tell`, the options are every table, then every likelihood. `TurnEngine.accept_oracle` keeps the decision.
+4. **The player confirms.** In `oracle` mode, Enter calls `TurnEngine.answer_oracle` with the option and the question. It calls `ask_yes_no` or `roll_table`, which log the question with the answer, then saves the case with `cases.build_oracle_case` to `play-oracle`. Escape calls `skip_oracle`. Either way, the bar returns to `BarState.resume` if there was one.
+
 The engine stores the owed follow-ups, the next move's add, Turn the Tide, the End the Fight offer, Draw the Circle's harm boasts, and a rolled card that isn't resolved in the campaign, so they survive a restart. It doesn't store a decision waiting for a move.
 
 `TurnEngine.save` writes the waiting card to `Campaign.pending_card` as a `SavedCard`: the move, the dice, the boosts, and the facts the outcome depends on. The card's effects aren't saved. When an engine starts on a campaign with a saved card, `TurnEngine._restore` works the effects out again with `_card`, against the campaign as it was saved with the card. So a new fact that changes a card's effects must go in `_Pending` and `SavedCard` too, or a restored card can differ.
@@ -143,6 +151,8 @@ The engine stores the owed follow-ups, the next move's add, Turn the Tide, the E
 | `Context` | `moves.py` | `EXPLORING`, `JOURNEY`, or `FIGHT`. The context sets which moves the `move` question offers. `context_options` returns them in a fixed order. |
 | `TurnState`, `Decision` | `decide.py` | The state the model sees, and one target's parsed answers. |
 | `Suggestion`, `Thresholds` | `policy.py` | What the suggestion bar offers, and one target's confidence thresholds. |
+| `OracleState`, `OracleDecision` | `decide.py` | The state the model sees for an oracle question, and one target's parsed answers. |
+| `OracleSuggestion`, `OracleThresholds` | `policy.py` | What the bar offers for an oracle question, and the oracle policy's thresholds. |
 
 The effect kinds fall into these groups:
 
@@ -217,9 +227,9 @@ A lasting effect works the same way. Add a `LastingKind` to `LASTING`, and an `A
 
 ### Add a key or a bar mode
 
-The suggestion bar takes keys according to `BarState.mode`, which is `idle`, `thinking`, `suggest`, `card`, `follow_up`, or `offer`.
+The suggestion bar takes keys according to `BarState.mode`, which is `idle`, `thinking`, `suggest`, `oracle`, `card`, `follow_up`, or `offer`.
 
-1. To add a key to a mode, add a branch to that mode's handler in `app.py`: `_suggest_key`, `_card_key`, `_follow_up_key`, or the `offer` cases in `bar_key`. Check that no other key in the mode uses it, including `STAT_KEYS`, `PAY_KEYS`, and the digits. Add the key to the hints the bar shows in that mode.
+1. To add a key to a mode, add a branch to that mode's handler in `app.py`: `_suggest_key`, `_oracle_key`, `_card_key`, `_follow_up_key`, or the `offer` cases in `bar_key`. Check that no other key in the mode uses it, including `STAT_KEYS`, `PAY_KEYS`, and the digits. Add the key to the hints the bar shows in that mode.
 2. To add a mode, add it to the `Mode` type and add a `case` to `bar_key` and to `render_bar`. Set the mode where the bar should enter it, usually in `after_turn`.
 3. Put the game logic in `TurnEngine`, not in `app.py`, and test it in `tests/test_turn.py`.
 4. Test the key with Textual's pilot in `tests/test_app.py`. Document it in `docs/reference.md`.
@@ -228,12 +238,12 @@ The suggestion bar takes keys according to `BarState.mode`, which is `idle`, `th
 
 First read [`decision-model-guidance.md`](decision-model-guidance.md). It lists what the vendors advise and what the experiments measured.
 
-1. Make the change. The question text is in `decide.py` (`MOVE_INSTRUCTIONS` and `STAT_INSTRUCTIONS`). The state the model sees comes from `TurnState.to_json`. The option descriptions are in `criteria.py`, and the moves each context offers are in `moves.py`.
+1. Make the change. The question text is in `decide.py` (`MOVE_INSTRUCTIONS` and `STAT_INSTRUCTIONS`, and `KIND_INSTRUCTIONS`, `LIKELIHOOD_INSTRUCTIONS`, and `TABLE_INSTRUCTIONS` for the oracle). The state the model sees comes from `TurnState.to_json`. The option descriptions are in `criteria.py`, and the moves each context offers are in `moves.py`.
 2. Run `uv run ironsworn-tui write-suites` to regenerate the question sets and recognizer suites. `tests/test_experiment.py` fails until they match what play sends.
 3. Re-record `tests/fixtures/decide-exploring-ditch.json`, because `tests/test_decide.py` checks that its request still matches `build_request`. `tests/fixtures/README.md` describes the fixtures.
-4. Before play relies on the change, measure it on the recognizer suites with `jevtester run` and `jevtester report`. Record the numbers in `experiments/results.md`.
+4. Before play relies on the change, measure it on the recognizer suites with `jevtester run` and `jevtester report`. Record the numbers in `experiments/results.md`. The oracle questions have their own suite, `recognizer-oracle`.
 
-A new `move` option also needs a rule in `suites/policies/moves.yaml`.
+A new `move` option also needs a rule in `suites/policies/moves.yaml`. A new table in `oracles.ASKED_TABLES` needs a description in `criteria.py` and a rule in `suites/policies/oracle.yaml`, and the `table` question must stay at 26 options or fewer.
 
 ## Testing
 
@@ -257,6 +267,7 @@ Most modules have a test file named after them. For example, `test_turn.py` test
 - `test_boosts.py` tests boosts on a roll.
 - `test_asset_moves.py` tests asset moves, lasting effects, and companions.
 - `test_jevtester_server.py` starts and stops a stand-in for `jevtester serve`.
+- `test_oracle_decide.py` tests the oracle request and its parsing, and `test_oracle_play.py` tests oracle questions in play: the suggestion, the roll, and the case.
 
 ### Test helpers
 
@@ -264,7 +275,7 @@ Most modules have a test file named after them. For example, `test_turn.py` test
 
 - `engine(tmp_path)` returns a `TurnEngine` with its `Dice` and `FixtureDecider`. The engine plays the test character Kira, a hunter with Archer, Hawk, and Wright, who has one epic vow. It saves the campaign under `tmp_path`.
 - `Dice` is a `random.Random` that returns queued rolls. Call `dice.load(action_die, challenge_1, challenge_2)` before a roll. It fails if a roll is missing or out of range.
-- `FixtureDecider` answers each request with a queued move, stat, and top probability. Append `(move, stat, probability)` to `decider.answers`. It records each request in `decider.requests`.
+- `FixtureDecider` answers each request with a queued move, stat, and top probability. Append `(move, stat, probability)` to `decider.answers`. It answers an oracle request from `decider.oracle_answers`, as `(kind, likelihood or table, probability)`. It records each request in `decider.requests`.
 
 ### App tests
 
@@ -272,7 +283,7 @@ Most modules have a test file named after them. For example, `test_turn.py` test
 
 ### Live tests
 
-`test_decide_live.py`, `test_cases_live.py`, and `test_app_live.py` call the configured target through a real `jevtester serve`. Run them with `uv run pytest -m live`. They need the jevtester checkout, a `jevtester.local.toml` with real account details, and a provider sign-in.
+`test_decide_live.py`, `test_cases_live.py` (which also saves an oracle case), and `test_app_live.py` call the configured target through a real `jevtester serve`. Run them with `uv run pytest -m live`. They need the jevtester checkout, a `jevtester.local.toml` with real account details, and a provider sign-in.
 
 ### Screenshots
 

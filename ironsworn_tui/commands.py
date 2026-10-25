@@ -1,7 +1,6 @@
 """The `/` commands and their registry, with no UI code."""
 
 from collections.abc import Sequence
-from dataclasses import dataclass
 from typing import Literal, get_args
 
 from ironsworn_tui.assets import (
@@ -23,6 +22,7 @@ from ironsworn_tui.campaign import (
     meter_max,
     setback_note,
 )
+from ironsworn_tui.oracles import LIKELIHOODS, ORACLE_GROUPS, ORACLES
 from ironsworn_tui.registry import (
     Arg,
     Command,
@@ -32,18 +32,10 @@ from ironsworn_tui.registry import (
     UsageError,
     Values,
 )
-from ironsworn_tui.rules.datasworn import Asset, Datasworn, Stat, plain_text
-from ironsworn_tui.rules.oracles import Likelihood, ask_yes_no, roll_oracle
+from ironsworn_tui.rules.datasworn import Asset, Datasworn, Stat
 from ironsworn_tui.rules.progress import TICKS_PER_BOX, TRACK_TICKS, Rank
 from ironsworn_tui.turn import MoveInputs, TurnEngine, TurnError, progress_text
 
-LIKELIHOODS = {
-    "almost certain": Likelihood.ALMOST_CERTAIN,
-    "likely": Likelihood.LIKELY,
-    "50/50": Likelihood.FIFTY_FIFTY,
-    "unlikely": Likelihood.UNLIKELY,
-    "small chance": Likelihood.SMALL_CHANCE,
-}
 RANKS = {rank.name.lower(): rank for rank in Rank}
 METERS: dict[str, Meter] = {"health": "health", "spirit": "spirit", "supply": "supply"}
 DEBILITIES: dict[str, Debility] = {name: name for name in get_args(Debility.__value__)}
@@ -51,131 +43,6 @@ STATS: dict[str, Stat] = {name: name for name in get_args(Stat.__value__)}
 STAT_CHANGES = tuple(f"{sign}{stat}" for stat in STATS for sign in "+-")
 CATEGORIES = ("combat_talent", "companion", "path", "ritual")
 USABLE = ("lorekeeper", "slayer")
-
-
-@dataclass(frozen=True)
-class OracleEntry:
-    """An oracle table under a short name.
-
-    Attributes:
-        name: The short name `/oracle` takes, such as `action`.
-        tables: The table ids. With more than one, a roll picks one of them, as the rulebook
-            says for Ironlander names.
-        summary: What the table gives, for the help.
-    """
-
-    name: str
-    tables: tuple[str, ...]
-    summary: str
-
-
-def _entry(name: str, table: str, summary: str) -> OracleEntry:
-    return OracleEntry(name, (f"classic/{table}",), summary)
-
-
-ORACLE_GROUPS: tuple[tuple[str, tuple[OracleEntry, ...]], ...] = (
-    (
-        "Spark an idea",
-        (
-            _entry("action", "action_and_theme/action", "a verb, such as Clash or Scheme"),
-            _entry("theme", "action_and_theme/theme", "a noun, such as Risk or Ally"),
-        ),
-    ),
-    (
-        "Characters",
-        (
-            _entry("role", "character/role", "who they are, such as Healer"),
-            _entry("goal", "character/goal", "what they want, such as Obtain an object"),
-            _entry("descriptor", "character/descriptor", "what they're like, such as Stoic"),
-        ),
-    ),
-    (
-        "Names",
-        (
-            OracleEntry(
-                "ironlander-name",
-                ("classic/name/ironlander/a", "classic/name/ironlander/b"),
-                "a name for one of the people of the Ironlands",
-            ),
-            _entry("elf-name", "name/elf", "a name for an elf"),
-            _entry("giant-name", "name/other/giants", "a name for a giant"),
-            _entry("varou-name", "name/other/varou", "a name for a varou"),
-            _entry("troll-name", "name/other/trolls", "a name for a troll"),
-        ),
-    ),
-    (
-        "Places",
-        (
-            _entry("region", "place/region", "a region of the Ironlands, such as Deep Wilds"),
-            _entry("location", "place/location", "a place, such as Ruin or Mine"),
-            _entry(
-                "coastal-location",
-                "place/coastal_waters_location",
-                "a place on the water, such as Fleet",
-            ),
-            _entry("place-descriptor", "place/descriptor", "what a place is like, such as Remote"),
-        ),
-    ),
-    (
-        "Settlements",
-        (
-            _entry(
-                "settlement-name",
-                "settlement/name",
-                "where a settlement's name comes from, with an example",
-            ),
-            _entry(
-                "quick-name-prefix",
-                "settlement/quick_name/prefix",
-                "the first half of a name, such as Raven",
-            ),
-            _entry(
-                "quick-name-suffix",
-                "settlement/quick_name/suffix",
-                "the second half of a name, such as ford",
-            ),
-            _entry(
-                "settlement-trouble",
-                "settlement/trouble",
-                "a settlement's problem, such as Dreadful omens",
-            ),
-        ),
-    ),
-    (
-        "Turning points",
-        (
-            _entry(
-                "plot-twist",
-                "turning_point/major_plot_twist",
-                "a surprise, such as A trap is sprung",
-            ),
-            _entry(
-                "combat-action", "turning_point/combat_action", "what a foe does next in a fight"
-            ),
-            _entry(
-                "mystic-backlash",
-                "turning_point/mystic_backlash",
-                "what goes wrong when a ritual fails",
-            ),
-            _entry(
-                "challenge-rank",
-                "turning_point/challenge_rank",
-                "how hard a foe or a vow is, from Troublesome to Epic",
-            ),
-        ),
-    ),
-    (
-        "Fate",
-        (
-            _entry(
-                "pay-the-price",
-                "fate/pay_the_price/pay_the_price",
-                "a cost or complication, as after a miss",
-            ),
-        ),
-    ),
-)
-ORACLES = {entry.name: entry for _, entries in ORACLE_GROUPS for entry in entries}
 
 
 def parse_rank(text: str) -> Rank:
@@ -374,35 +241,17 @@ def _help(_: TurnEngine, values: Values) -> CommandResult:
     return CommandResult(help=REGISTRY.help([command]))
 
 
-def _asked(name: str, values: Values) -> str:
-    question = f"{values[1]} " if len(values) > 1 else ""
-    return f"{name}: {question}"
-
-
 def _oracle(engine: TurnEngine, values: Values) -> CommandResult:
-    entry = ORACLES[values[0]]
-    table_id = entry.tables[0]
-    if len(entry.tables) > 1:
-        table_id = entry.tables[engine.rng.randint(1, len(entry.tables)) - 1]
-    result = roll_oracle(engine.data, table_id, engine.rng)
-    head = _asked(f"Oracle ({entry.name})", values)
-    lines = [f"{head}{result.roll}: {plain_text(result.text)}"]
-    lines += [f"  {sub.roll}: {plain_text(sub.text)}" for sub in result.subrolls]
-    for line in lines:
-        engine.campaign.add_log("outcome", line)
-    engine.save()
+    table = values[0] if values else ""
+    question = values[1] if len(values) > 1 else ""
+    if not table:
+        return CommandResult(oracle_question=question)
+    engine.roll_table(table, question)
     return CommandResult()
 
 
 def _ask(engine: TurnEngine, values: Values) -> CommandResult:
-    likelihood = values[0]
-    answer = ask_yes_no(LIKELIHOODS[likelihood], engine.rng)
-    head = _asked(f"Ask ({likelihood})", values)
-    line = f"{head}{answer.roll}: {'yes' if answer.yes else 'no'}"
-    if answer.match:
-        line += ", match"
-    engine.campaign.add_log("outcome", line)
-    engine.save()
+    engine.ask_yes_no(values[0], values[1] if len(values) > 1 else "")
     return CommandResult()
 
 
@@ -799,20 +648,28 @@ REGISTRY = Registry(
             "oracle",
             "Roll on an oracle table for a name, a place, or an idea",
             _oracle,
-            (Arg("table", tuple(ORACLES)), _QUESTION),
+            (Arg("table", tuple(ORACLES), optional=True, skip=True), _QUESTION),
             help=(
                 "In solo play there's no game master to tell you what's out there. Oracles "
                 "fill that role. Each oracle is a table of random answers that you read in "
                 "the light of your story.",
                 "Roll one when you need a name, want to know what a place is like, or have "
                 "no idea what happens next. If the answer doesn't fit, read it loosely, or "
-                "roll again. For a yes or no question, use /ask instead.",
+                "roll again. For a yes or no question, use /ask.",
                 "action and theme work as a pair: roll both and read them together, such as "
                 "Clash and Ally.",
                 "Write your question after the table, and the log keeps it with the answer, "
-                "such as /oracle location Do I know which castle I'm in?",
+                "such as /oracle ironlander-name What is the guard called?",
+                "Or write only the question, such as /oracle Do I know which castle I'm in? "
+                "The app suggests a table, or a likelihood for /ask if a yes or no answers "
+                "it. Press Enter to roll it, or pick another with its key. /oracle alone "
+                "lists them all.",
             ),
-            examples=("/oracle action", "/oracle ironlander-name What is the guard called?"),
+            examples=(
+                "/oracle action",
+                "/oracle ironlander-name What is the guard called?",
+                "/oracle Do I know which castle I'm in?",
+            ),
             extra=_oracle_tables(),
         ),
         Command(

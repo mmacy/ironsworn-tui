@@ -164,12 +164,14 @@ $ ironsworn-tui suggest "I swing my axe at the raider" --context fight --situati
 ironsworn-tui write-suites
 ```
 
-Writes the decision model's question sets and recognizer suites under `suites/` from `experiments/recognizer-phrasings.yaml`, replacing the files there. Then it creates `suites/play-<context>.yaml` for each context that doesn't have one. It never changes an existing play suite, because play suites hold the cases saved in play. It prints the path of each file it writes. It calls no model. Both folders are in the repository, beside the `ironsworn_tui` package.
+Writes the decision model's question sets and recognizer suites under `suites/` from `experiments/recognizer-phrasings.yaml` and `experiments/oracle-phrasings.yaml`, replacing the files there. Then it creates `suites/play-<context>.yaml` for each context, and `suites/play-oracle.yaml`, if missing. It never changes an existing play suite, because play suites hold the cases saved in play. It prints the path of each file it writes. It calls no model. Both folders are in the repository, beside the `ironsworn_tui` package.
 
 Example, with output shortened:
 
 ```console
 $ ironsworn-tui write-suites
+suites/question-sets/oracle.yaml
+suites/recognizer-oracle.yaml
 suites/question-sets/moves-exploring-guide.yaml
 suites/recognizer-exploring-guide.yaml
 ...
@@ -240,8 +242,9 @@ The bar takes keys only while it has focus. It shows the keys it takes on its la
 | Mode | When | Bar shows |
 |---|---|---|
 | Idle | Nothing is waiting. | The list of `/` commands. Focus is on the input line. |
-| Thinking | The decision model is answering a message. | `Thinking…`. The bar takes no keys. |
+| Thinking | The decision model is answering a message or an oracle question. | `Thinking…`. The bar takes no keys. |
 | Suggest | The model answered, or you ran `/moves`. | Moves to choose from, the stat, the add, and turned-on abilities. |
+| Oracle | You typed `/oracle` without a table. | The question, and every table and likelihood to roll. |
 | Card | A move was rolled. | The roll card: the result, its outcome, and any choices. |
 | Follow-up | A follow-up move is owed. | The owed move. |
 | Offer | A strong hit on a move in a fight lets you make End the Fight. | The offer. |
@@ -270,6 +273,23 @@ Each move shows its key and, when the model answered, its probability. The selec
 | Enter | Roll the selected move. If it needs a stat and none is set, the log says which keys pick one. If the move needs details, the [details form](#details-form) opens. The bar then shows the roll card. |
 | `n` | Make no move. The log shows `No move` and a `Next:` line. If the model answered the message, the app saves this as a case. |
 | Escape | Leave the message without a move, and return to the input line. The app saves no case. |
+
+#### Oracle mode
+
+The bar shows `Oracle:` and your question, then every oracle table and every likelihood for Ask the Oracle, each with its key. A likelihood shows as `Ask <likelihood>`, such as `Ask likely`.
+
+- **The model answered:** the kind of answer it picked comes first. For a yes or no question, the five likelihoods come first; for a table question, the tables do. Each group is in order of probability, and each option the model gave 0.01 or more shows its probability. When the model is confident, the first option is selected. The thresholds in `suites/policies/oracle.yaml` set when: a confidence of 0.5 or more that the question is a yes or no question or a table question, and a probability of 0.4 or more for the likelihood or table.
+- **The model couldn't tell, the request failed, `--no-model`, or `/oracle` alone:** every table in the order `/oracle help` lists them, then the likelihoods, none selected.
+
+| Key | Action |
+|---|---|
+| 1 to 9, then `A` to `Z` | Select the option with that key. |
+| Left, Up | Select the previous option. |
+| Right, Down | Select the next option. |
+| Enter | Roll the selected table, or ask the oracle at the selected likelihood. The log keeps your question with the answer. With nothing selected, the log says `Pick an oracle`. |
+| Escape | Leave the question without a roll. The app saves no case. |
+
+After the roll or Escape, the bar returns to the move suggestion it showed before, if any.
 
 #### Card mode
 
@@ -356,7 +376,7 @@ Names you type:
 |---|---|
 | [`/help`](#help) | Lists the commands, or explains one. |
 | [`/moves`](#moves) | Shows every move in the context. |
-| [`/oracle`](#oracle) | Rolls on an oracle table. |
+| [`/oracle`](#oracle) | Rolls on an oracle table, or suggests one for a question. |
 | [`/ask`](#ask) | Asks the yes or no oracle. |
 | [`/note`](#note) | Writes a note in the log. |
 | [`/vow`](#vow) | Lists, swears, marks, fulfills, or forsakes vows. |
@@ -392,10 +412,10 @@ Errors every command can show:
 ### /oracle
 
 ```text
-/oracle <table> [<question>]
+/oracle [<table>] [<question>]
 ```
 
-Rolls on an oracle table, writes the result to the log, and saves. The question, if you give one, is logged with the result. Some tables roll on other tables, and those results appear indented below. `ironlander-name` rolls on one of the two Ironlander name tables, as the rulebook says. `/oracle help` lists the tables in these groups and says what each gives.
+With a table, rolls on it, writes the result to the log, and saves. The question, if you give one, is logged with the result. Some tables roll on other tables, and those results appear indented below. `ironlander-name` rolls on one of the two Ironlander name tables, as the rulebook says. `/oracle help` lists the tables in these groups and says what each gives.
 
 | Group | Tables |
 |---|---|
@@ -411,6 +431,15 @@ Rolls on an oracle table, writes the result to the log, and saves. The question,
 /oracle location Where does the trail lead?
 Oracle (location): Where does the trail lead? 18: Ruin
 ```
+
+Without a table, `/oracle <question>` asks the decision model whether a yes or no answers the question, and at which likelihood, or which table answers it. The bar switches to [oracle mode](#oracle-mode) with the suggestion, and Enter rolls it. A question whose first word is a table's name rolls that table, so `/oracle location of the camp?` rolls `location`. `/oracle` alone shows every table and likelihood without asking the model. The model never suggests `pay-the-price`, which the Pay the Price move rolls.
+
+```text
+/oracle Do I know which castle I'm in?
+Ask (unlikely): Do I know which castle I'm in? 80: yes
+```
+
+![The suggestion bar after /oracle What is the raider chief called? It shows "Oracle: What is the raider chief called?", then ironlander-name with probability 0.96 selected, followed by the other tables and the five likelihoods, each with its key.](images/oracle-question.svg)
 
 ### /ask
 
@@ -702,6 +731,7 @@ campaigns_dir = "campaigns"
 |---|---|---|
 | `<campaigns_dir>/<name>.json` | `new`, and `play` after every change | The campaign: the character, vows, bonds, fight, journey, owed moves, lasting effects, and the full log. The app writes a `.tmp` file first and then replaces the campaign file, so a crash doesn't leave half a file. |
 | `suites/play-exploring.yaml`, `suites/play-journey.yaml`, `suites/play-fight.yaml` | `write-suites` creates them; `play` adds cases through jevtester | Cases saved in play, one suite for each context. |
+| `suites/play-oracle.yaml` | `write-suites` creates it; `play` adds cases through jevtester | Oracle questions answered in play. |
 | `suites/question-sets/*.yaml`, `suites/recognizer-*.yaml` | `write-suites` | The decision model's question sets and recognizer suites. |
 | `.jevtester/serve.log` | `play` and `suggest` | jevtester's server log, beside `jevtester.toml`. |
 
@@ -712,5 +742,7 @@ When `play` runs with the model, the app saves a case each time you answer a mes
 - An id made from the character's name and the time, such as `blarg-20261025T143012123456`.
 - The state the model saw, and the move you made, with its stat when the move rolls with a chosen stat.
 - The tag `corrected` when you made a move other than the model's top answer, or `abstained` when the top answer was can't tell.
+
+When you roll a table or a likelihood from [oracle mode](#oracle-mode) after the model answered, the app saves a case to the end of `suites/play-oracle.yaml`. It has the question the model saw, whether you rolled a likelihood or a table, and which. It has the tag `corrected` when you rolled something other than the model's top answer, or `abstained` when the model couldn't tell what kind of question it was.
 
 The app saves no case when you press Escape, when the request failed, when you play with `--no-model`, or for End the Fight. When the context changed since the message, the log shows `Case not saved: <move> wasn't offered then`. When jevtester refuses the case, the log shows `Case not saved:` and the reason.

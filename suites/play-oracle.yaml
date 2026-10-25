@@ -1,0 +1,7 @@
+name: play-oracle
+question_set: oracle
+policy: oracle
+targets:
+  - decision-1@foundry
+  - clef-flash@workers-ai
+cases: []

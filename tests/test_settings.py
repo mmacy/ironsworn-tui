@@ -80,5 +80,7 @@ def test_jevtester_config_is_not_a_setting(tmp_path: Path):
 def test_repository_settings_file_loads():
     root = Path(__file__).resolve().parent.parent
     settings = load_settings(root / "ironsworn-tui.toml")
-    assert settings.jevtester_config == root / "jevtester.toml"
+    # A checkout with the user's real account details uses jevtester.local.toml.
+    local = root / "jevtester.local.toml"
+    assert settings.jevtester_config == (local if local.exists() else root / "jevtester.toml")
     assert settings.jevtester_config.exists()

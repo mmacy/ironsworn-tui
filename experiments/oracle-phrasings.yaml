@@ -1,0 +1,400 @@
+# Hand-written questions for the oracle experiment, with the answer each should get. A player types
+# them after /oracle without naming a table. `ironsworn-tui write-suites` turns this file into the
+# suite recognizer-oracle.
+#
+# `kind` is yes_no, table, or cannot_tell. A yes_no question expects a `likelihood`, and a table
+# question a `table`, unless no table fits it. `also_kind`, `also_likelihood`, and `also_table` list other answers that count
+# as correct, for a question with more than one fair reading. A question with two fair kinds can
+# expect both a likelihood and a table. Tags name what a case tests.
+#
+# Claude wrote these cases, and the user approved the oracle experiment on 2026-10-25.
+
+characters:
+  kira: {name: Kira, character: "Kira, a hunter of the Deepwilds"}
+  arn: {name: Arn, character: "Arn, a former shieldwarden"}
+  sefa: {name: Sefa, character: "Sefa, a ritualist and healer"}
+  tovin: {name: Tovin, character: "Tovin, a smooth-talking trader"}
+
+questions:
+  # Yes or no, with a likelihood the situation or the wording points to.
+  - id: yn-bridge-guarded
+    character: arn
+    situation: "The bridge into Thornhold has been guarded day and night since the raids began."
+    asks: "Is the bridge guarded tonight?"
+    kind: yes_no
+    likelihood: almost_certain
+    also_likelihood: [likely]
+  - id: yn-hawk-returns
+    character: kira
+    situation: "Kira's hawk has come back to her whistle every time for six years."
+    asks: "Does the hawk come back when I whistle?"
+    kind: yes_no
+    likelihood: almost_certain
+    also_likelihood: [likely]
+  - id: yn-tracks-in-snow
+    character: kira
+    situation: "Fresh snow fell an hour ago, and the elk ran this way minutes ago."
+    asks: "Can I see the elk's tracks?"
+    kind: yes_no
+    likelihood: almost_certain
+    also_likelihood: [likely]
+  - id: yn-surely-locked
+    character: tovin
+    situation: "The merchant's strongroom in the guildhall at night."
+    asks: "Surely the strongroom door is locked?"
+    kind: yes_no
+    likelihood: almost_certain
+    also_likelihood: [likely]
+    tags: [wording]
+  - id: yn-farm-occupied
+    character: arn
+    situation: "Smoke rose from the farmstead's chimney an hour ago."
+    asks: "Is anyone still at the farm?"
+    kind: yes_no
+    likelihood: likely
+    also_likelihood: [almost_certain]
+  - id: yn-healer-in-village
+    character: sefa
+    situation: "Sefa reaches Bleakhold, a large village on the trade road."
+    asks: "Does the village have a healer?"
+    kind: yes_no
+    likelihood: likely
+  - id: yn-raiders-followed
+    character: kira
+    situation: "Kira left a clear trail through the mud, and the raiders have hounds."
+    asks: "Have the raiders followed me?"
+    kind: yes_no
+    likelihood: likely
+  - id: yn-probably-water
+    character: arn
+    situation: "A well stands in the middle of the ruined steading."
+    asks: "There's probably still water in the well, right?"
+    kind: yes_no
+    likelihood: likely
+    also_likelihood: [fifty_fifty]
+    tags: [wording]
+  - id: yn-castle
+    character: kira
+    situation: "Kira wakes in a stone cell with no memory of the road that brought her here."
+    asks: "Do I know which castle I'm in?"
+    kind: yes_no
+    likelihood: fifty_fifty
+    also_likelihood: [unlikely]
+  - id: yn-innkeeper-awake
+    character: tovin
+    situation: "Tovin knocks at the inn's door late in the evening."
+    asks: "Is the innkeeper still awake?"
+    kind: yes_no
+    likelihood: fifty_fifty
+    also_likelihood: [likely]
+  - id: yn-stranger-friendly
+    character: sefa
+    situation: "A hooded stranger walks toward Sefa's fire on the moor."
+    asks: "Is the stranger friendly?"
+    kind: yes_no
+    likelihood: fifty_fifty
+  - id: yn-rain
+    character: arn
+    situation: "Grey clouds gather over the hills as Arn sets out."
+    asks: "Does it rain before nightfall?"
+    kind: yes_no
+    likelihood: fifty_fifty
+    also_likelihood: [likely]
+  - id: yn-mill-inhabited
+    character: tovin
+    situation: "The village by the old mill was abandoned years ago after the fever."
+    asks: "Does anyone live in the old mill?"
+    kind: yes_no
+    likelihood: unlikely
+    also_likelihood: [small_chance]
+  - id: yn-guard-bribe
+    character: tovin
+    situation: "The gate captain is known for his honesty and his hatred of traders."
+    asks: "Does the captain take my bribe?"
+    kind: yes_no
+    likelihood: unlikely
+    also_likelihood: [small_chance]
+  - id: yn-doubt-supplies
+    character: arn
+    situation: "Arn searches a cart that raiders looted yesterday."
+    asks: "I doubt they left anything, but is there food in the cart?"
+    kind: yes_no
+    likelihood: unlikely
+    also_likelihood: [small_chance]
+    tags: [wording]
+  - id: yn-wolves-gone
+    character: kira
+    situation: "The wolf pack has circled Kira's camp all night and grows bolder."
+    asks: "Have the wolves given up and left by dawn?"
+    kind: yes_no
+    likelihood: unlikely
+  - id: yn-ship-frozen-sea
+    character: tovin
+    situation: "No ship has crossed the frozen sea in ten winters."
+    asks: "Is there a ship waiting in the harbor?"
+    kind: yes_no
+    likelihood: small_chance
+    also_likelihood: [unlikely]
+  - id: yn-dead-man-alive
+    character: sefa
+    situation: "The hunter fell from the cliff two days ago and lay in the snow since."
+    asks: "Is the fallen hunter still alive?"
+    kind: yes_no
+    likelihood: small_chance
+    also_likelihood: [unlikely]
+  - id: yn-any-chance-help
+    character: arn
+    situation: "Arn is alone in the Shattered Wastes, a week from any settlement."
+    asks: "Is there any chance someone comes to help me?"
+    kind: yes_no
+    likelihood: small_chance
+    also_likelihood: [unlikely]
+    tags: [wording]
+  - id: yn-sword-intact
+    character: kira
+    situation: "The sword has lain at the bottom of the bog for a hundred years."
+    asks: "Is the sword's blade still sharp?"
+    kind: yes_no
+    likelihood: small_chance
+    also_likelihood: [unlikely]
+
+  # A roll on a table. Every table the player rolls has at least one case.
+  - id: tb-what-next
+    character: kira
+    situation: "Kira reaches the edge of the burned village. Nothing moves."
+    asks: "What happens next?"
+    kind: table
+    table: action
+    also_table: [plot-twist, theme]
+  - id: tb-stranger-doing
+    character: tovin
+    situation: "A stranger lingers by the market well, watching the crowd."
+    asks: "What is the stranger up to?"
+    kind: table
+    table: action
+    also_table: [goal, theme]
+  - id: tb-shrine-about
+    character: sefa
+    situation: "An old shrine stands at the crossroads, its carvings worn smooth."
+    asks: "What is the shrine dedicated to?"
+    kind: table
+    table: theme
+    also_table: [action]
+  - id: tb-letter-subject
+    character: tovin
+    situation: "Tovin breaks the seal on a letter he took from the courier."
+    asks: "What is the letter about?"
+    kind: table
+    table: theme
+    also_table: [action]
+  - id: tb-rider-who
+    character: arn
+    situation: "A rider in a grey cloak waits at the ford."
+    asks: "Who is the rider?"
+    kind: table
+    table: role
+    also_table: [descriptor]
+  - id: tb-elder-trade
+    character: sefa
+    situation: "The village elder greets Sefa at the gate."
+    asks: "What did the elder do before she led the village?"
+    kind: table
+    table: role
+  - id: tb-chief-wants
+    character: arn
+    situation: "The raider chief agrees to talk under a flag of truce."
+    asks: "What does the raider chief want?"
+    kind: table
+    table: goal
+    also_table: [action]
+  - id: tb-hermit-goal
+    character: kira
+    situation: "A hermit has lived alone in the pass for twenty years."
+    asks: "Why is the hermit living out here?"
+    kind: table
+    table: goal
+    also_table: [theme]
+  - id: tb-smith-like
+    character: tovin
+    situation: "Tovin enters the smithy to haggle over a blade."
+    asks: "What is the smith like?"
+    kind: table
+    table: descriptor
+  - id: tb-captain-manner
+    character: arn
+    situation: "The new captain of the guard looks Arn over."
+    asks: "What's the captain's temperament?"
+    kind: table
+    table: descriptor
+  - id: tb-guard-name
+    character: tovin
+    situation: "A guard in Thornhold's colors blocks the gate."
+    asks: "What is the guard called?"
+    kind: table
+    table: ironlander-name
+  - id: tb-child-name
+    character: sefa
+    situation: "Sefa finds a lost child in the woods near the village."
+    asks: "What's the child's name?"
+    kind: table
+    table: ironlander-name
+  - id: tb-elf-name
+    character: kira
+    situation: "An elf steps from the trees, bow lowered."
+    asks: "What is the elf's name?"
+    kind: table
+    table: elf-name
+  - id: tb-giant-name
+    character: arn
+    situation: "A giant herds her goats along the ridge."
+    asks: "What is the giant called?"
+    kind: table
+    table: giant-name
+  - id: tb-varou-name
+    character: kira
+    situation: "A varou hunter shares Kira's fire, her wolfish eyes catching the light."
+    asks: "What name does the varou give?"
+    kind: table
+    table: varou-name
+  - id: tb-troll-name
+    character: tovin
+    situation: "A troll lives under the old stone bridge and demands a toll."
+    asks: "What is the troll's name?"
+    kind: table
+    table: troll-name
+  - id: tb-region
+    character: sefa
+    situation: "Sefa's vow leads her to seek the hidden grove the old songs tell of."
+    asks: "Which region of the Ironlands is the grove in?"
+    kind: table
+    table: region
+  - id: tb-tracks-lead
+    character: kira
+    situation: "The beast's tracks lead off into the hills."
+    asks: "What kind of place do the tracks lead to?"
+    kind: table
+    table: location
+    also_table: [place-descriptor]
+  - id: tb-what-find
+    character: arn
+    situation: "Arn crests the hill after a long day of travel."
+    asks: "What do I find over the hill?"
+    kind: table
+    table: location
+    also_table: [action, place-descriptor]
+  - id: tb-coast
+    character: tovin
+    situation: "Tovin's boat drifts toward the coast in the fog."
+    asks: "What's on the shore where the boat lands?"
+    kind: table
+    table: coastal-location
+    also_table: [location]
+  - id: tb-ruin-look
+    character: sefa
+    situation: "Sefa reaches the ruined watchtower at dusk."
+    asks: "What does the ruin look and feel like?"
+    kind: table
+    table: place-descriptor
+  - id: tb-settlement-name
+    character: tovin
+    situation: "Tovin comes to a village that isn't on his map."
+    asks: "What's this village called?"
+    kind: table
+    table: settlement-name
+    also_table: [quick-name-prefix]
+  - id: tb-quick-prefix
+    character: arn
+    situation: "Arn names the hamlet he founds, from two halves."
+    asks: "What's the first half of the hamlet's name?"
+    kind: table
+    table: quick-name-prefix
+    also_table: [settlement-name]
+  - id: tb-quick-suffix
+    character: arn
+    situation: "Arn has the first half of the hamlet's name, Raven."
+    asks: "What's the ending of the hamlet's name?"
+    kind: table
+    table: quick-name-suffix
+    also_table: [settlement-name]
+  - id: tb-village-trouble
+    character: sefa
+    situation: "The villagers of Redwater won't meet Sefa's eyes."
+    asks: "What trouble is the village facing?"
+    kind: table
+    table: settlement-trouble
+  - id: tb-town-wrong
+    character: tovin
+    situation: "The market in Ironhold is half empty on trade day."
+    asks: "What's wrong in this town?"
+    kind: table
+    table: settlement-trouble
+    also_table: [action]
+  - id: tb-twist
+    character: kira
+    situation: "Kira has the cultist cornered at the end of the long hunt."
+    asks: "What twist upends everything?"
+    kind: table
+    table: plot-twist
+  - id: tb-big-surprise
+    character: arn
+    situation: "Arn finally reaches the keep he swore to defend."
+    asks: "What surprise is waiting for me inside?"
+    kind: table
+    table: plot-twist
+    also_table: [action]
+  - id: tb-foe-move
+    character: arn
+    situation: "Arn fights the raider chief on the frozen river. The chief has the initiative."
+    asks: "What does the chief do next?"
+    kind: table
+    table: combat-action
+    also_table: [action]
+  - id: tb-beast-attack
+    character: kira
+    situation: "The wyvern circles above Kira in the clearing, screeching."
+    asks: "How does the wyvern attack?"
+    kind: table
+    table: combat-action
+  - id: tb-ritual-fails
+    character: sefa
+    situation: "Sefa's ritual to commune with the dead fails, and the candles gutter."
+    asks: "What goes wrong with the ritual?"
+    kind: table
+    table: mystic-backlash
+  - id: tb-foe-rank
+    character: kira
+    situation: "A bear the size of a hut blocks the path."
+    asks: "How tough is this bear?"
+    kind: table
+    table: challenge-rank
+
+  # Questions with more than one fair reading, and questions no answer fits.
+  - id: amb-friend-or-foe
+    character: kira
+    situation: "Riders approach Kira's camp under no banner."
+    asks: "Are the riders friend or foe?"
+    kind: yes_no
+    likelihood: fifty_fifty
+    also_kind: [table]
+    table: role
+    also_table: [goal, descriptor]
+    tags: [ambiguous]
+  - id: amb-how-many
+    character: arn
+    situation: "Arn watches the raider camp from the treeline."
+    asks: "How many raiders are in the camp?"
+    kind: table
+    also_kind: [cannot_tell]
+    tags: [no-table]
+  - id: cant-rules
+    character: tovin
+    situation: "Tovin is in the market of Ironhold."
+    asks: "How does burning momentum work again?"
+    kind: cannot_tell
+    tags: [out-of-character]
+  - id: cant-note
+    character: sefa
+    situation: "Sefa rests at the inn in Bleakhold."
+    asks: "Remember to buy rope before leaving town."
+    kind: cannot_tell
+    tags: [out-of-character]

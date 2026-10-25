@@ -1,5 +1,58 @@
 # Recognizer results
 
+## Oracle questions of 2026-10-25: Decision-1
+
+When the player types `/oracle` and a question with no table, the app asks the decision model three questions in one request: `kind` (`yes_no`, `table`, or `cannot_tell`), `likelihood` (five options), and `table` (the 22 tables the player rolls). Every question has 26 options or fewer, so no category question comes first.
+
+The 56 questions in `oracle-phrasings.yaml` have known answers: 21 yes or no questions, at least 4 for each likelihood; 33 table questions, at least one for each table; and 2 questions that aren't about the story. Ambiguous questions list the other answers that count, such as `unlikely` for a `small_chance` question, and one question ("Are the riders friend or foe?") accepts either kind. One table question ("How many raiders are in the camp?") has no fitting table. The user approved the experiment, and Claude wrote the questions.
+
+The suite ran twice on `decision-1@foundry`, once per question set, with no repeats: 112 requests.
+
+| Run | `table` question | Kind | Likelihood, acceptable | Likelihood, exact | Table, fitting | ECE kind / likelihood / table | p50 / p95 latency |
+|---|---|---|---|---|---|---|---|
+| 0001 | with `cannot_tell` | 56/56 | 19/21 (90.5%) | 14/21 (66.7%) | 26/33 (78.8%) | 0.011 / 0.285 / 0.163 | 419 / 641 ms |
+| 0002 | without `cannot_tell` | 56/56 | 19/21 (90.5%) | 14/21 (66.7%) | 30/33 (90.9%) | 0.010 / 0.315 / 0.103 | 386 / 586 ms |
+
+The kind was right for all 21 yes or no questions, all 33 table questions, and both questions that aren't about the story. The table count is over the 33 questions a table fits, including the friend-or-foe question's table answer. Play sends run 0002's question set.
+
+### Findings
+
+- **The kind is reliable.** Every kind answer was right in both runs. The lowest confidence was 0.51 in run 0001 and 0.63 in run 0002, both for the friend-or-foe question, which accepts either kind. The rest were 0.83 or more.
+- **A `cannot_tell` option on the `table` question hurt.** In run 0001 it won all 7 table misses, such as "What's the child's name?" (`cannot_tell` 0.75, `ironlander-name` 0.24). Without it, 4 of those 7 got the right table at 0.53 or more. This repeats the move experiment, where a `cannot_tell` option on the stat questions won most stat misses.
+- **The model doesn't abstain on a question no table fits.** Without the option, "How many raiders are in the camp?" got `challenge-rank` at 0.69.
+- **The likelihood is close, but rarely extreme.** In run 0002, the 6 likelihoods at 0.8 or more were all acceptable, and 5 were exact. Of the 7 inexact likelihoods, 6 were one step from the expected one, and 3 of the 4 `small_chance` questions got `unlikely`. The two misses came at low probability: "I doubt they left anything, but is there food in the cart?" got `likely` (0.30), so the model missed the wording, and "Is anyone still at the farm?" after smoke rose from the chimney an hour ago got `fifty_fifty` (0.31).
+- **Calibration differs by question.** In run 0002, likelihoods at 0.4 or more were acceptable 18 of 18 times, and 1 of 3 below. Tables at 0.8 or more were right 27 of 28 times, and 1 of 3 from 0.6 to 0.8. The likelihood's ECE of 0.315 is high because the model spreads its probability over neighboring likelihoods that the suite also accepts.
+
+### Table misses in run 0002
+
+| Case | Question | Expected | Answer (probability) |
+|---|---|---|---|
+| tb-rider-who | Who is the rider? | role | ironlander-name (0.85) |
+| tb-elder-trade | What did the elder do before she led the village? | role | action (0.65) |
+| amb-friend-or-foe | Are the riders friend or foe? | role, goal, or descriptor | plot-twist (0.78) |
+| amb-how-many | How many raiders are in the camp? | no table | challenge-rank (0.69) |
+
+The friend-or-foe question's kind was `yes_no`, so play offers its likelihood, `fifty_fifty` (0.46), which is right.
+
+### Thresholds
+
+The oracle policy, `suites/policies/oracle.yaml`, preselects the first option when the `kind` confidence is at least `act` and the chosen likelihood's or table's probability is at least `pick`. With `act` 0.5 and `pick` 0.4, on run 0002:
+
+| Result | Questions |
+|---|---|
+| Preselected, and acceptable | 48 (18 likelihoods, 30 tables) |
+| Preselected, and wrong | 3 (rider, elder, how many) |
+| Nothing preselected | 3 yes or no questions, 2 of them wrong |
+| Nothing preselected, as expected | 2 questions that aren't about the story |
+
+`act` is below every kind confidence measured. `pick` at 0.4 keeps both wrong likelihoods from being preselected, and only one right likelihood (0.33) loses its preselection. No `pick` up to 0.6 removes a wrong table, because the wrong tables had 0.65 or more. jevtester's policy accuracy for run 0002 is 0.804 (45 of 56), because it counts only each case's main expected action, not the other acceptable answers.
+
+The player always confirms. Enter rolls a preselected option, and every other table and likelihood is on the bar with its key.
+
+### Cost
+
+jevtester has no price for Foundry, so the cost of the 112 requests is unknown. The move experiment's 480 Clef-flash requests cost $0.0288 on Workers AI.
+
 ## Second run of 2026-10-24: two targets and the abstain experiments
 
 After the first run, the user approved the 120 cases and asked for a second target. This run used the approved suites directly, on `decision-1@foundry` and `clef-flash@workers-ai`. Two cases changed from the first run: Battle became an option in `exploring` and `journey`, and one Face Danger case in each was replaced with a Battle case. Each suite ran once per target, with no repeats.

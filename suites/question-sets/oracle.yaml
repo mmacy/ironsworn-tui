@@ -1,0 +1,44 @@
+name: oracle
+questions:
+  kind:
+    type: choice
+    instructions: What kind of answer does `question` ask for?
+    criteria:
+      yes_no: A yes or a no answers it, such as Is the bridge guarded? or Does the stranger know my name?
+      table: It asks for a name, a place, a person, or an idea that a yes or a no can't give, such as What is the guard called? or What happens next?
+      cannot_tell: It isn't a question about the story, such as a rules question or a note to the player
+  likelihood:
+    type: choice
+    instructions: How likely is a yes to `question`, given `character` and `situation`?
+    criteria:
+      almost_certain: The situation all but guarantees a yes
+      likely: A yes fits the situation better than a no
+      fifty_fifty: Nothing in the situation favors a yes or a no
+      unlikely: A no fits the situation better than a yes
+      small_chance: Only a surprise or a stroke of luck would give a yes
+  table:
+    type: choice
+    instructions: Which oracle table gives the answer that `question` asks for?
+    criteria:
+      action: What someone does or what happens next, as a verb such as Clash or Scheme
+      theme: What something is about, as a noun such as Risk or Ally
+      role: Who a person is or what they do for a living, such as a healer or a trader
+      goal: What a person wants, such as to obtain an object or to avenge a wrong
+      descriptor: What a person is like, such as stoic, cruel, or wary
+      ironlander-name: The name of a person of the Ironlands, such as a villager or a guard
+      elf-name: The name of an elf
+      giant-name: The name of a giant
+      varou-name: The name of a varou
+      troll-name: The name of a troll
+      region: Which region of the Ironlands somewhere is, such as the Deep Wilds
+      location: What kind of place somewhere is, such as a ruin, a mine, or a shrine
+      coastal-location: What kind of place is on the coast or the water, such as a fleet
+      place-descriptor: What a place looks or feels like, such as remote or haunted
+      settlement-name: The name of a town, village, or other settlement
+      quick-name-prefix: The first half of a settlement's name, such as Raven
+      quick-name-suffix: The second half of a settlement's name, such as ford
+      settlement-trouble: What trouble a settlement faces, such as dreadful omens or a feud
+      plot-twist: A surprise that turns the story, such as a trap that is sprung
+      combat-action: What a foe does next in a fight under way
+      mystic-backlash: What goes wrong when a ritual or magic fails
+      challenge-rank: How hard a foe, a journey, or a quest is, from troublesome to epic

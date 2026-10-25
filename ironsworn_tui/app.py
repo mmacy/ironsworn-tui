@@ -26,8 +26,9 @@ from ironsworn_tui.commands import (
     run_command,
 )
 from ironsworn_tui.moves import ATTACK, CANNOT_TELL, NO_MOVE, stat_choices
+from ironsworn_tui.oracles import LIKELIHOOD_OPTIONS
 from ironsworn_tui.outcomes import Choose
-from ironsworn_tui.policy import Suggestion
+from ironsworn_tui.policy import OracleSuggestion, Suggestion
 from ironsworn_tui.registry import CommandError, Completion, ghost_pieces
 from ironsworn_tui.rules.datasworn import Datasworn, Stat
 from ironsworn_tui.rules.progress import TICKS_PER_BOX, Rank
@@ -69,10 +70,14 @@ FIELD_HINTS = {
     "amount": "How much to spend",
     "bond": "yes or no",
 }
+# The suggestion bar shows an option's probability only from this value up.
+SHOWN_P = 0.01
+# The bar's width for laying out options before the screen has a size.
+SIZE_FALLBACK = 100
 DICE_LABELS = ("Action die", "First challenge die", "Second challenge die")
 PLACEHOLDER = "Type what your character does, or / for a command"
 
-type Mode = Literal["idle", "thinking", "suggest", "card", "follow_up", "offer"]
+type Mode = Literal["idle", "thinking", "suggest", "oracle", "card", "follow_up", "offer"]
 
 
 def option_name(engine: TurnEngine, option: str) -> str:
@@ -82,6 +87,13 @@ def option_name(engine: TurnEngine, option: str) -> str:
     if option in (NO_MOVE, CANNOT_TELL):
         return option.replace("_", " ").capitalize()
     return engine.move_name(option)
+
+
+def oracle_option_name(option: str) -> str:
+    """Return the name to show for an oracle option: `Ask likely`, or a table's short name."""
+    if option in LIKELIHOOD_OPTIONS:
+        return f"Ask {LIKELIHOOD_OPTIONS[option]}"
+    return option
 
 
 def _boost_line(boosts: list[AvailableBoost]) -> str:
@@ -181,6 +193,8 @@ class BarState:
         typed: The characters the bar took as keys since the last other key, such as the I
             that selects a move at the start of "I run". When a key the bar doesn't use
             follows, they start the text on the input line.
+        oracle: The oracle suggestion being shown, in `oracle` mode.
+        resume: The move suggestion to return to after an oracle question, if any.
     """
 
     mode: Mode = "idle"
@@ -195,6 +209,8 @@ class BarState:
     message: str = ""
     boosts: list[AvailableBoost] = field(default_factory=list[AvailableBoost])
     typed: str = ""
+    oracle: OracleSuggestion | None = None
+    resume: BarState | None = None
 
 
 class SuggestionBar(Static, can_focus=True):
@@ -543,6 +559,8 @@ class IronswornApp(App[None]):
         if text.startswith("/"):
             self.command(text)
             return
+        if self.bar_state.mode == "oracle":
+            engine.skip_oracle()
         before = len(engine.campaign.log)
         engine.log_message(text)
         self.log_new(before)
@@ -581,10 +599,72 @@ class IronswornApp(App[None]):
         self.bar_state.boosts = []
         if result.card is not None:
             self.show_card(result.card)
+        elif result.oracle_question is not None:
+            self.ask_oracle(result.oracle_question)
         elif result.show_moves:
             self.present(engine.full_list())
-        elif self.bar_state.mode == "suggest" and not engine.follow_ups:
+        elif self.bar_state.mode in ("suggest", "oracle") and not engine.follow_ups:
             self.refresh_all()
+        else:
+            self.after_turn()
+
+    def ask_oracle(self, question: str) -> None:
+        """Show the oracles for a question: every one for no question, or the decision
+        model's suggestion, asked in a worker thread.
+
+        A move suggestion on the bar comes back once the oracle question is rolled or
+        skipped.
+        """
+        state = self.bar_state
+        resume = state if state.mode == "suggest" else state.resume
+        if state.mode == "oracle":
+            self.engine.skip_oracle()
+        if not question:
+            self.present_oracle(self.engine.oracle_full_list(), resume)
+            return
+        self.bar_state = BarState(mode="thinking", resume=resume)
+        self.input.disabled = True
+        self.refresh_all()
+        self._ask_id += 1
+        self.decide_oracle(question, self._ask_id)
+
+    @work(thread=True, exclusive=True, group="oracle")
+    def decide_oracle(self, question: str, ask_id: int) -> None:
+        """Ask the decision model about an oracle question in a worker thread."""
+        suggestion = self.engine.decide_oracle(question)
+        self.call_from_thread(self.answer_oracle, suggestion, ask_id)
+
+    def answer_oracle(self, suggestion: OracleSuggestion, ask_id: int) -> None:
+        """Show the oracle suggestion, unless a newer request replaced it."""
+        if ask_id != self._ask_id or self.bar_state.mode != "thinking":
+            return
+        self.input.disabled = False
+        before = len(self.engine.campaign.log)
+        self.engine.accept_oracle(suggestion)
+        self.log_new(before)
+        self.present_oracle(suggestion, self.bar_state.resume)
+
+    def present_oracle(self, suggestion: OracleSuggestion, resume: BarState | None) -> None:
+        """Show the oracles the bar offers for a question, and focus it."""
+        self.bar_state = BarState(
+            mode="oracle",
+            oracle=suggestion,
+            options=suggestion.options,
+            selected=0 if suggestion.band == "act" else None,
+            resume=resume,
+        )
+        self.refresh_all()
+        self.bar.focus()
+
+    def _end_oracle(self) -> None:
+        """Return to the move suggestion the oracle question interrupted, or to what the
+        engine waits for."""
+        resume = self.bar_state.resume
+        engine = self.engine
+        if resume is not None and engine.card is None and not engine.follow_ups:
+            self.bar_state = resume
+            self.refresh_all()
+            self.bar.focus()
         else:
             self.after_turn()
 
@@ -648,6 +728,8 @@ class IronswornApp(App[None]):
                 return "Thinking…"
             case "suggest":
                 return self._render_suggest()
+            case "oracle":
+                return self._render_oracle()
             case "card":
                 return self._render_card()
             case "follow_up":
@@ -676,14 +758,14 @@ class IronswornApp(App[None]):
         engine = self.engine
         decision = state.suggestion.decision if state.suggestion else None
         probabilities = decision.move.probabilities if decision and decision.move else {}
-        parts: list[str] = []
+        parts: list[tuple[str, bool]] = []
         for index, option in enumerate(state.options):
             key = MOVE_KEYS[index] if index < len(MOVE_KEYS) else "·"
             p = probabilities.get(option)
             label = f"{key} {option_name(engine, option)}" + (f" {p:.2f}" if p is not None else "")
-            parts.append(f"[reverse]{label}[/reverse]" if index == state.selected else label)
+            parts.append((label, index == state.selected))
         lines = [state.message] if state.message else []
-        lines.append("  ".join(parts))
+        lines += self._rows(parts)
         details = [f"Add {state.adds:+d}"]
         option = state.options[state.selected] if state.selected is not None else None
         stats = self._stats_for(option) if option is not None else ()
@@ -714,6 +796,48 @@ class IronswornApp(App[None]):
         if len(keys) == 2:
             listed = f"{keys[0]} or {keys[1]}"
         return f"Stat: press {listed}"
+
+    def _render_oracle(self) -> str:
+        state = self.bar_state
+        suggestion = state.oracle
+        if suggestion is None:
+            return ""
+        decision = suggestion.decision
+        probabilities: dict[str, float] = {}
+        if decision is not None:
+            for answer in (decision.likelihood, decision.table):
+                probabilities |= answer.probabilities if answer is not None else {}
+        parts: list[tuple[str, bool]] = []
+        for index, option in enumerate(state.options):
+            key = MOVE_KEYS[index] if index < len(MOVE_KEYS) else "·"
+            p = probabilities.get(option, 0.0)
+            label = f"{key} {oracle_option_name(option)}" + (f" {p:.2f}" if p >= SHOWN_P else "")
+            parts.append((label, index == state.selected))
+        title = "[b]Oracle[/b]" + (
+            f": {escape(suggestion.question)}" if suggestion.question else ""
+        )
+        hints = f"Enter roll · {_key_range(len(state.options))}arrows move · Esc back"
+        return "\n".join([title, *self._rows(parts), f"[dim]{hints}[/dim]"])
+
+    def _rows(self, labels: list[tuple[str, bool]]) -> list[str]:
+        """Lay out option labels in rows that fit the bar, so no label breaks across rows.
+
+        Args:
+            labels: Each label as plain text, with True for the selected one.
+
+        Returns:
+            The rows, as markup, with the selected label reversed.
+        """
+        width = (self.bar.content_size.width if self.is_running else 0) or SIZE_FALLBACK
+        rows: list[list[str]] = [[]]
+        used = 0
+        for text, selected in labels:
+            if rows[-1] and used + 2 + len(text) > width:
+                rows.append([])
+                used = 0
+            used += (2 if rows[-1] else 0) + len(text)
+            rows[-1].append(f"[reverse]{escape(text)}[/reverse]" if selected else escape(text))
+        return ["  ".join(row) for row in rows]
 
     def _abilities_hint(self, option: str) -> str:
         count = len(self._available(option))
@@ -835,6 +959,10 @@ class IronswornApp(App[None]):
             True when the bar used the key.
         """
         mode = self.bar_state.mode
+        if key == "escape" and mode == "oracle":
+            self.engine.skip_oracle()
+            self._end_oracle()
+            return True
         if key == "escape" and mode in ("suggest", "offer"):
             if mode == "suggest":
                 self.engine.skip()
@@ -848,6 +976,8 @@ class IronswornApp(App[None]):
             match mode:
                 case "suggest":
                     return self._suggest_key(key, character)
+                case "oracle":
+                    return self._oracle_key(key, character)
                 case "card":
                     return self._card_key(key, character)
                 case "follow_up":
@@ -896,6 +1026,30 @@ class IronswornApp(App[None]):
             else:
                 self._roll_selected()
                 return True
+        else:
+            return False
+        self.refresh_all()
+        return True
+
+    def _oracle_key(self, key: str, character: str) -> bool:
+        state = self.bar_state
+        last = len(state.options) - 1
+        index = MOVE_KEYS.find(character) if character else -1
+        if 0 <= index < len(state.options):
+            state.selected = index
+        elif key in ("left", "up") and state.options:
+            state.selected = max(0, (state.selected if state.selected is not None else 1) - 1)
+        elif key in ("right", "down") and state.options:
+            state.selected = min(last, (state.selected if state.selected is not None else -1) + 1)
+        elif key == "enter":
+            if state.selected is None or state.oracle is None:
+                self.note("Pick an oracle")
+                return True
+            before = len(self.engine.campaign.log)
+            self.engine.answer_oracle(state.options[state.selected], state.oracle.question)
+            self.log_new(before)
+            self._end_oracle()
+            return True
         else:
             return False
         self.refresh_all()

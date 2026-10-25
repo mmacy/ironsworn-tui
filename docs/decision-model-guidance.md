@@ -28,13 +28,27 @@ The requests apply it:
 - Each guide criterion is a concrete situation. Criteria for moves that overlap name the line between them: Face Danger overcomes a danger directly, while Secure an Advantage sets up an edge for an action still to come, and Gather Information learns facts. Make Camp is away from any settlement, and Sojourn is in a community.
 - `no_move` and `cannot_tell` describe situations instead of negations, and they come last in every list.
 
-The recognizer experiment measured, on Decision-1 and Clef-flash ([results](https://github.com/mmacy/ironsworn-tui/blob/main/experiments/results.md)):
+The move recognizer experiment measured, on Decision-1 and Clef-flash ([results](https://github.com/mmacy/ironsworn-tui/blob/main/experiments/results.md)):
 
 - The guide criteria beat the Datasworn trigger text on both targets, so play uses them.
 - A `cannot_tell` option on the stat questions won most stat misses, so the stat questions have none.
 - The companion `acts` question lowered move accuracy on both targets, because it answered no for many real actions. The `move` question has a `cannot_tell` option instead.
 - Messages that name a move ("Roll Face Danger! I pour myself another cup of tea") didn't pull either model toward the named move.
 - Whether the stat questions change the `move` answer is unsettled. Removing the stat `cannot_tell` option changed one `move` choice on Clef-flash and none on Decision-1, but probabilities moved by up to 0.09 on both, and one run of each can't separate that from run-to-run variation.
+
+The oracle request applies the same guidance:
+
+- The state has `character`, `situation`, and `question`, the text the player typed after `/oracle`.
+- It asks three questions, each one judgment: `kind` ("What kind of answer does `question` ask for?"), `likelihood` ("How likely is a yes to `question`, given `character` and `situation`?"), and `table` ("Which oracle table gives the answer that `question` asks for?"). Code reads `likelihood` or `table`, as `kind` says, so neither needs an "if" clause.
+- `kind` has a `cannot_tell` option, for text that isn't a question about the story. `likelihood` and `table` have none.
+- Each option is a concrete situation: a likelihood is how the situation leans ("A yes fits the situation better than a no"), and a table is what it gives, with an example ("What a person wants, such as to obtain an object or to avenge a wrong").
+- The `table` question has 22 options, the tables the player rolls. That's under the 26-option limit of the Ollama target, so the request doesn't need a category question first.
+
+The oracle experiment measured, on Decision-1:
+
+- A `cannot_tell` option on the `table` question won 7 of the 33 questions a table fits, and those were all the table misses, as the stat questions' `cannot_tell` option did. Without it, the same 33 questions got a fitting table 30 times instead of 26.
+- The `kind` answer was right for all 56 questions in both runs, at a confidence of 0.51 or more.
+- The likelihood's exact answer was right 14 of 21 times. The model rarely followed the wording: "I doubt they left anything, but is there food in the cart?" got `likely`. Play shows the likelihood as a suggestion the player confirms.
 
 Still to test: option order with `jevtester probe`, whether the `character` field sways the stat answers, and acting on the top-to-second ratio as well as confidence.
 
