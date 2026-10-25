@@ -404,7 +404,7 @@ class IronswornApp(App[None]):
             self.show_card(result.card)
         elif result.show_moves:
             self.present(engine.full_list())
-        elif self.bar_state.mode == "suggest":
+        elif self.bar_state.mode == "suggest" and not engine.follow_ups:
             self.refresh_all()
         else:
             self.after_turn()
@@ -633,6 +633,8 @@ class IronswornApp(App[None]):
         if key == "escape" and mode in ("suggest", "offer"):
             if mode == "suggest":
                 self.engine.skip()
+            else:
+                self.engine.decline_end_fight()
             self.bar_state = BarState()
             self.refresh_all()
             self.input.focus()
@@ -771,7 +773,7 @@ class IronswornApp(App[None]):
             if current < len(chooses):
                 choose = chooses[current]
                 if not choose.minimum <= len(state.pending) <= choose.count:
-                    self.note(f"Choose {choose.minimum} to {choose.count}")
+                    self.note(_choose_prompt(choose).removesuffix(":"))
                     return True
                 state.picks.append(state.pending)
                 state.pending = []

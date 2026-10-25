@@ -247,6 +247,28 @@ def test_asset_harm_owes_companion_endure_harm(tmp_path: Path):
         run_command(turn, "/asset harm archer 2")
 
 
+def test_endure_owes_endure_harm_or_endure_stress(tmp_path: Path):
+    turn, _, _ = engine(tmp_path)
+    run_command(turn, "/endure harm 2")
+    run_command(turn, "/endure stress 1")
+    assert turn.follow_ups == (
+        OwedMove(move="endure_harm", amount=2),
+        OwedMove(move="endure_stress", amount=1),
+    )
+    assert [entry.text for entry in turn.campaign.log[-2:]] == [
+        "Kira faces 2 harm",
+        "Kira faces 1 stress",
+    ]
+
+
+@pytest.mark.parametrize("text", ["/endure", "/endure harm", "/endure harm 0", "/endure doom 2"])
+def test_endure_needs_harm_or_stress_and_an_amount(tmp_path: Path, text: str):
+    turn, _, _ = engine(tmp_path)
+    with pytest.raises(CommandError):
+        run_command(turn, text)
+    assert turn.follow_ups == ()
+
+
 def test_effects_list_and_end(tmp_path: Path):
     turn, _, _ = engine(tmp_path)
     turn.campaign.lasting.append(Lasting(kind="talisman_2"))

@@ -789,7 +789,7 @@ ABILITIES: dict[tuple[str, int], Entry] = {
     ("lorekeeper", 3): Reminder(
         "One time only, an action rather than a move: /asset use lorekeeper."
     ),
-    ("loyalist", 1): Reminder("Aid Your Ally is for play with an ally."),
+    ("loyalist", 1): (Boost("Aid your ally", ("aid_your_ally",), add=1, momentum_on_hit=1),),
     ("loyalist", 2): Reminder("Applies to an ally's move."),
     ("loyalist", 3): Reminder("Applies to an ally's move."),
     ("masked", 1): (
@@ -1216,22 +1216,35 @@ class RollFacts:
     late: bool = False
 
 
-def boost_effects(boost: Boost, facts: RollFacts) -> tuple[Effect, ...]:
-    """Return the effects a boost adds to the result, in order."""
+def boost_effects(boost: Boost, facts: RollFacts, *, for_ally: bool = False) -> tuple[Effect, ...]:
+    """Return the effects a boost adds to the result, in order.
+
+    Args:
+        boost: The boost.
+        facts: The roll's result.
+        for_ally: True when the boost's benefits on a hit go to an ally, as a Secure an
+            Advantage boost's do on Aid Your Ally (rulebook page 76). The benefits become a
+            note, and the boost's costs stay.
+    """
     if boost.rolled is not None and boost.rolled != facts.rolled_with:
         return ()
     hit = facts.hit
     effects: list[Effect] = []
+    benefits: list[Effect] = []
     if hit is not Hit.MISS:
         if boost.momentum_on_hit:
-            effects.append(Momentum(boost.momentum_on_hit))
-        effects += boost.on_hit
+            benefits.append(Momentum(boost.momentum_on_hit))
+        benefits += boost.on_hit
     if hit is Hit.STRONG:
         if boost.momentum_on_strong:
-            effects.append(Momentum(boost.momentum_on_strong))
-        effects += boost.on_strong
+            benefits.append(Momentum(boost.momentum_on_strong))
+        benefits += boost.on_strong
         if facts.match:
-            effects += boost.on_strong_match
+            benefits += boost.on_strong_match
+    if for_ally and benefits:
+        effects.append(Note(f"Your ally also takes the benefits of {boost.label}."))
+    else:
+        effects += benefits
     if hit is Hit.WEAK:
         effects += boost.on_weak
     if hit is Hit.MISS:

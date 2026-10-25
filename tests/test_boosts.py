@@ -14,6 +14,7 @@ from ironsworn_tui.outcomes import (
     MaskTrack,
     MeterChange,
     Momentum,
+    Note,
     SetInitiative,
 )
 from ironsworn_tui.rules.datasworn import datasworn
@@ -497,3 +498,38 @@ def test_veteran_takes_initiative_on_a_burned_miss(tmp_path: Path):
     assert card.effects[-1] == SetInitiative("character")
     turn.resolve()
     assert turn.campaign.initiative == "character"
+
+
+def test_loyalist_adds_and_gives_momentum_when_aiding_an_ally(tmp_path: Path):
+    turn, dice, _ = engine(tmp_path)
+    give(turn, "loyalist", 1)
+    labels = [a.label for a in turn.boosts_for("aid_your_ally")]
+    assert "Loyalist 1: Aid your ally" in labels
+    assert "Archer 1: Trust your instincts" in labels
+    assert "Loyalist 1: Aid your ally" not in [a.label for a in turn.boosts_for("compel")]
+    dice.load(4, 6, 9)
+    card = turn.make_move("aid_your_ally", stat="edge", boosts=[BoostRef("loyalist", 1)])
+    assert card is not None
+    assert card.action is not None and card.action.adds == 1
+    assert card.effects[-1] == Momentum(1)
+
+
+def test_secure_an_advantage_benefits_go_to_the_ally(tmp_path: Path):
+    turn, dice, _ = engine(tmp_path)
+    give(turn, "loyalist", 1)
+    dice.load(4, 6, 9)
+    card = turn.make_move("aid_your_ally", stat="edge", boosts=[LINE_UP, BoostRef("loyalist", 1)])
+    assert card is not None
+    assert card.action is not None and card.action.adds == 2
+    assert Note("Your ally also takes the benefits of Line up your shot.") in card.effects
+    assert card.effects.count(Momentum(1)) == 1
+
+
+def test_a_cost_of_a_secure_an_advantage_boost_stays_with_you(tmp_path: Path):
+    turn, dice, _ = engine(tmp_path)
+    give(turn, "spirit_bound", 1)
+    dice.load(4, 6, 9)
+    card = turn.make_move("aid_your_ally", stat="edge", boosts=[BoostRef("spirit_bound", 1)])
+    assert card is not None and card.hit is Hit.WEAK
+    assert FollowUp("endure_stress", 1) in card.effects
+    assert Note("Your ally also takes the benefits of Consult the spirit.") in card.effects
