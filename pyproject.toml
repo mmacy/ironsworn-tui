@@ -1,0 +1,43 @@
+[project]
+name = "ironsworn-tui"
+version = "0.1.0"
+description = "A terminal app for solo Ironsworn that suggests the triggered move with a decision model."
+readme = "README.md"
+license = "CC-BY-NC-SA-4.0"
+requires-python = ">=3.14"
+dependencies = [
+    "pydantic>=2.14",
+    "ruamel.yaml>=0.19",
+    "textual>=8.2",
+]
+
+[dependency-groups]
+dev = [
+    "pyright>=1.1.414",
+    "pytest>=9.1",
+    "ruff>=0.17",
+]
+
+[build-system]
+requires = ["uv_build>=0.8.22,<0.9"]
+build-backend = "uv_build"
+
+[tool.uv.build-backend]
+module-root = ""
+
+[tool.ruff]
+line-length = 100
+target-version = "py314"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "N", "UP", "B", "SIM", "RUF"]
+
+[tool.pyright]
+include = ["ironsworn_tui", "tests"]
+typeCheckingMode = "strict"
+pythonVersion = "3.14"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-m 'not live'"
+markers = ["live: calls a hosted decision model through jevtester"]
