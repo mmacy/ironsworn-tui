@@ -16,6 +16,7 @@ The app has no LLM narrator. In solo Ironsworn the player writes the fiction, so
 - Narration, NPC dialogue, or oracle interpretation by a model.
 - Co-op play, Ironsworn: Delve, and Ironsworn: Starforged.
 - A web UI.
+- Reading or writing the Ironsworn plugin's campaign files (`CHARACTER.md`, `VOWS.md`, and the rest). Claude writes those files as prose, so the app would have to parse free text to read them. Campaigns are JSON, as [Campaign state](#campaign-state) describes.
 - Applying asset abilities in the first version. The player adds an asset's bonus by hand with an add key. Build step 8 covers assets.
 
 ## Sources
@@ -244,7 +245,3 @@ Each step ends with a command that shows it works. Every step also passes the ga
 - **Answers may depend on option order.** Ollama gives ties to the first option. `jevtester probe` measures this.
 - **The situation text may go stale.** If it doesn't reflect the scene, the model can't tell Face Danger from Secure an Advantage. The player updates it with `/scene`, and the log shows what was sent.
 - **Calls take time.** One call per message, at 1 to 3 seconds each, may feel slow. A local model on Ollama would help once its download is done.
-
-## Open questions
-
-- Should vows and bonds use the same Markdown files as the plugin, so a campaign can move between the two?
