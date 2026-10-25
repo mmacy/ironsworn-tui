@@ -15,3 +15,4 @@
 | [11](11-asset-moves-lasting-effects-and-companions.md) | Asset moves, lasting effects, and companions | 25 October 2026, 02:00 to 02:24 PDT | Claude Opus 5.5 |
 | [12](12-user-documentation.md) | The user documentation | 25 October 2026, 06:25 to 06:56 PDT | Claude Opus 5.5 |
 | [13](13-fixing-what-the-docs-found.md) | Fixing what the docs found | 25 October 2026, 06:58 to 07:16 PDT | Claude Opus 5.5 |
+| [14](14-the-docs-site-and-going-public.md) | The docs site and going public | 25 October 2026, 06:59 to 07:32 PDT | Claude Opus 5.5 |
