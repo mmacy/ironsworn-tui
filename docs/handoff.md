@@ -23,7 +23,10 @@ ironsworn-tui is a terminal app for solo Ironsworn. A decision model reads what 
 - Build step 1 is done: the uv project, the vendored Datasworn data in `ironsworn_tui/data/datasworn/`, and the typed rules port in `ironsworn_tui/rules/`.
 - The port fixes two `iron.py` bugs. Burning momentum now cancels only the challenge dice below the momentum, so it can't make a result worse. Sub-rolls now follow the `oracle_rollable:` ids that `iron.py` couldn't resolve. Momentum also stops at -6 now, and any loss past that is reported as `setback` for Face a Setback.
 - Build step 2 is done: typed pydantic move models in `ironsworn_tui/rules/datasworn.py`, and the move groups, contexts, and stat questions in `ironsworn_tui/moves.py`.
-- Start with build step 3, the decision adapter.
+- Build step 3 is done: `ironsworn_tui/decide.py` builds the request, starts one `jevtester serve`, and parses the answers. `ironsworn_tui/criteria.py` has the two criteria styles. Read [`decision-model-guidance.md`](decision-model-guidance.md) before changing a question, the criteria, or the state.
+- Start with build step 4, the recognizer experiment.
+- The user said to use `decision-1@foundry` for live calls. The Ollama models aren't downloaded, and won't be while the user is on a hotspot. Ask before adding a second hosted target, such as `clef-flash@workers-ai`, to an experiment.
+- The user allowed changing `~/repos/jevtester` if it makes sense, for example to send structured criteria.
 - `diary/` holds the dev diary. Add an entry when a step or decision lands.
 - To check a rule, search the rulebook from `~/repos/shelf-of-holding` with `uv run shelf search "<terms>"`, then `uv run shelf show "DriveThruRPG/Shawn Tomkin/Ironsworn/Ironsworn-Rulebook.pdf" <page>`.
 
@@ -52,7 +55,7 @@ Fix a finding in the code. Don't add `noqa`, `type: ignore`, or ignore lists.
 
 `~/repos/jevtester/jevtester.toml` lists the targets. Build step 3 copies the ones this app uses into this repository's `jevtester.toml`. Check them with `uv run --project ~/repos/jevtester jevtester --config jevtester.toml targets check`.
 
-- `decision-1@foundry` (Microsoft-Decision-1) answered in about 1 second when tested on 2026-10-24.
+- `decision-1@foundry` (Microsoft-Decision-1) answered in about 1 second when tested on 2026-10-24, and in about 0.4 seconds on a warm `jevtester serve`.
 - `clef-flash@workers-ai` answered in 2 to 3 seconds and was less confident on the same inputs.
 - `clef-flash@ollama` isn't available yet, because its download isn't finished.
 

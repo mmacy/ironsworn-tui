@@ -1,0 +1,347 @@
+{
+  "request": {
+    "state": {
+      "character": "Kira, a hunter",
+      "circumstances": "Kira is exploring, and no fight or journey is under way.",
+      "situation": "Pinned behind a cart. Two raiders with bows hold the ridge above the road.",
+      "player_says": "I creep along the ditch to get behind the ridge where they can't see me."
+    },
+    "questions": {
+      "move": {
+        "type": "choice",
+        "instructions": "Which move does the action in `player_says` trigger, given `circumstances` and `situation`?",
+        "criteria": {
+          "face_danger": "The character tries to overcome a danger or obstacle directly, or reacts to a threat about to hit",
+          "secure_an_advantage": "The character sizes up a threat or sets up an edge for an action still to come",
+          "gather_information": "The character searches, investigates, or questions people to learn facts about a mystery, place, or quest",
+          "heal": "The character treats a wound or illness, their own or a companion's",
+          "resupply": "The character hunts, forages, or scavenges for food and gear",
+          "make_camp": "The character camps away from any settlement, to rest and recover for the night",
+          "undertake_a_journey": "The character sets out or travels on through dangerous or unknown lands",
+          "compel": "The character persuades, bargains with, threatens, or lies to someone to make them act",
+          "sojourn": "The character spends time in a community to recover, resupply, or get its people's help",
+          "draw_the_circle": "The character challenges someone to a formal duel, or accepts a challenge",
+          "forge_a_bond": "The character seals a lasting bond with a person or community after time or hardship together",
+          "test_your_bond": "A bond the character has made is strained by conflict, betrayal, or events",
+          "swear_an_iron_vow": "The character swears upon iron to complete a quest",
+          "fulfill_your_vow": "The character believes they have done what a sworn vow demands",
+          "forsake_your_vow": "The character abandons a vow, breaks a promise, or accepts its goal is lost",
+          "enter_the_fray": "A fight starts: the character faces off with a foe, ambushes one, or is ambushed",
+          "write_your_epilogue": "The character retires from adventuring, and the player tells how their life ends",
+          "no_move": "The character does something with no risk and no doubt about the outcome, such as small talk with a friend over a meal in a safe place",
+          "cannot_tell": "The player only asks something out of character, or describes the scene or a feeling, and the character takes no action"
+        }
+      },
+      "stat_face_danger": {
+        "type": "choice",
+        "instructions": "How does the character go about the action in `player_says`?",
+        "criteria": {
+          "edge": "With speed, agility, or precision",
+          "heart": "With charm, loyalty, or courage",
+          "iron": "With aggressive action, forceful defense, strength, or endurance",
+          "shadow": "With deception, stealth, or trickery",
+          "wits": "With expertise, insight, or observation",
+          "cannot_tell": "The player names the action but not the manner of doing it"
+        }
+      },
+      "stat_secure_an_advantage": {
+        "type": "choice",
+        "instructions": "How does the character go about the action in `player_says`?",
+        "criteria": {
+          "edge": "With speed, agility, or precision",
+          "heart": "With charm, loyalty, or courage",
+          "iron": "With aggressive action, forceful defense, strength, or endurance",
+          "shadow": "With deception, stealth, or trickery",
+          "wits": "With expertise, insight, or observation",
+          "cannot_tell": "The player names the action but not the manner of doing it"
+        }
+      },
+      "stat_compel": {
+        "type": "choice",
+        "instructions": "How does the character go about the action in `player_says`?",
+        "criteria": {
+          "heart": "Charm, pacify, barter, or convince",
+          "iron": "Threaten or incite",
+          "shadow": "Lie or swindle",
+          "cannot_tell": "The player names the action but not the manner of doing it"
+        }
+      },
+      "stat_enter_the_fray": {
+        "type": "choice",
+        "instructions": "How does the character go about the action in `player_says`?",
+        "criteria": {
+          "heart": "Facing off against your foe",
+          "shadow": "Moving into position against an unaware foe, or striking without warning",
+          "wits": "Ambushed",
+          "cannot_tell": "The player names the action but not the manner of doing it"
+        }
+      }
+    },
+    "images": []
+  },
+  "question_set_version": "b61c184a610e0eea39a200a397361888886b213e092fe2d9a8d0cf3968ce750e",
+  "asked_at": "2026-10-25T02:09:32.858066Z",
+  "results": [
+    {
+      "target": "decision-1@foundry",
+      "ok": true,
+      "latency_ms": 476.1,
+      "usage": {
+        "input_tokens": 900,
+        "output_tokens": 5
+      },
+      "cost_usd": null,
+      "warnings": [],
+      "error": null,
+      "answers": {
+        "move": {
+          "type": "choice",
+          "choice": "secure_an_advantage",
+          "probabilities": {
+            "face_danger": 0.046029002182101014,
+            "secure_an_advantage": 0.9245414982489859,
+            "gather_information": 0.0001768267747351684,
+            "heal": 5.066161314133927e-05,
+            "resupply": 8.348601965539962e-05,
+            "make_camp": 2.8860583593301415e-05,
+            "undertake_a_journey": 5.064449964074969e-05,
+            "compel": 6.501348643541113e-05,
+            "sojourn": 7.40145533362975e-05,
+            "draw_the_circle": 8.88670391498544e-05,
+            "forge_a_bond": 8.887804330116223e-05,
+            "test_your_bond": 3.072438644540479e-05,
+            "swear_an_iron_vow": 8.886978018986793e-05,
+            "fulfill_your_vow": 8.900728559718945e-05,
+            "forsake_your_vow": 8.890475228894835e-05,
+            "enter_the_fray": 0.027919178923168315,
+            "write_your_epilogue": 0.0001007425427781023,
+            "no_move": 9.465006181577668e-05,
+            "cannot_tell": 0.00031016922364084066
+          },
+          "unknown_probabilities": {},
+          "confidence": 0.9203493592628185,
+          "server_confidence": 0.9203493592628185
+        },
+        "stat_face_danger": {
+          "type": "choice",
+          "choice": "shadow",
+          "probabilities": {
+            "edge": 0.00314013582137873,
+            "heart": 0.00012175622090006977,
+            "iron": 0.00029207799020397775,
+            "shadow": 0.9866012524648052,
+            "wits": 0.0013090033605647692,
+            "cannot_tell": 0.00853577414214712
+          },
+          "unknown_probabilities": {},
+          "confidence": 0.9839215029577663,
+          "server_confidence": 0.9839215029577663
+        },
+        "stat_secure_an_advantage": {
+          "type": "choice",
+          "choice": "shadow",
+          "probabilities": {
+            "edge": 0.00314013582137873,
+            "heart": 0.00012175622090006977,
+            "iron": 0.00029207799020397775,
+            "shadow": 0.9866012524648052,
+            "wits": 0.0013090033605647692,
+            "cannot_tell": 0.00853577414214712
+          },
+          "unknown_probabilities": {},
+          "confidence": 0.9839215029577663,
+          "server_confidence": 0.9839215029577663
+        },
+        "stat_compel": {
+          "type": "choice",
+          "choice": "cannot_tell",
+          "probabilities": {
+            "heart": 0.005576475430592857,
+            "iron": 0.0038326517768877415,
+            "shadow": 0.16296850048272998,
+            "cannot_tell": 0.8276223723097895
+          },
+          "unknown_probabilities": {},
+          "confidence": 0.7701631630797193,
+          "server_confidence": 0.7701631630797193
+        },
+        "stat_enter_the_fray": {
+          "type": "choice",
+          "choice": "shadow",
+          "probabilities": {
+            "heart": 0.0004839601286678484,
+            "shadow": 0.9915279798949769,
+            "wits": 0.002784998251512078,
+            "cannot_tell": 0.005203061724843248
+          },
+          "unknown_probabilities": {},
+          "confidence": 0.9887039731933025,
+          "server_confidence": 0.9887039731933025
+        }
+      },
+      "request_body": {
+        "state": {
+          "character": "Kira, a hunter",
+          "circumstances": "Kira is exploring, and no fight or journey is under way.",
+          "situation": "Pinned behind a cart. Two raiders with bows hold the ridge above the road.",
+          "player_says": "I creep along the ditch to get behind the ridge where they can't see me."
+        },
+        "model": "decision-1",
+        "questions": {
+          "move": {
+            "type": "choice",
+            "instructions": "Which move does the action in `player_says` trigger, given `circumstances` and `situation`?",
+            "criteria": {
+              "face_danger": "The character tries to overcome a danger or obstacle directly, or reacts to a threat about to hit",
+              "secure_an_advantage": "The character sizes up a threat or sets up an edge for an action still to come",
+              "gather_information": "The character searches, investigates, or questions people to learn facts about a mystery, place, or quest",
+              "heal": "The character treats a wound or illness, their own or a companion's",
+              "resupply": "The character hunts, forages, or scavenges for food and gear",
+              "make_camp": "The character camps away from any settlement, to rest and recover for the night",
+              "undertake_a_journey": "The character sets out or travels on through dangerous or unknown lands",
+              "compel": "The character persuades, bargains with, threatens, or lies to someone to make them act",
+              "sojourn": "The character spends time in a community to recover, resupply, or get its people's help",
+              "draw_the_circle": "The character challenges someone to a formal duel, or accepts a challenge",
+              "forge_a_bond": "The character seals a lasting bond with a person or community after time or hardship together",
+              "test_your_bond": "A bond the character has made is strained by conflict, betrayal, or events",
+              "swear_an_iron_vow": "The character swears upon iron to complete a quest",
+              "fulfill_your_vow": "The character believes they have done what a sworn vow demands",
+              "forsake_your_vow": "The character abandons a vow, breaks a promise, or accepts its goal is lost",
+              "enter_the_fray": "A fight starts: the character faces off with a foe, ambushes one, or is ambushed",
+              "write_your_epilogue": "The character retires from adventuring, and the player tells how their life ends",
+              "no_move": "The character does something with no risk and no doubt about the outcome, such as small talk with a friend over a meal in a safe place",
+              "cannot_tell": "The player only asks something out of character, or describes the scene or a feeling, and the character takes no action"
+            }
+          },
+          "stat_face_danger": {
+            "type": "choice",
+            "instructions": "How does the character go about the action in `player_says`?",
+            "criteria": {
+              "edge": "With speed, agility, or precision",
+              "heart": "With charm, loyalty, or courage",
+              "iron": "With aggressive action, forceful defense, strength, or endurance",
+              "shadow": "With deception, stealth, or trickery",
+              "wits": "With expertise, insight, or observation",
+              "cannot_tell": "The player names the action but not the manner of doing it"
+            }
+          },
+          "stat_secure_an_advantage": {
+            "type": "choice",
+            "instructions": "How does the character go about the action in `player_says`?",
+            "criteria": {
+              "edge": "With speed, agility, or precision",
+              "heart": "With charm, loyalty, or courage",
+              "iron": "With aggressive action, forceful defense, strength, or endurance",
+              "shadow": "With deception, stealth, or trickery",
+              "wits": "With expertise, insight, or observation",
+              "cannot_tell": "The player names the action but not the manner of doing it"
+            }
+          },
+          "stat_compel": {
+            "type": "choice",
+            "instructions": "How does the character go about the action in `player_says`?",
+            "criteria": {
+              "heart": "Charm, pacify, barter, or convince",
+              "iron": "Threaten or incite",
+              "shadow": "Lie or swindle",
+              "cannot_tell": "The player names the action but not the manner of doing it"
+            }
+          },
+          "stat_enter_the_fray": {
+            "type": "choice",
+            "instructions": "How does the character go about the action in `player_says`?",
+            "criteria": {
+              "heart": "Facing off against your foe",
+              "shadow": "Moving into position against an unaware foe, or striking without warning",
+              "wits": "Ambushed",
+              "cannot_tell": "The player names the action but not the manner of doing it"
+            }
+          }
+        }
+      },
+      "raw": {
+        "model": "microsoft-decision-1",
+        "answers": {
+          "move": {
+            "choice": "secure_an_advantage",
+            "confidence": 0.9203493592628185,
+            "probabilities": {
+              "cannot_tell": 0.00031016922364084066,
+              "compel": 6.501348643541113e-05,
+              "draw_the_circle": 8.88670391498544e-05,
+              "enter_the_fray": 0.027919178923168315,
+              "face_danger": 0.046029002182101014,
+              "forge_a_bond": 8.887804330116223e-05,
+              "forsake_your_vow": 8.890475228894835e-05,
+              "fulfill_your_vow": 8.900728559718945e-05,
+              "gather_information": 0.0001768267747351684,
+              "heal": 5.066161314133927e-05,
+              "make_camp": 2.8860583593301415e-05,
+              "no_move": 9.465006181577668e-05,
+              "resupply": 8.348601965539962e-05,
+              "secure_an_advantage": 0.9245414982489859,
+              "sojourn": 7.40145533362975e-05,
+              "swear_an_iron_vow": 8.886978018986793e-05,
+              "test_your_bond": 3.072438644540479e-05,
+              "undertake_a_journey": 5.064449964074969e-05,
+              "write_your_epilogue": 0.0001007425427781023
+            },
+            "type": "choice"
+          },
+          "stat_compel": {
+            "choice": "cannot_tell",
+            "confidence": 0.7701631630797193,
+            "probabilities": {
+              "cannot_tell": 0.8276223723097895,
+              "heart": 0.005576475430592857,
+              "iron": 0.0038326517768877415,
+              "shadow": 0.16296850048272998
+            },
+            "type": "choice"
+          },
+          "stat_enter_the_fray": {
+            "choice": "shadow",
+            "confidence": 0.9887039731933025,
+            "probabilities": {
+              "cannot_tell": 0.005203061724843248,
+              "heart": 0.0004839601286678484,
+              "shadow": 0.9915279798949769,
+              "wits": 0.002784998251512078
+            },
+            "type": "choice"
+          },
+          "stat_face_danger": {
+            "choice": "shadow",
+            "confidence": 0.9839215029577663,
+            "probabilities": {
+              "cannot_tell": 0.00853577414214712,
+              "edge": 0.00314013582137873,
+              "heart": 0.00012175622090006977,
+              "iron": 0.00029207799020397775,
+              "shadow": 0.9866012524648052,
+              "wits": 0.0013090033605647692
+            },
+            "type": "choice"
+          },
+          "stat_secure_an_advantage": {
+            "choice": "shadow",
+            "confidence": 0.9839215029577663,
+            "probabilities": {
+              "cannot_tell": 0.00853577414214712,
+              "edge": 0.00314013582137873,
+              "heart": 0.00012175622090006977,
+              "iron": 0.00029207799020397775,
+              "shadow": 0.9866012524648052,
+              "wits": 0.0013090033605647692
+            },
+            "type": "choice"
+          }
+        },
+        "usage": {
+          "input_tokens": 900,
+          "output_tokens": 5
+        }
+      }
+    }
+  ]
+}
