@@ -12,7 +12,7 @@ uv run ironsworn-tui new Kira --description "a hunter" --stats edge=2,heart=2,ir
 uv run ironsworn-tui play Kira
 ```
 
-Type what your character does and press Enter. The app asks the decision model in `ironsworn-tui.toml` which move it triggers, through jevtester. Press Enter on the suggestion bar to roll, then pick any choices on the roll card. Text that starts with `/` is a command: `/oracle`, `/ask`, `/vow`, `/scene`, `/target`, `/tide`, `/adjust`, and `/moves`. Add `--no-model` to `play` to pick every move from the list yourself.
+Type what your character does and press Enter. The app asks the decision model in `ironsworn-tui.toml` which move it triggers, through jevtester. Press Enter on the suggestion bar to roll, then pick any choices on the roll card. Press `n` when the message triggers no move, or Escape to leave it. Each message the model answered is saved, with what you did, as a test case in `suites/play-<context>.yaml`, so those files change as you play. Text that starts with `/` is a command: `/oracle`, `/ask`, `/vow`, `/scene`, `/target`, `/tide`, `/adjust`, and `/moves`. Add `--no-model` to `play` to pick every move from the list yourself.
 
 ## Development
 

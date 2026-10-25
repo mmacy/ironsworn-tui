@@ -1,0 +1,7 @@
+name: play-fight
+question_set: moves-fight-guide
+policy: moves
+targets:
+  - decision-1@foundry
+  - clef-flash@workers-ai
+cases: []

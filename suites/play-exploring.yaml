@@ -1,0 +1,7 @@
+name: play-exploring
+question_set: moves-exploring-guide
+policy: moves
+targets:
+  - decision-1@foundry
+  - clef-flash@workers-ai
+cases: []
