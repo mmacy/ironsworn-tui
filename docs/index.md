@@ -40,6 +40,12 @@ Type what Kira does and press Enter. When the app suggests a move, press Enter t
 
 The full rules are in the *Ironsworn* rulebook, a free download from the publisher, Tomkin Press, at [tomkinpress.com](https://tomkinpress.com/products/ironsworn-digital-edition).
 
+## Thanks
+
+*Ironsworn* is written and published by Shawn Tomkin. Learn about the game on its [home page at Tomkin Press](https://tomkinpress.com/pages/ironsworn), and get the free digital edition or a print copy from [Tomkin Press](https://tomkinpress.com/products/ironsworn-digital-edition) or [DriveThruRPG](https://www.drivethrurpg.com/en/product/238369/Ironsworn). Thanks to Shawn Tomkin for the game and for releasing it under an open license.
+
+The moves, assets, and oracles come from [Datasworn](https://github.com/rsek/datasworn), the Ironsworn rules in machine-readable form.
+
 ## License
 
 The repository is licensed under [CC BY-NC-SA 4.0](https://github.com/mmacy/ironsworn-tui/blob/main/LICENSE). *Ironsworn* is by Shawn Tomkin. Ironsworn is a trademark of Shawn Tomkin. This is not an official Ironsworn product.

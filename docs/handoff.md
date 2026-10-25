@@ -2,6 +2,8 @@
 
 If you're starting work on ironsworn-tui with no earlier context, read this page, then [`plan.md`](plan.md). Then start at the first unfinished step in the plan's build order.
 
+If you're new to the code, read [`architecture.md`](architecture.md) for how it's organized and how to make a first change.
+
 ## What this project is
 
 ironsworn-tui is a terminal app for solo Ironsworn. A decision model reads what the player types and suggests the triggered move and stat. The player confirms with a keypress, and the app rolls and shows the outcome. The project is also an experiment: the user is learning where decision models work well, so measuring accuracy matters as much as the app.

@@ -18,6 +18,7 @@ from ironsworn_tui.app import (
 )
 from ironsworn_tui.assets import buy, upgrade
 from ironsworn_tui.campaign import Campaign, OwedMove
+from ironsworn_tui.commands import COMMANDS
 from ironsworn_tui.decide import DecideError, Decision, JsonObject
 from ironsworn_tui.rules.datasworn import datasworn
 from ironsworn_tui.rules.progress import Rank
@@ -76,6 +77,13 @@ def test_a_command_from_the_input_line(tmp_path: Path):
 
     asyncio.run(play())
     assert turn.campaign.character.health == 3
+
+
+def test_the_idle_hint_lists_every_command(tmp_path: Path):
+    turn, _, _ = engine(tmp_path)
+    hint = IronswornApp(turn).render_bar()
+    shown = set(hint.removeprefix("[dim]").removesuffix("[/dim]").split(" · "))
+    assert {f"/{name}" for name in COMMANDS} <= shown
 
 
 def test_the_panel_lists_assets(tmp_path: Path):

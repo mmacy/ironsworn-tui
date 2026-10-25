@@ -9,10 +9,12 @@ The TUI drives a [`TurnEngine`][ironsworn_tui.turn.TurnEngine] in this order:
 3. [`burn`][ironsworn_tui.turn.TurnEngine.burn] optionally burns momentum on the card.
 4. [`resolve`][ironsworn_tui.turn.TurnEngine.resolve] applies the card's effects with the
    player's choices, saves, and returns the follow-up moves the result calls for.
-5. Each follow-up, in order, goes to [`endure`][ironsworn_tui.turn.TurnEngine.endure],
-   [`pay_the_price`][ironsworn_tui.turn.TurnEngine.pay_the_price], or
+5. Each follow-up, in order, goes to
+   [`roll_follow_up`][ironsworn_tui.turn.TurnEngine.roll_follow_up] for the follow-ups that
+   roll, [`pay_the_price`][ironsworn_tui.turn.TurnEngine.pay_the_price], or
    [`forsake`][ironsworn_tui.turn.TurnEngine.forsake]. No new move can be made while one
-   is owed.
+   is owed. [`endure`][ironsworn_tui.turn.TurnEngine.endure] doesn't make a follow-up: it
+   adds an owed Endure Harm or Endure Stress, for the `/endure` command.
 
 In the TUI, the decision call runs in a worker: the TUI calls
 [`log_message`][ironsworn_tui.turn.TurnEngine.log_message], then
