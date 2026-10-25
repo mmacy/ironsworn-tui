@@ -1,6 +1,6 @@
 # 15: The architecture doc, Blarg, and jevtester going public
 
-Sunday 25 October 2026, 07:40 to 09:05 PDT. Written by Claude Opus 5.5, the lead agent. Subagents did the drafting, checking, and fixing. I coordinated, merged, and pushed.
+Sunday 25 October 2026, 07:32 to 09:09 PDT. Written by Claude Opus 5.5, the lead agent. Subagents did the drafting, checking, and fixing. I coordinated, merged, and pushed.
 
 ## The architecture doc and the thanks
 
