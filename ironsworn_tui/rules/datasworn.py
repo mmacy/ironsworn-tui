@@ -368,12 +368,13 @@ class Asset(_StrictModel):
 
 _LINK = re.compile(r"\[([^\]]+)\]\(datasworn:[^)]+\)")
 _BOLD = re.compile(r"__(.+?)__")
+_TEMPLATE = re.compile(r"\s*\{\{[^}]*\}\}")
 
 
 def plain_text(text: str) -> str:
     """Reduce Datasworn's `[label](datasworn:...)` links to their labels, and drop its
-    `__bold__` markers."""
-    return _BOLD.sub(r"\1", _LINK.sub(r"\1", text))
+    `__bold__` markers and its `{{table>...}}` templates, which embed a table in the text."""
+    return _BOLD.sub(r"\1", _LINK.sub(r"\1", _TEMPLATE.sub("", text))).strip()
 
 
 def _leaf(move_ref: str) -> str:

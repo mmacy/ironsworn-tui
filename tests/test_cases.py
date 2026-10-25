@@ -138,7 +138,7 @@ def test_failed_requests_are_not_saved(tmp_path: Path, decider: Decider | None):
     turn.resolve()
     turn.no_move()
     assert sink.saved == []
-    assert turn.campaign.log[-1].text == "No move"
+    assert turn.campaign.log[-2].text == "No move"
 
 
 def test_a_case_that_cannot_be_saved_leaves_a_note(tmp_path: Path):
@@ -148,7 +148,7 @@ def test_a_case_that_cannot_be_saved_leaves_a_note(tmp_path: Path):
     turn.suggest("I edge along the ledge.")
     dice.load(6, 1, 1)
     turn.make_move("face_danger", stat="edge")
-    assert turn.campaign.log[-2].text.startswith("Case not saved")
+    assert any(entry.text.startswith("Case not saved") for entry in turn.campaign.log)
 
 
 def test_a_refused_move_saves_nothing_until_it_succeeds(tmp_path: Path):
@@ -211,7 +211,7 @@ def test_a_move_from_a_changed_context_is_not_saved(tmp_path: Path):
     dice.load(6, 1, 1)
     turn.make_move("make_camp")
     assert sink.saved == []
-    assert turn.campaign.log[-2].text.startswith("Case not saved")
+    assert any(entry.text.startswith("Case not saved") for entry in turn.campaign.log)
 
 
 def test_vow_commands_after_a_message_are_saved(tmp_path: Path):

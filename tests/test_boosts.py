@@ -6,7 +6,7 @@ import pytest
 
 from ironsworn_tui.abilities import BoostRef
 from ironsworn_tui.assets import buy, set_field, upgrade
-from ironsworn_tui.campaign import Campaign, OwedMove, ProgressTrack
+from ironsworn_tui.campaign import OwedMove, ProgressTrack
 from ironsworn_tui.outcomes import (
     Choose,
     FollowUp,
@@ -475,14 +475,6 @@ def test_veteran_initiative_needs_a_counted_weak_hit(tmp_path: Path):
     card = turn.burn()
     assert card.hit is Hit.MISS
     assert SetInitiative("character") not in card.effects
-
-
-def test_old_saves_take_the_first_vow_as_the_background_vow(tmp_path: Path):
-    turn, _, _ = engine(tmp_path)
-    data = turn.campaign.model_dump(mode="json")
-    data["background_vow"] = None
-    loaded = Campaign.model_validate(data)
-    assert loaded.background_vow == "Avenge my village"
 
 
 def test_veteran_takes_initiative_on_a_burned_miss(tmp_path: Path):

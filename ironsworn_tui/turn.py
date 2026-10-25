@@ -27,10 +27,19 @@ it unsaved.
 The owed follow-ups, the next move's add, Turn the Tide, the End the Fight offer, and a
 rolled card that isn't resolved are saved in the campaign, so they survive a restart. A
 message waiting for a move isn't: its case is lost.
+
+The engine writes each turn to the campaign log, so the log teaches a player who doesn't know
+the rules. A move adds, in order: what the move is for, the first time the campaign makes it
+([`move_purpose`][ironsworn_tui.turn.move_purpose]); the roll; the result's text; each option
+the player picked; each change, with its new value; and a `next` line when the result calls
+for something the app doesn't do, such as imagining what the character learns, or an owed
+follow-up.
 """
 
 import dataclasses
 import random
+import re
+from collections import Counter
 from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
@@ -177,6 +186,44 @@ FATE_DEBILITIES: dict[str, tuple[Debility, Debility]] = {
     "endure_harm": ("wounded", "maimed"),
     "endure_stress": ("shaken", "corrupted"),
 }
+ORACLE_HINT = "ask the oracle (/ask likely for yes or no, /oracle action for ideas)."
+# What each owed follow-up does, for the log's `next` line. `{who}` is the character's name and
+# `{amount}` the harm or stress.
+FOLLOW_UP_NEXT = {
+    "pay_the_price": (
+        "Pay the Price. Something goes wrong: o picks the most obvious outcome, a asks the "
+        "oracle, t rolls on the table."
+    ),
+    "forsake_your_vow": "Forsake Your Vow. Press Enter to clear the vow, then Endure Stress.",
+    "endure_harm": (
+        "Endure Harm ({amount}). {who} loses {amount} health, then rolls to shake it off. "
+        "Press Enter to roll."
+    ),
+    "endure_stress": (
+        "Endure Stress ({amount}). {who} loses {amount} spirit, then rolls to hold on. "
+        "Press Enter to roll."
+    ),
+    "companion_endure_harm": (
+        "Companion Endure Harm ({amount}). The companion loses {amount} health, then you roll "
+        "for it. Press Enter to roll."
+    ),
+    "face_death": (
+        "Face Death. {who} is at the brink of death, and rolls +heart to see what happens. "
+        "Press Enter to roll."
+    ),
+    "face_desolation": (
+        "Face Desolation. {who} is at the brink of despair, and rolls +heart to see what "
+        "happens. Press Enter to roll."
+    ),
+    "scrape_by": "Scrape By. Supply ran out, so roll +wits to get by. Press Enter to roll.",
+}
+END_FIGHT_NEXT = "Next: you can End the Fight now. Press f to roll for it, or Esc to keep fighting."
+PRICE_NEXT = (
+    "Next: describe what goes wrong and type it. Apply any harm, stress, or loss with /endure "
+    "or /adjust."
+)
+NO_MOVE_NEXT = "Next: no roll is needed. Type what happens, or your next action."
+_ENVISION = re.compile(r"[Ee]nvision ((?:what|that|your) [^(.,]*?)\s*(?:\(|,|\.|$)")
 
 
 class TurnError(Exception):
@@ -340,6 +387,95 @@ class TurnEngine:
         """The follow-up moves still owed, in order."""
         return tuple(self.campaign.follow_ups)
 
+    def _state(self) -> _State:
+        """What the log reports changes to, as it is now."""
+        campaign = self.campaign
+        character = campaign.character
+        data = self.data
+        numbers = {
+            "Momentum": character.momentum,
+            "Health": character.health,
+            "Spirit": character.spirit,
+            "Supply": character.supply,
+            "Max spirit": character.spirit_max,
+            "Experience": character.experience,
+            "Harm you inflict": character.harm,
+            "Harm foes inflict": campaign.foe_harm_bonus,
+            "Next move add": campaign.next_add,
+        }
+        numbers |= {stat.capitalize(): character.stats.value(stat) for stat in _STATS.values()}
+        for owned in character.assets:
+            name = data.asset(owned.id).name
+            numbers |= {f"{name} {meter}": value for meter, value in owned.meters.items()}
+        tracks: dict[tuple[str, str], tuple[Rank | None, int]] = {
+            ("vow", vow.name): (vow.rank, vow.ticks) for vow in campaign.vows
+        }
+        if campaign.journey is not None:
+            tracks[("journey", campaign.journey.name)] = (
+                campaign.journey.rank,
+                campaign.journey.ticks,
+            )
+        tracks |= {("foe", foe.name): (foe.rank, foe.ticks) for foe in campaign.foes}
+        tracks[("bonds", "")] = (None, campaign.bonds)
+        owed = tuple(
+            self.move_name(each.move) + (f" ({each.amount})" if each.amount is not None else "")
+            for each in campaign.follow_ups
+        )
+        marks = {
+            "debility": tuple(character.debilities),
+            "asset": tuple(data.asset(owned.id).name for owned in character.assets),
+            "asset_debility": tuple(
+                data.asset(owned.id).name for owned in character.assets if owned.debility
+            ),
+            "lasting": tuple(_lasting_label(lasting) for lasting in campaign.lasting),
+            "owed": owed,
+        }
+        initiative = ""
+        if campaign.foes and campaign.initiative is not None:
+            who = character.name if campaign.initiative == "character" else "the foe"
+            initiative = f"{who} has it"
+        return _State(numbers, tracks, marks, initiative)
+
+    def _log_changes(self, before: _State) -> None:
+        """Log each change since `before`, with its new value."""
+        for line in _diff(before, self._state()):
+            self.campaign.add_log("change", line)
+
+    def _explain(self, move: str) -> None:
+        """Log what a move is for, the first time the campaign makes it."""
+        explained = self.campaign.explained
+        if move in explained:
+            return
+        explained.append(move)
+        self.campaign.add_log("explain", move_purpose(self.data, move))
+
+    def _log_next(self, outcome_text: str = "") -> None:
+        """Log what the player does next, when the result calls for something the app doesn't
+        do: imagining what happens, an owed follow-up, or the End the Fight offer."""
+        campaign = self.campaign
+        lines: list[str] = []
+        envision = _ENVISION.search(outcome_text)
+        oracle = "Ask the Oracle" in outcome_text
+        if envision is not None:
+            then = f", or {ORACLE_HINT}" if oracle else "."
+            lines.append(f"Next: imagine {envision.group(1).strip()} and type it{then}")
+        elif oracle:
+            lines.append(f"Next: decide what happens and type it, or {ORACLE_HINT}")
+        if campaign.follow_ups:
+            first, *rest = campaign.follow_ups
+            amount = first.amount
+            if amount is None and first.move in ("endure_harm", "companion_endure_harm"):
+                amount = self._foe_harm()
+            line = FOLLOW_UP_NEXT.get(first.move, self.move_name(first.move) + ".")
+            line = "Next: " + line.format(who=campaign.character.name, amount=amount)
+            if rest:
+                line += " Then: " + ", ".join(self.move_name(each.move) for each in rest) + "."
+            lines.append(line)
+        elif campaign.end_fight_offered:
+            lines.append(END_FIGHT_NEXT)
+        for line in lines:
+            campaign.add_log("next", line)
+
     def suggest(self, text: str) -> Suggestion:
         """Log a message and ask the decision model which move it triggers.
 
@@ -347,8 +483,6 @@ class TurnEngine:
         """
         self.log_message(text)
         suggestion = self.decide(text)
-        if suggestion.note is not None:
-            self.campaign.add_log("note", suggestion.note)
         self.accept(suggestion)
         return suggestion
 
@@ -356,8 +490,11 @@ class TurnEngine:
         """Remember the decision the player's next move answers, so it can be saved as a case.
 
         The TUI calls this when a worker's answer reaches the screen. A failed request is
-        never saved.
+        never saved, and the reason it failed is logged.
         """
+        if suggestion.note is not None:
+            self.campaign.add_log("note", suggestion.note)
+            self.save()
         decision = suggestion.decision
         if decision is not None and decision.move is not None:
             self._answering = (self.campaign.context, decision)
@@ -369,6 +506,7 @@ class TurnEngine:
         answered it."""
         self._record(NO_MOVE, None)
         self.campaign.add_log("outcome", "No move")
+        self.campaign.add_log("next", NO_MOVE_NEXT)
         self.save()
 
     def skip(self) -> None:
@@ -780,6 +918,7 @@ class TurnEngine:
         if option == "forsake_your_vow":
             vow = self._vow(inputs)
             self._record(option, None)
+            self._explain(option)
             self._forsake(vow)
             return None
         tide = campaign.tide_armed
@@ -797,6 +936,8 @@ class TurnEngine:
         boost_adds = self._boost_adds(chosen)
 
         self._record(option, stat)
+        self._explain(move)
+        before = self._state()
         campaign.end_fight_offered = False
         if not campaign.foes:
             # A once-per-fight use outside a fight counts only for a fight this move starts.
@@ -821,6 +962,7 @@ class TurnEngine:
             tide=tide,
             amount=inputs.amount,
         )
+        self._log_changes(before)
         if automatic:
             card = self._card(move, "automatic", None, None, pending)
         elif value is None:
@@ -1126,6 +1268,7 @@ class TurnEngine:
         card = pending.card
         character = self.campaign.character
         before = card.hit
+        state = self._state()
         action, progress = card.action, card.progress
         if action is not None:
             action = burn_momentum(action)
@@ -1141,6 +1284,7 @@ class TurnEngine:
             new_card = self._card(card.move, card.rolled_with, action, progress, pending)
         pending.card = new_card
         self.campaign.add_log("roll", f"Burned momentum: {new_card.hit.label}")
+        self._log_changes(state)
         self.save()
         return new_card
 
@@ -1258,6 +1402,9 @@ class TurnEngine:
         card = pending.card
         self._check_choices(card.effects, list(choices))
         campaign = self.campaign
+        before = self._state()
+        if card.outcome_text:
+            campaign.add_log("outcome", card.outcome_text)
         owed_before = len(campaign.follow_ups)
         self._initiative_set = False
         boosts = [a.boost for a in pending.boosts]
@@ -1287,6 +1434,8 @@ class TurnEngine:
             and foe.ticks >= TICKS_PER_BOX
         )
         self._pending = None
+        self._log_changes(before)
+        self._log_next(card.outcome_text)
         self.save()
         return self.follow_ups
 
@@ -1328,7 +1477,7 @@ class TurnEngine:
             case Choose(options=options):
                 for index in choices.pop(0):
                     chosen = options[index]
-                    campaign.add_log("outcome", chosen.label)
+                    campaign.add_log("choice", f"Picked: {chosen.label}")
                     self._apply(chosen.effects, choices, vow)
             case Momentum(amount=amount):
                 self._momentum(amount)
@@ -1349,7 +1498,6 @@ class TurnEngine:
                 character.clear_debility(debility)
             case MarkDebility(debility=debility):
                 character.mark_debility(debility)
-                campaign.add_log("outcome", f"Marked {debility}")
             case RollTable(table_id=table_id):
                 result = roll_oracle(self.data, table_id, self.rng)
                 text = plain_text(result.text)
@@ -1403,19 +1551,14 @@ class TurnEngine:
                     set_debility(character, asset, on=on)
             case RaiseStat(stat=stat):
                 setattr(character.stats, stat, min(5, character.stats.value(stat) + 1))
-                campaign.add_log("outcome", f"Raised {stat} to {character.stats.value(stat)}")
             case DiscardAsset(asset=asset):
                 if character.asset_or_none(asset) is not None:
                     discard(character, asset)
-                    campaign.add_log("outcome", f"Discarded {self.data.asset(asset).name}")
             case MaxSpirit(amount=amount):
                 character.spirit_max = max(0, min(5, character.spirit_max + amount))
                 character.spirit = min(character.spirit, character.spirit_max)
             case AddLasting(kind=kind, stat=stat):
                 campaign.lasting.append(Lasting(kind=kind, stat=stat))
-                campaign.add_log(
-                    "outcome", f"Lasting: {_lasting_label(Lasting(kind=kind, stat=stat))}"
-                )
             case SetAssetMeter(asset=asset, meter=meter, value=value):
                 owned = character.asset_or_none(asset)
                 if owned is not None:
@@ -1469,7 +1612,6 @@ class TurnEngine:
             return
         if before > 0 and character.supply == 0:
             character.mark_debility("unprepared")
-            self.campaign.add_log("outcome", "Out of Supply: marked unprepared")
         if excess > 0 and "unprepared" in character.debilities:
             self.campaign.add_log(
                 "note",
@@ -1494,12 +1636,15 @@ class TurnEngine:
                 # Bonded: "take 1 experience and +2 momentum" for each box filled.
                 campaign.character.experience += filled
                 self._momentum(2 * filled)
-                campaign.add_log("outcome", "Bonded: a bonds box filled, +1 experience")
+                campaign.add_log("outcome", "Bonded: a bonds box filled")
 
     def _forsake(self, vow: ProgressTrack) -> None:
+        before = self._state()
         self.campaign.vows.remove(vow)
         self.campaign.add_log("outcome", f"Forsook the vow: {vow.name}")
         self.campaign.follow_ups.append(OwedMove(move="endure_stress", amount=int(vow.rank)))
+        self._log_changes(before)
+        self._log_next()
         self.save()
 
     def forsake(self) -> tuple[OwedMove, ...]:
@@ -1513,6 +1658,7 @@ class TurnEngine:
         """
         owed = self._next_follow_up({"forsake_your_vow"})
         vow = self._vow(MoveInputs(vow=owed.vow))
+        self._explain("forsake_your_vow")
         self._forsake(vow)
         return self.follow_ups
 
@@ -1529,7 +1675,10 @@ class TurnEngine:
         if not campaign.end_fight_offered:
             raise TurnError("End the Fight needs a strong hit in the fight first")
         campaign.end_fight_offered = False
+        self._explain("end_the_fight")
+        before = self._state()
         self._use(chosen)
+        self._log_changes(before)
         pending = _Pending(card=_EMPTY_CARD, details=self._details(), vow=None, boosts=chosen)
         pending.card = self._progress_card("end_the_fight", None, pending)
         self._pending = pending
@@ -1582,7 +1731,9 @@ class TurnEngine:
         stat = ROLLED_FOLLOW_UPS[move] or ("iron" if move == "endure_harm" else "heart")
         self._check_stat_fields(chosen, override[0] if override else stat)
         adds = self._boost_adds(chosen)
+        before = self._state()
         owed = self._next_follow_up(set(ROLLED_FOLLOW_UPS))
+        self._explain(owed.move)
         used = self._lasting_of(chosen)
         self._use(chosen)
         skipping = [a for a in chosen if a.boost.skip]
@@ -1590,6 +1741,8 @@ class TurnEngine:
             self.campaign.add_log("outcome", f"{skipping[0].label}: no {self.move_name(owed.move)}")
             for available in chosen:
                 self._apply(available.boost.after, [], None)
+            self._log_changes(before)
+            self._log_next()
             self.save()
             return None
         pending = _Pending(
@@ -1604,6 +1757,7 @@ class TurnEngine:
             pending.automatic = True
             pending.card = self._card(owed.move, "automatic", None, None, pending)
             self._pending = pending
+            self._log_changes(before)
             self.campaign.add_log("roll", _describe(pending.card))
             self.save()
             return pending.card
@@ -1620,11 +1774,10 @@ class TurnEngine:
             pending.details = MoveDetails(meter_above_zero=endurance.meter_after > 0)
             pending.endurance = endurance
             roll = endurance.roll
-            lost = f" ({amount} {endurance.meter} lost first)"
         elif owed.move == "companion_endure_harm":
             assert companion is not None
             amount = owed.amount if owed.amount is not None else self._foe_harm()
-            rolled_with, value, lost = self._companion_damage(companion, amount)
+            rolled_with, value = self._companion_damage(companion, amount)
             if override is not None:
                 rolled_with, value = override
             pending.companion = companion
@@ -1632,12 +1785,12 @@ class TurnEngine:
         else:
             rolled_with, value = override or (stat, character.stats.value(_stat(stat)))
             roll = evaluate_action(value, adds, character.momentum, action_die, dice)
-            lost = ""
         pending.value = value
         card = self._card(owed.move, rolled_with, roll, None, pending)
         pending.card = card
         self._pending = pending
-        self.campaign.add_log("roll", _describe(card) + lost)
+        self._log_changes(before)
+        self.campaign.add_log("roll", _describe(card))
         self.save()
         return card
 
@@ -1692,12 +1845,12 @@ class TurnEngine:
             if self.data.asset(owned.id).category == "Companion"
         ]
 
-    def _companion_damage(self, companion: str, amount: int) -> tuple[str, int, str]:
+    def _companion_damage(self, companion: str, amount: int) -> tuple[str, int]:
         """Take the harm off the companion's health, and any left over off momentum.
 
         Returns:
-            What the roll uses (heart or the companion's health, whichever is higher), its
-            value, and a note for the log.
+            What the roll uses (heart or the companion's health, whichever is higher), and its
+            value.
         """
         character = self.campaign.character
         owned = character.asset(companion)
@@ -1709,8 +1862,8 @@ class TurnEngine:
         after = owned.meters["health"]
         name = self.data.asset(companion).name
         if after >= character.stats.heart:
-            return f"{name}'s health", after, f" ({amount} harm to {name} first)"
-        return "heart", character.stats.heart, f" ({amount} harm to {name} first)"
+            return f"{name}'s health", after
+        return "heart", character.stats.heart
 
     def _companion_death(
         self, companion: str, hit: Hit, action: ActionRoll | None
@@ -1737,7 +1890,7 @@ class TurnEngine:
         campaign = self.campaign
         if lasting in campaign.lasting:
             campaign.lasting.remove(lasting)
-            campaign.add_log("outcome", f"Ended: {_lasting_label(lasting)}")
+            campaign.add_log("change", f"Lasting effect ended: {_lasting_label(lasting)}")
 
     def end_lasting(self, index: int) -> None:
         """End a lasting effect by hand.
@@ -1761,7 +1914,9 @@ class TurnEngine:
         """
         if not self.campaign.character.has_ability("slayer", 3):
             raise TurnError("taking a trophy needs Slayer's third ability")
+        before = self._state()
         self._apply((AddLasting(f"trophy_{use}"),), [], None)
+        self._log_changes(before)
         self.save()
 
     def browse_archive(self) -> None:
@@ -1812,6 +1967,7 @@ class TurnEngine:
         self.campaign.follow_ups.append(OwedMove(move=move, amount=amount))
         what = "harm" if move == "endure_harm" else "stress"
         self.campaign.add_log("command", f"{self.campaign.character.name} faces {amount} {what}")
+        self._log_next()
         self.save()
 
     def decline_end_fight(self) -> None:
@@ -1831,6 +1987,7 @@ class TurnEngine:
             OwedMove(move="companion_endure_harm", amount=amount, asset=companion)
         )
         self.campaign.add_log("command", f"{self.data.asset(companion).name} faces {amount} harm")
+        self._log_next()
         self.save()
 
     def lasting_labels(self) -> tuple[str, ...]:
@@ -1909,6 +2066,8 @@ class TurnEngine:
             TurnError: If the next follow-up isn't Pay the Price.
         """
         self._next_follow_up({"pay_the_price"})
+        self._explain("pay_the_price")
+        before = self._state()
         result: OracleResult | YesNo | None = None
         if method == "table":
             result = roll_oracle(self.data, PAY_THE_PRICE_TABLE, self.rng)
@@ -1924,6 +2083,9 @@ class TurnEngine:
         else:
             self.campaign.add_log("outcome", "Pay the Price: the most obvious negative outcome")
         self.expire_low()
+        self._log_changes(before)
+        self.campaign.add_log("next", PRICE_NEXT)
+        self._log_next()
         self.save()
         return result
 
@@ -2162,3 +2324,123 @@ def _describe(card: RollCard) -> str:
     if card.boosts:
         text += f" ({', '.join(card.boosts)})"
     return text
+
+
+def move_purpose(data: Datasworn, move: str) -> str:
+    """Return one plain sentence that says what a move is for, from its trigger text.
+
+    Args:
+        data: The Datasworn data.
+        move: A core or asset move id.
+
+    Returns:
+        A sentence such as "Gather Information is the move for when you search an area, ask
+        questions, conduct an investigation, or follow a track."
+    """
+    found = data.find_move(move)
+    trigger = plain_text(found.trigger.text).strip()
+    if trigger.endswith(" you..."):
+        # A trigger cut off mid-clause, as Clash's is: take the clause from the move text.
+        clause = re.match(r"(When .*?), (?:roll|envision)", plain_text(found.text))
+        if clause is not None:
+            trigger = clause.group(1)
+    trigger = trigger.removesuffix("...").removesuffix(".")
+    trigger = trigger.removesuffix(" and you").removesuffix(",")
+    trigger = re.sub(r"\s*\([^)]*\)$", "", trigger)
+    if trigger.startswith("When "):
+        return f"{found.name} is the move for when {trigger.removeprefix('When ')}."
+    return f"{found.name}: {trigger[:1].lower()}{trigger[1:]}."
+
+
+@dataclass(frozen=True)
+class _State:
+    """What the log reports changes to: numbers, progress tracks, marks, and initiative.
+
+    Attributes:
+        numbers: Each number by its label, such as "Momentum" or "Hawk health".
+        tracks: Each track's rank and ticks, by its kind and name, such as `("vow", "Find
+            my brother")`. The bonds track's name is empty.
+        marks: The marked items in each group: `debility`, `asset`, `asset_debility`,
+            `lasting`, and `owed`.
+        initiative: Who has initiative, or an empty string outside a fight.
+    """
+
+    numbers: dict[str, int]
+    tracks: dict[tuple[str, str], tuple[Rank | None, int]]
+    marks: dict[str, tuple[str, ...]]
+    initiative: str
+
+
+# How the log reports an item added to or removed from a group of marks. None reports nothing:
+# a lasting effect logs its own end, and an owed move is made rather than removed.
+_MARK_LINES: dict[str, tuple[str, str | None]] = {
+    "debility": ("Marked {}", "Cleared {}"),
+    "asset": ("New asset: {}", "Discarded {}"),
+    "asset_debility": ("{} counts as a debility", "{} no longer counts as a debility"),
+    "lasting": ("Lasting effect: {}", None),
+    "owed": ("Owed: {}", None),
+}
+
+
+def _count(amount: int, one: str, many: str) -> str:
+    return f"{amount} {one if abs(amount) == 1 else many}"
+
+
+def _progress(ticks: int) -> str:
+    """Show ticks of progress as boxes and ticks, such as "2 boxes, 1 tick"."""
+    boxes, rest = divmod(ticks, TICKS_PER_BOX)
+    parts = [_count(boxes, "box", "boxes")] if boxes or not rest else []
+    if rest:
+        parts.append(_count(rest, "tick", "ticks"))
+    return ", ".join(parts)
+
+
+def _progress_change(delta: int) -> str:
+    sign = "+" if delta > 0 else "-"
+    if delta % TICKS_PER_BOX == 0:
+        return sign + _count(abs(delta) // TICKS_PER_BOX, "box", "boxes")
+    return sign + _count(abs(delta), "tick", "ticks")
+
+
+def _added(before: tuple[str, ...], after: tuple[str, ...]) -> list[str]:
+    """The items in `after` that `before` doesn't have, counting repeats, in `after`'s order."""
+    extra = Counter(after) - Counter(before)
+    found: list[str] = []
+    for item in after:
+        if extra[item]:
+            extra[item] -= 1
+            found.append(item)
+    return found
+
+
+def _diff(before: _State, after: _State) -> list[str]:
+    """The log lines for each change from one state to the next, with new values."""
+    lines: list[str] = []
+    if after.initiative and after.initiative != before.initiative:
+        lines.append(f"Initiative: {after.initiative}")
+    for label, value in after.numbers.items():
+        old = before.numbers.get(label)
+        if old is not None and old != value:
+            lines.append(f"{label} {value - old:+d} (now {value})")
+    for key, (rank, ticks) in after.tracks.items():
+        kind, name = key
+        label = f"{kind.capitalize()} {name}".strip()
+        rank_name = f" ({rank.name.lower()})" if rank is not None else ""
+        if key not in before.tracks:
+            lines.append(f"New {kind}: {name}{rank_name}")
+            continue
+        old_rank, old_ticks = before.tracks[key]
+        if ticks != old_ticks:
+            change = _progress_change(ticks - old_ticks)
+            lines.append(f"{label}: progress {change} (now {_progress(ticks)})")
+        if rank != old_rank and rank is not None:
+            lines.append(f"{label}: rank now {rank.name.lower()}")
+    for key in before.tracks:
+        if key not in after.tracks:
+            lines.append(f"{key[0].capitalize()} cleared: {key[1]}")
+    for group, (on, off) in _MARK_LINES.items():
+        old, new = before.marks[group], after.marks[group]
+        lines += [on.format(item) for item in _added(old, new)]
+        if off is not None:
+            lines += [off.format(item) for item in _added(new, old)]
+    return lines

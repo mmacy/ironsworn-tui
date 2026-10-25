@@ -143,7 +143,7 @@ Press Enter to roll.
 
 ## Read the roll card
 
-The roll card shows the move, the stat, and the result. The log shows the dice:
+The roll card shows the move, the stat, the result, and the result's text from the rulebook. The log shows the dice:
 
 ```text
 Face Danger +edge: 6 + 2 + 0 = 8 vs 1, 2, strong hit
@@ -185,6 +185,33 @@ On a miss, press Enter, and the suggestion bar shows Pay the Price. This move de
 ![The suggestion bar after a miss on Face Danger. It shows "Pay the Price" and the keys "o obvious outcome", "a ask the oracle", and "t roll the table".](images/pay-the-price.svg)
 
 Whatever the result, decide what it means for Blarg. The app changes the numbers, and you decide what happens in the story.
+
+## Read the log
+
+After you apply a result, the roll card closes, and the log keeps the whole turn. Say Blarg looks around, and the app suggests Gather Information. On a strong hit, the log shows:
+
+```text
+I look around to gain an idea of my surroundings
+Gather Information is the move for when you search an area, ask questions, conduct an investigation, or follow a track.
+Gather Information +wits: 6 + 3 + 0 = 9 vs 3, 4, strong hit
+On a strong hit, you discover something helpful and specific. The path you must follow or action you must take to make progress is made clear. Envision what you learn (Ask the Oracle if unsure), and take +2 momentum.
+Momentum +2 (now 5)
+Next: imagine what you learn and type it, or ask the oracle (/ask likely for yes or no, /oracle action for ideas).
+```
+
+Each line has its own color:
+
+- Your message is bold.
+- The line in dim italics says what the move is for. It appears the first time you make each move in a campaign.
+- The roll is cyan.
+- The result's text is plain. It's the text the roll card showed.
+- On a weak hit or a miss with a choice, a magenta line says what you picked, such as "Picked: Sacrifice resources".
+- Each change is green, with its new value.
+- A bold yellow line that starts with "Next:" says what to do next, when the result asks for something the app can't do for you.
+
+![The log after Gather Information's strong hit. Under the typed line "I look around to gain an idea of my surroundings", it shows what Gather Information is for, the roll "6 + 3 + 0 = 9 vs 3, 4, strong hit", the strong hit's text, "Momentum +2 (now 5)", and a "Next:" line that says to imagine what Blarg learns or ask the oracle.](images/turn-record.svg)
+
+Here, the "Next:" line asks you to decide what Blarg learns. Type it as your next action, such as "I find tracks leading north to the raider camp." If you have no idea, ask the oracle, as the next sections show.
 
 ## Mark progress on your vow
 

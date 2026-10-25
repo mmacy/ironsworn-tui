@@ -28,13 +28,20 @@ PICK_KEYS = DIGITS + "abcdefghijklmnopqrstuvwxyz"
 # ninth take capitals.
 MOVE_KEYS = DIGITS + "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 PAY_KEYS: dict[str, Literal["obvious", "ask", "table"]] = {"o": "obvious", "a": "ask", "t": "table"}
-LOG_STYLES = {
+# Named ANSI colors, which Textual adjusts for its light and dark themes. The outcome text is
+# the plain body of each turn, so it has no style.
+LOG_STYLES: dict[str, str] = {
     "message": "b",
+    "explain": "dim italic",
     "roll": "cyan",
-    "outcome": "green",
+    "outcome": "",
+    "choice": "magenta",
+    "change": "green",
+    "next": "b yellow",
     "note": "yellow",
     "command": "dim",
 }
+LOG_RESTORED = 200
 FIELD_HINTS = {
     "vow": "The vow",
     "rank": "troublesome, dangerous, formidable, extreme, or epic",
@@ -341,7 +348,7 @@ class IronswornApp(App[None]):
 
     def on_mount(self) -> None:
         """Show the campaign and the recent log, then whatever the campaign owes."""
-        for entry in self.engine.campaign.log[-50:]:
+        for entry in self.engine.campaign.log[-LOG_RESTORED:]:
             self.write_log(entry.kind, entry.text)
         self.after_turn()
 
@@ -355,13 +362,17 @@ class IronswornApp(App[None]):
         """The suggestion bar."""
         return self.query_one(SuggestionBar)
 
-    def write_log(self, kind: str, text: str) -> None:
-        """Add a line to the log widget."""
+    def write_log(self, kind: str, text: str, *, starts_turn: bool = False) -> None:
+        """Add a line to the log widget, after a blank line when it starts a turn: a message,
+        or a typed command."""
         if kind == "note":
             text = _sentence(text)
         style = LOG_STYLES.get(kind, "")
         line = escape(text)
-        self.query_one(RichLog).write(f"[{style}]{line}[/{style}]" if style else line)
+        log = self.query_one(RichLog)
+        if (starts_turn or kind == "message") and log.lines:
+            log.write("")
+        log.write(f"[{style}]{line}[/{style}]" if style else line)
 
     def note(self, text: str) -> None:
         """Show a note in the log widget without adding it to the campaign."""
@@ -405,7 +416,7 @@ class IronswornApp(App[None]):
         """Run a `/` command, then return to what the bar showed."""
         engine = self.engine
         before = len(engine.campaign.log)
-        self.write_log("command", text)
+        self.write_log("command", text, starts_turn=True)
         try:
             result = run_command(engine, text)
         except (CommandError, TurnError) as error:
@@ -440,12 +451,9 @@ class IronswornApp(App[None]):
         if ask_id != self._ask_id or self.bar_state.mode != "thinking":
             return
         self.input.disabled = False
+        before = len(self.engine.campaign.log)
         self.engine.accept(suggestion)
-        if suggestion.note is not None:
-            before = len(self.engine.campaign.log)
-            self.engine.campaign.add_log("note", suggestion.note)
-            self.engine.save()
-            self.log_new(before)
+        self.log_new(before)
         self.present(suggestion)
 
     def present(self, suggestion: Suggestion) -> None:

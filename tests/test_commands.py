@@ -255,10 +255,11 @@ def test_endure_owes_endure_harm_or_endure_stress(tmp_path: Path):
         OwedMove(move="endure_harm", amount=2),
         OwedMove(move="endure_stress", amount=1),
     )
-    assert [entry.text for entry in turn.campaign.log[-2:]] == [
+    assert [entry.text for entry in turn.campaign.log if entry.kind == "command"] == [
         "Kira faces 2 harm",
         "Kira faces 1 stress",
     ]
+    assert turn.campaign.log[-1].text.startswith("Next: Endure Harm (2).")
 
 
 @pytest.mark.parametrize("text", ["/endure", "/endure harm", "/endure harm 0", "/endure doom 2"])

@@ -181,21 +181,27 @@ suites/recognizer-fight-guide-acts.yaml
 The play screen has four parts:
 
 - **Character panel**, on the left: stats, health, spirit, supply, momentum, debilities, harm, experience, the add for the next move, assets, vows, bonds, and, when they're active, the journey and the fight. In a fight, `>` marks the foe an attack targets. Each progress track shows 10 boxes.
-- **Log**, on the right: the campaign log. On opening, it shows the last 50 entries.
+- **Log**, on the right: the campaign log. On opening, it shows the last 200 entries. A blank line separates each message and each command you type.
 - **Suggestion bar**, below them: suggested moves, the roll card, and owed moves. Its keys depend on its [mode](#suggestion-bar).
 - **Input line**, at the bottom: where you type a message or a `/` command.
 
 ![The play screen in suggest mode. The character panel is on the left, the log on the right, the suggestion bar below them with Face Danger suggested, and the input line at the bottom.](images/suggestion.svg)
 
-Log colors:
+A move adds these entries to the log, in this order. The app saves them all in the campaign file.
 
-| Color | Entry |
+| Style | Entry |
 |---|---|
 | Bold | A message you typed. |
-| Cyan | A roll. |
-| Green | An outcome, an oracle result, or a command's output. |
-| Yellow | A note, such as an error or a reminder. |
+| Dim italic | What the move is for, made from the move's trigger in the rulebook. It appears the first time the campaign makes each move. |
+| Cyan | The roll, such as `Gather Information +wits: 6 + 3 + 0 = 9 vs 3, 4, strong hit`. Burning momentum, a reroll, or a late add adds another roll entry. |
+| Plain | The result's text from the rulebook, as the roll card showed it. Oracle answers and table results are plain too. |
+| Magenta | Each option you picked on the card, such as `Picked: Sacrifice resources`. |
+| Green | Each change, with its new value: a meter or momentum (`Momentum +2 (now 4)`), experience, a stat, progress (`Foe Raider: progress +2 boxes (now 6 boxes)`), a new or cleared vow, foe, or journey, initiative, a debility, an asset, a lasting effect, or an owed move (`Owed: Pay the Price`). |
+| Bold yellow | A `Next:` line, when the result asks for something the app doesn't do: imagining what happens, with how to ask the oracle; an owed move, with what it does and its key; or the End the Fight offer. |
+| Yellow | A note, such as an error or something to apply yourself. |
 | Dim | A command you ran, and what it changed. |
+
+Changes made before the roll, such as a new vow or Endure Harm's damage, appear before the roll entry. Progress shows in boxes, and in ticks when it isn't whole boxes. A box is 4 ticks.
 
 ### Keys everywhere
 
@@ -252,7 +258,7 @@ Each move shows its key and, when the model answered, its probability. The selec
 | `+`, `-` | Raise or lower the add by 1. |
 | `a` | Open the [abilities picker](#pickers) for the selected move. Shown as `a abilities (<n>)` only when an asset ability applies. |
 | Enter | Roll the selected move. If the move needs details first, the [details form](#details-form) opens. The bar then shows the roll card. |
-| `n` | Make no move. The log shows `No move`. If the model answered the message, the app saves this as a case. |
+| `n` | Make no move. The log shows `No move` and a `Next:` line. If the model answered the message, the app saves this as a case. |
 | Escape | Leave the message without a move, and return to the input line. The app saves no case. |
 
 #### Card mode
