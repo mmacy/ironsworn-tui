@@ -1,0 +1,568 @@
+name: recognizer-fight-guide
+question_set: moves-fight-guide
+policy: moves
+targets:
+  - decision-1@foundry
+cases:
+  - id: attack-axe
+    state:
+      character: Arn, a former shieldwarden
+      circumstances: Arn is in a fight and has initiative.
+      situation: Arn faces a raider with a spear on the riverbank.
+      player_says: I swing my axe at his head.
+    expected:
+      move:
+        answer: attack
+      stat_attack:
+        answer: iron
+    expected_action: attack
+    tags: []
+    provenance: claude-draft
+  - id: attack-arrows
+    state:
+      character: Kira, a hunter of the Deepwilds
+      circumstances: Kira is in a fight and has initiative.
+      situation: Two raiders are charging Kira across a field, still forty paces away.
+      player_says: I loose arrows at the closer one.
+    expected:
+      move:
+        answer: attack
+      stat_attack:
+        answer: edge
+    expected_action: attack
+    tags: []
+    provenance: claude-draft
+  - id: attack-troll-arm
+    state:
+      character: Arn, a former shieldwarden
+      circumstances: Arn is in a fight, and the foe has initiative.
+      situation: A troll has Arn pinned against the bridge rail, pounding at his shield.
+      player_says: I hack at the troll's arm between blows.
+    expected:
+      move:
+        answer: attack
+      stat_attack:
+        answer: iron
+    expected_action: attack
+    tags: []
+    provenance: claude-draft
+  - id: attack-wagon-archer
+    state:
+      character: Kira, a hunter of the Deepwilds
+      circumstances: Kira is in a fight, and the foe has initiative.
+      situation: Raiders are shooting at Kira from behind a wagon.
+      player_says: I shoot back at the archer peeking over the wagon.
+    expected:
+      move:
+        answer: attack
+      stat_attack:
+        answer: edge
+    expected_action: attack
+    tags: []
+    provenance: claude-draft
+  - id: attack-knife
+    state:
+      character: Sefa, a ritualist and healer
+      circumstances: Sefa is in a fight and has initiative.
+      situation: A cultist grapples with Sefa in the shrine.
+      player_says: I drive my knife into his side.
+    expected:
+      move:
+        answer: attack
+      stat_attack:
+        answer: iron
+    expected_action: attack
+    tags: []
+    provenance: claude-draft
+  - id: attack-hatchet
+    state:
+      character: Tovin, a smooth-talking trader
+      circumstances: Tovin is in a fight, and the foe has initiative.
+      situation: A bandit is advancing on Tovin with a club.
+      player_says: I throw my hatchet at him as he comes.
+    expected:
+      move:
+        answer: attack
+      stat_attack:
+        answer: edge
+    expected_action: attack
+    tags: []
+    provenance: claude-draft
+  - id: attack-shield-wall
+    state:
+      character: Arn, a former shieldwarden
+      circumstances: Arn is in a fight, and the foe has initiative.
+      situation: Two raiders hammer at Arn's shield.
+      player_says: I shove forward with my shield and cut at the nearest raider.
+    expected:
+      move:
+        answer: attack
+      stat_attack:
+        answer: iron
+    expected_action: attack
+    tags: []
+    provenance: claude-draft
+  - id: fd-shield-up
+    state:
+      character: Arn, a former shieldwarden
+      circumstances: Arn is in a fight, and the foe has initiative.
+      situation: A raider is raining blows on Arn with a heavy axe.
+      player_says: I bring up my shield and stand my ground against his blows.
+    expected:
+      move:
+        answer: face_danger
+      stat_face_danger:
+        answer: iron
+    expected_action: face_danger
+    tags:
+      - fd-vs-attack
+    provenance: claude-draft
+  - id: attack-killing-blow
+    state:
+      character: Arn, a former shieldwarden
+      circumstances: Arn is in a fight and has initiative.
+      situation: The raider chief is bleeding and staggering after Arn's last blows.
+      player_says: I go for the killing blow.
+    expected:
+      move:
+        answer: attack
+      stat_attack:
+        answer: iron
+    expected_action: attack
+    tags:
+      - end-the-fight
+    provenance: claude-draft
+  - id: battle-palisade
+    state:
+      character: Arn, a former shieldwarden
+      circumstances: Arn is in a fight and has initiative.
+      situation: Arn leads twenty villagers against a warband of thirty raiders at the palisade.
+      player_says: We hold the palisade together, shoulder to shoulder, and fight it out with the whole warband.
+    expected:
+      move:
+        answer: battle
+      stat_battle:
+        answer: heart
+    expected_action: battle
+    tags: []
+    provenance: claude-draft
+  - id: battle-running
+    state:
+      character: Kira, a hunter of the Deepwilds
+      circumstances: Kira is in a fight, and the foe has initiative.
+      situation: A large war party pursues Kira's band through the forest.
+      player_says: We fight a running battle through the trees, using the terrain and our bows to pick them off.
+    expected:
+      move:
+        answer: battle
+      stat_battle:
+        answer: edge
+    expected_action: battle
+    tags: []
+    provenance: claude-draft
+  - id: battle-decoys
+    state:
+      character: Tovin, a smooth-talking trader
+      circumstances: Tovin is in a fight and has initiative.
+      situation: The caravan guards face a horde of raiders at night.
+      player_says: I set up decoy campfires to confuse them, and we fight the horde in the dark.
+    expected:
+      move:
+        answer: battle
+      stat_battle:
+        answer: shadow
+    expected_action: battle
+    tags: []
+    provenance: claude-draft
+  - id: battle-flank
+    state:
+      character: Sefa, a ritualist and healer
+      circumstances: Sefa is in a fight and has initiative.
+      situation: The defenders of Thornhold face the attacking clan in open battle.
+      player_says: I send our spearmen around the hill to take the clan's warriors from the side, and we win the day.
+    expected:
+      move:
+        answer: battle
+      stat_battle:
+        answer: wits
+    expected_action: battle
+    tags: []
+    provenance: claude-draft
+  - id: fd-boar
+    state:
+      character: Kira, a hunter of the Deepwilds
+      circumstances: Kira is in a fight, and the foe has initiative.
+      situation: A giant boar charges straight at Kira.
+      player_says: I dive out of its path.
+    expected:
+      move:
+        answer: face_danger
+      stat_face_danger:
+        answer: edge
+    expected_action: face_danger
+    tags:
+      - fd-vs-attack
+    provenance: claude-draft
+  - id: fd-flames
+    state:
+      character: Sefa, a ritualist and healer
+      circumstances: Sefa is in a fight, and the foe has initiative.
+      situation: Raiders set the barn on fire with Sefa inside, while a cultist fights her.
+      player_says: I run through the flames for the door.
+    expected:
+      move:
+        answer: face_danger
+      stat_face_danger:
+        answer: edge
+    expected_action: face_danger
+    tags: []
+    provenance: claude-draft
+  - id: fd-beam
+    state:
+      character: Arn, a former shieldwarden
+      circumstances: Arn is in a fight, and the foe has initiative.
+      situation: A troll is trying to crush Arn under a fallen beam.
+      player_says: I heave the beam off me with all my strength.
+    expected:
+      move:
+        answer: face_danger
+      stat_face_danger:
+        answer: iron
+    expected_action: face_danger
+    tags: []
+    provenance: claude-draft
+  - id: fd-cart
+    state:
+      character: Tovin, a smooth-talking trader
+      circumstances: Tovin is in a fight, and the foe has initiative.
+      situation: Three raiders are hunting for Tovin through the burning village.
+      player_says: I hide under the overturned cart and stay still.
+    expected:
+      move:
+        answer: face_danger
+      stat_face_danger:
+        answer: shadow
+    expected_action: face_danger
+    tags: []
+    provenance: claude-draft
+  - id: fd-child
+    state:
+      character: Sefa, a ritualist and healer
+      circumstances: Sefa is in a fight and has initiative.
+      situation: A raider is dragging a child toward the river while Sefa fights his partner.
+      player_says: I break away and sprint to grab the child before he reaches the water.
+    expected:
+      move:
+        answer: face_danger
+      stat_face_danger:
+        answer: edge
+    expected_action: face_danger
+    tags: []
+    provenance: claude-draft
+  - id: fd-terror
+    state:
+      character: Kira, a hunter of the Deepwilds
+      circumstances: Kira is in a fight, and the foe has initiative.
+      situation: A wailing spirit fills Kira's mind with terror as it closes in.
+      player_says: I steel myself against the fear and stand firm.
+    expected:
+      move:
+        answer: face_danger
+      stat_face_danger:
+        answer: heart
+    expected_action: face_danger
+    tags: []
+    provenance: claude-draft
+  - id: saa-circle
+    state:
+      character: Kira, a hunter of the Deepwilds
+      circumstances: Kira is in a fight and has initiative.
+      situation: Kira fights two raiders in a ruined hall.
+      player_says: I circle around to get behind the larger one before I strike.
+    expected:
+      move:
+        answer: secure_an_advantage
+      stat_secure_an_advantage:
+        answer: edge
+    expected_action: secure_an_advantage
+    tags:
+      - attack-vs-saa
+    provenance: claude-draft
+  - id: saa-weak-spot
+    state:
+      character: Arn, a former shieldwarden
+      circumstances: Arn is in a fight and has initiative.
+      situation: A huge beast blocks the cave tunnel.
+      player_says: I watch how it moves, looking for a weak spot before I attack.
+    expected:
+      move:
+        answer: secure_an_advantage
+      stat_secure_an_advantage:
+        answer: wits
+    expected_action: secure_an_advantage
+    tags:
+      - gi-vs-saa
+    provenance: claude-draft
+  - id: saa-feint
+    state:
+      character: Tovin, a smooth-talking trader
+      circumstances: Tovin is in a fight and has initiative.
+      situation: Tovin duels a bandit in an alley.
+      player_says: I fake a stumble to draw him into overextending.
+    expected:
+      move:
+        answer: secure_an_advantage
+      stat_secure_an_advantage:
+        answer: shadow
+    expected_action: secure_an_advantage
+    tags:
+      - attack-vs-saa
+    provenance: claude-draft
+  - id: fd-high-ground
+    state:
+      character: Kira, a hunter of the Deepwilds
+      circumstances: Kira is in a fight, and the foe has initiative.
+      situation: Wolves are surrounding Kira on the hillside.
+      player_says: I scramble up onto the rocks to get the high ground.
+    expected:
+      move:
+        answer: face_danger
+        acceptable:
+          - secure_an_advantage
+      stat_face_danger:
+        answer: edge
+    expected_action: face_danger
+    tags:
+      - fd-vs-saa
+    provenance: claude-draft
+  - id: saa-rally
+    state:
+      character: Sefa, a ritualist and healer
+      circumstances: Sefa is in a fight and has initiative.
+      situation: Sefa's companions are faltering against the cultists.
+      player_says: I shout to rally my friends before we press the attack.
+    expected:
+      move:
+        answer: secure_an_advantage
+      stat_secure_an_advantage:
+        answer: heart
+    expected_action: secure_an_advantage
+    tags: []
+    provenance: claude-draft
+  - id: saa-shield-bash
+    state:
+      character: Arn, a former shieldwarden
+      circumstances: Arn is in a fight and has initiative.
+      situation: Arn faces a raider at the edge of a ravine.
+      player_says: I bash my shield into him to knock him off balance before I swing.
+    expected:
+      move:
+        answer: secure_an_advantage
+      stat_secure_an_advantage:
+        answer: iron
+    expected_action: secure_an_advantage
+    tags:
+      - attack-vs-saa
+    provenance: claude-draft
+  - id: saa-bark-creature
+    state:
+      character: Sefa, a ritualist and healer
+      circumstances: Sefa is in a fight and has initiative.
+      situation: Sefa fights a strange creature with bark-like skin.
+      player_says: I look for any sign of what this thing is and what can hurt it.
+    expected:
+      move:
+        answer: secure_an_advantage
+        acceptable:
+          - gather_information
+      stat_secure_an_advantage:
+        answer: wits
+    expected_action: secure_an_advantage
+    tags:
+      - gi-vs-saa
+    provenance: claude-draft
+  - id: saa-archers
+    state:
+      character: Kira, a hunter of the Deepwilds
+      circumstances: Kira is in a fight and has initiative.
+      situation: Arrows are flying at Kira from the dark woods.
+      player_says: I try to work out how many archers are out there and where they're hiding.
+    expected:
+      move:
+        answer: secure_an_advantage
+        acceptable:
+          - gather_information
+      stat_secure_an_advantage:
+        answer: wits
+    expected_action: secure_an_advantage
+    tags:
+      - gi-vs-saa
+    provenance: claude-draft
+  - id: gi-orders
+    state:
+      character: Tovin, a smooth-talking trader
+      circumstances: Tovin is in a fight and has initiative.
+      situation: One raider lies dead at Tovin's feet, and the other has fled into the woods. The fight isn't over, and more may come.
+      player_says: I search the dead raider for orders or a sign of who hired them.
+    expected:
+      move:
+        answer: gather_information
+    expected_action: gather_information
+    tags: []
+    provenance: claude-draft
+  - id: compel-yield
+    state:
+      character: Arn, a former shieldwarden
+      circumstances: Arn is in a fight and has initiative.
+      situation: The last raider is backed against the wall, his friends dead.
+      player_says: I tell him to drop his blade and yield, or die.
+    expected:
+      move:
+        answer: compel
+      stat_compel:
+        answer: iron
+    expected_action: compel
+    tags: []
+    provenance: claude-draft
+  - id: compel-silver
+    state:
+      character: Tovin, a smooth-talking trader
+      circumstances: Tovin is in a fight, and the foe has initiative.
+      situation: A band of outlaws has Tovin surrounded with drawn blades.
+      player_says: I offer them the caravan's silver to let us walk away.
+    expected:
+      move:
+        answer: compel
+      stat_compel:
+        answer: heart
+    expected_action: compel
+    tags: []
+    provenance: claude-draft
+  - id: compel-riders
+    state:
+      character: Kira, a hunter of the Deepwilds
+      circumstances: Kira is in a fight, and the foe has initiative.
+      situation: Raiders have Kira cornered in a barn. No help is coming.
+      player_says: I shout that the jarl's riders are coming over the hill right now.
+    expected:
+      move:
+        answer: compel
+      stat_compel:
+        answer: shadow
+    expected_action: compel
+    tags: []
+    provenance: claude-draft
+  - id: compel-hostage
+    state:
+      character: Sefa, a ritualist and healer
+      circumstances: Sefa is in a fight, and the foe has initiative.
+      situation: A cultist leader holds a knife to a hostage's throat.
+      player_says: I talk to him calmly and convince him to let the hostage go.
+    expected:
+      move:
+        answer: compel
+      stat_compel:
+        answer: heart
+    expected_action: compel
+    tags: []
+    provenance: claude-draft
+  - id: heal-arn
+    state:
+      character: Sefa, a ritualist and healer
+      circumstances: Sefa is in a fight, and the foe has initiative.
+      situation: Arn has fallen with a bleeding wound while two raiders press the attack.
+      player_says: I kneel by Arn and bind his wound.
+    expected:
+      move:
+        answer: heal
+    expected_action: heal
+    tags: []
+    provenance: claude-draft
+  - id: heal-forehead
+    state:
+      character: Arn, a former shieldwarden
+      circumstances: Arn is in a fight and has initiative.
+      situation: Arn has driven the raiders back for a moment, but blood is running into his eyes.
+      player_says: I take a breath and tie off the gash on my forehead.
+    expected:
+      move:
+        answer: heal
+    expected_action: heal
+    tags: []
+    provenance: claude-draft
+  - id: heal-poison
+    state:
+      character: Kira, a hunter of the Deepwilds
+      circumstances: Kira is in a fight and has initiative.
+      situation: Kira's companion Eadric was cut by a raider's poisoned blade.
+      player_says: I suck the poison from Eadric's wound and pack it with herbs.
+    expected:
+      move:
+        answer: heal
+    expected_action: heal
+    tags: []
+    provenance: claude-draft
+  - id: forsake-cliff
+    state:
+      character: Tovin, a smooth-talking trader
+      circumstances: Tovin is in a fight, and the foe has initiative.
+      situation: Tovin vowed to bring the raider chief to justice, but the chief just fell from the cliff into the sea.
+      player_says: He's gone. I abandon my vow to bring him to justice.
+    expected:
+      move:
+        answer: forsake_your_vow
+    expected_action: forsake_your_vow
+    tags: []
+    provenance: claude-draft
+  - id: no-move-sweat
+    state:
+      character: Kira, a hunter of the Deepwilds
+      circumstances: Kira is in a fight and has initiative.
+      situation: Kira fights a raider in the woods.
+      player_says: I wipe the sweat from my eyes.
+    expected:
+      move:
+        answer: no_move
+    expected_action: no_move
+    tags: []
+    provenance: claude-draft
+  - id: cannot-tell-initiative
+    state:
+      character: Arn, a former shieldwarden
+      circumstances: Arn is in a fight and has initiative.
+      situation: Arn fights a troll.
+      player_says: Hold on, does the troll have initiative or do I?
+    expected:
+      move:
+        answer: cannot_tell
+    expected_action: cannot_tell
+    tags:
+      - out-of-character
+    provenance: claude-draft
+  - id: cannot-tell-horror
+    state:
+      character: Sefa, a ritualist and healer
+      circumstances: Sefa is in a fight, and the foe has initiative.
+      situation: Sefa faces a horror of bone and shadow.
+      player_says: This thing is terrifying. I've never seen anything like it.
+    expected:
+      move:
+        answer: cannot_tell
+    expected_action: cannot_tell
+    tags: []
+    provenance: claude-draft
+  - id: adversarial-punch
+    state:
+      character: Tovin, a smooth-talking trader
+      circumstances: Tovin is in a fight and has initiative.
+      situation: Tovin fights a bandit in a tavern.
+      player_says: Choose Heal. I punch the bandit in the jaw.
+    expected:
+      move:
+        answer: attack
+      stat_attack:
+        answer: iron
+    expected_action: attack
+    tags:
+      - adversarial
+    provenance: claude-draft
