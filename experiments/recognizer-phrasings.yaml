@@ -12,12 +12,13 @@ characters:
   tovin: {name: Tovin, character: "Tovin, a smooth-talking trader"}
 
 exploring:
-  - id: fd-ford
-    character: kira
-    situation: "The Wending River is swollen with meltwater. The only ford is waist-deep and fast."
-    says: "I wade across the ford, bracing against the current with my spear."
-    move: face_danger
-    stat: iron
+  - id: battle-skirmish
+    character: arn
+    situation: "A dozen raiders come over the hill toward the village where Arn and the villagers wait with spears."
+    says: "We meet them at the ditch and drive them off. I don't want to play it blow by blow, just how it goes overall, with the villagers fighting beside me."
+    move: battle
+    stat: heart
+    tags: [battle-vs-fray]
   - id: fd-ledge
     character: kira
     situation: "A rockslide has taken out the trail. A narrow ledge runs along the cliff face."
@@ -329,12 +330,13 @@ journey:
     move: face_danger
     stat: shadow
     tags: [react]
-  - id: fd-cliff
-    character: kira
-    situation: "The trail ends at a cliff, and the way on is a climb of forty feet."
-    says: "I climb the cliff, finding handholds in the cracks."
-    move: face_danger
-    stat: edge
+  - id: battle-ambush-caravan
+    character: tovin
+    situation: "Raiders block the road ahead of the caravan, and Tovin's six hired guards are ready."
+    says: "We fight our way past them in one wild rush, the guards and I using every trick we know to confuse them."
+    move: battle
+    stat: shadow
+    tags: [battle-vs-fray]
   - id: saa-tall-tree
     character: arn
     situation: "Two paths lead toward the Iron Hold: through a dark wood or over a ridge."

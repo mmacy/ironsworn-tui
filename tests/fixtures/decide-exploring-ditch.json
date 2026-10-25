@@ -27,6 +27,7 @@
           "fulfill_your_vow": "The character believes they have done what a sworn vow demands",
           "forsake_your_vow": "The character abandons a vow, breaks a promise, or accepts its goal is lost",
           "enter_the_fray": "A fight starts: the character faces off with a foe, ambushes one, or is ambushed",
+          "battle": "The character fights a whole battle, told as one blur of action",
           "write_your_epilogue": "The character retires from adventuring, and the player tells how their life ends",
           "no_move": "The character does something with no risk and no doubt about the outcome, such as small talk with a friend over a meal in a safe place",
           "cannot_tell": "The player only asks something out of character, or describes the scene or a feeling, and the character takes no action"
@@ -40,8 +41,7 @@
           "heart": "With charm, loyalty, or courage",
           "iron": "With aggressive action, forceful defense, strength, or endurance",
           "shadow": "With deception, stealth, or trickery",
-          "wits": "With expertise, insight, or observation",
-          "cannot_tell": "The player names the action but not the manner of doing it"
+          "wits": "With expertise, insight, or observation"
         }
       },
       "stat_secure_an_advantage": {
@@ -52,8 +52,7 @@
           "heart": "With charm, loyalty, or courage",
           "iron": "With aggressive action, forceful defense, strength, or endurance",
           "shadow": "With deception, stealth, or trickery",
-          "wits": "With expertise, insight, or observation",
-          "cannot_tell": "The player names the action but not the manner of doing it"
+          "wits": "With expertise, insight, or observation"
         }
       },
       "stat_compel": {
@@ -62,8 +61,7 @@
         "criteria": {
           "heart": "Charm, pacify, barter, or convince",
           "iron": "Threaten or incite",
-          "shadow": "Lie or swindle",
-          "cannot_tell": "The player names the action but not the manner of doing it"
+          "shadow": "Lie or swindle"
         }
       },
       "stat_enter_the_fray": {
@@ -72,23 +70,33 @@
         "criteria": {
           "heart": "Facing off against your foe",
           "shadow": "Moving into position against an unaware foe, or striking without warning",
-          "wits": "Ambushed",
-          "cannot_tell": "The player names the action but not the manner of doing it"
+          "wits": "Ambushed"
+        }
+      },
+      "stat_battle": {
+        "type": "choice",
+        "instructions": "How does the character go about the action in `player_says`?",
+        "criteria": {
+          "edge": "Fight at range, or using your speed and the terrain to your advantage",
+          "heart": "Fight depending on your courage, allies, or companions",
+          "iron": "Fight in close to overpower your opponents",
+          "shadow": "Fight using trickery to befuddle your opponents",
+          "wits": "Fight using careful tactics to outsmart your opponents"
         }
       }
     },
     "images": []
   },
-  "question_set_version": "b61c184a610e0eea39a200a397361888886b213e092fe2d9a8d0cf3968ce750e",
-  "asked_at": "2026-10-25T02:09:32.858066Z",
+  "question_set_version": "e21d8107f70a62a1bd13967b373ddead5af8ee7d1d199d48b46827e477671112",
+  "asked_at": "2026-10-25T03:07:45.854292Z",
   "results": [
     {
       "target": "decision-1@foundry",
       "ok": true,
-      "latency_ms": 476.1,
+      "latency_ms": 302.4,
       "usage": {
-        "input_tokens": 900,
-        "output_tokens": 5
+        "input_tokens": 942,
+        "output_tokens": 6
       },
       "cost_usd": null,
       "warnings": [],
@@ -98,85 +106,96 @@
           "type": "choice",
           "choice": "secure_an_advantage",
           "probabilities": {
-            "face_danger": 0.046029002182101014,
-            "secure_an_advantage": 0.9245414982489859,
-            "gather_information": 0.0001768267747351684,
-            "heal": 5.066161314133927e-05,
-            "resupply": 8.348601965539962e-05,
-            "make_camp": 2.8860583593301415e-05,
-            "undertake_a_journey": 5.064449964074969e-05,
-            "compel": 6.501348643541113e-05,
-            "sojourn": 7.40145533362975e-05,
-            "draw_the_circle": 8.88670391498544e-05,
-            "forge_a_bond": 8.887804330116223e-05,
-            "test_your_bond": 3.072438644540479e-05,
-            "swear_an_iron_vow": 8.886978018986793e-05,
-            "fulfill_your_vow": 8.900728559718945e-05,
-            "forsake_your_vow": 8.890475228894835e-05,
-            "enter_the_fray": 0.027919178923168315,
-            "write_your_epilogue": 0.0001007425427781023,
-            "no_move": 9.465006181577668e-05,
-            "cannot_tell": 0.00031016922364084066
+            "face_danger": 0.06687505402916252,
+            "secure_an_advantage": 0.923162573769714,
+            "gather_information": 0.00021289852195409178,
+            "heal": 3.06706645682285e-05,
+            "resupply": 4.4722556839945664e-05,
+            "make_camp": 4.1946130799736644e-05,
+            "undertake_a_journey": 0.00014634996813325877,
+            "compel": 6.910636337001933e-05,
+            "sojourn": 0.00011394599387377449,
+            "draw_the_circle": 7.830670748307145e-05,
+            "forge_a_bond": 9.449316027723107e-05,
+            "test_your_bond": 3.938567737593068e-05,
+            "swear_an_iron_vow": 5.382707271158865e-05,
+            "fulfill_your_vow": 0.00018787890783595533,
+            "forsake_your_vow": 0.00010716285944440384,
+            "enter_the_fray": 0.007048260304372243,
+            "battle": 0.0012247862041916738,
+            "write_your_epilogue": 3.9392362387972425e-05,
+            "no_move": 7.831605240239193e-05,
+            "cannot_tell": 0.00035092269310188636
           },
           "unknown_probabilities": {},
-          "confidence": 0.9203493592628185,
-          "server_confidence": 0.9203493592628185
+          "confidence": 0.9191184987049621,
+          "server_confidence": 0.9191184987049621
         },
         "stat_face_danger": {
           "type": "choice",
           "choice": "shadow",
           "probabilities": {
-            "edge": 0.00314013582137873,
-            "heart": 0.00012175622090006977,
-            "iron": 0.00029207799020397775,
-            "shadow": 0.9866012524648052,
-            "wits": 0.0013090033605647692,
-            "cannot_tell": 0.00853577414214712
+            "edge": 0.008552234983722,
+            "heart": 0.0002011292888480442,
+            "iron": 0.00029264138850216865,
+            "shadow": 0.9885037379922159,
+            "wits": 0.0024502563467118828
           },
           "unknown_probabilities": {},
-          "confidence": 0.9839215029577663,
-          "server_confidence": 0.9839215029577663
+          "confidence": 0.9856296724902699,
+          "server_confidence": 0.98562967249027
         },
         "stat_secure_an_advantage": {
           "type": "choice",
           "choice": "shadow",
           "probabilities": {
-            "edge": 0.00314013582137873,
-            "heart": 0.00012175622090006977,
-            "iron": 0.00029207799020397775,
-            "shadow": 0.9866012524648052,
-            "wits": 0.0013090033605647692,
-            "cannot_tell": 0.00853577414214712
+            "edge": 0.008552234983722,
+            "heart": 0.0002011292888480442,
+            "iron": 0.00029264138850216865,
+            "shadow": 0.9885037379922159,
+            "wits": 0.0024502563467118828
           },
           "unknown_probabilities": {},
-          "confidence": 0.9839215029577663,
-          "server_confidence": 0.9839215029577663
+          "confidence": 0.9856296724902699,
+          "server_confidence": 0.98562967249027
         },
         "stat_compel": {
           "type": "choice",
-          "choice": "cannot_tell",
+          "choice": "shadow",
           "probabilities": {
-            "heart": 0.005576475430592857,
-            "iron": 0.0038326517768877415,
-            "shadow": 0.16296850048272998,
-            "cannot_tell": 0.8276223723097895
+            "heart": 0.015546583538257665,
+            "iron": 0.02262015096787317,
+            "shadow": 0.9618332654938692
           },
           "unknown_probabilities": {},
-          "confidence": 0.7701631630797193,
-          "server_confidence": 0.7701631630797193
+          "confidence": 0.9427498982408036,
+          "server_confidence": 0.9427498982408038
         },
         "stat_enter_the_fray": {
           "type": "choice",
           "choice": "shadow",
           "probabilities": {
-            "heart": 0.0004839601286678484,
-            "shadow": 0.9915279798949769,
-            "wits": 0.002784998251512078,
-            "cannot_tell": 0.005203061724843248
+            "heart": 0.0010274779957888814,
+            "shadow": 0.9943676851004711,
+            "wits": 0.00460483690373989
           },
           "unknown_probabilities": {},
-          "confidence": 0.9887039731933025,
-          "server_confidence": 0.9887039731933025
+          "confidence": 0.9915515276507065,
+          "server_confidence": 0.9915515276507068
+        },
+        "stat_battle": {
+          "type": "choice",
+          "choice": "edge",
+          "probabilities": {
+            "edge": 0.5162247298131009,
+            "heart": 0.0006849169511766765,
+            "iron": 0.0023905950569857483,
+            "shadow": 0.313106125933516,
+            "wits": 0.16759363224522064
+          },
+          "unknown_probabilities": {},
+          "confidence": 0.395280912266376,
+          "server_confidence": 0.39528091226637607
         }
       },
       "request_body": {
@@ -208,6 +227,7 @@
               "fulfill_your_vow": "The character believes they have done what a sworn vow demands",
               "forsake_your_vow": "The character abandons a vow, breaks a promise, or accepts its goal is lost",
               "enter_the_fray": "A fight starts: the character faces off with a foe, ambushes one, or is ambushed",
+              "battle": "The character fights a whole battle, told as one blur of action",
               "write_your_epilogue": "The character retires from adventuring, and the player tells how their life ends",
               "no_move": "The character does something with no risk and no doubt about the outcome, such as small talk with a friend over a meal in a safe place",
               "cannot_tell": "The player only asks something out of character, or describes the scene or a feeling, and the character takes no action"
@@ -221,8 +241,7 @@
               "heart": "With charm, loyalty, or courage",
               "iron": "With aggressive action, forceful defense, strength, or endurance",
               "shadow": "With deception, stealth, or trickery",
-              "wits": "With expertise, insight, or observation",
-              "cannot_tell": "The player names the action but not the manner of doing it"
+              "wits": "With expertise, insight, or observation"
             }
           },
           "stat_secure_an_advantage": {
@@ -233,8 +252,7 @@
               "heart": "With charm, loyalty, or courage",
               "iron": "With aggressive action, forceful defense, strength, or endurance",
               "shadow": "With deception, stealth, or trickery",
-              "wits": "With expertise, insight, or observation",
-              "cannot_tell": "The player names the action but not the manner of doing it"
+              "wits": "With expertise, insight, or observation"
             }
           },
           "stat_compel": {
@@ -243,8 +261,7 @@
             "criteria": {
               "heart": "Charm, pacify, barter, or convince",
               "iron": "Threaten or incite",
-              "shadow": "Lie or swindle",
-              "cannot_tell": "The player names the action but not the manner of doing it"
+              "shadow": "Lie or swindle"
             }
           },
           "stat_enter_the_fray": {
@@ -253,8 +270,18 @@
             "criteria": {
               "heart": "Facing off against your foe",
               "shadow": "Moving into position against an unaware foe, or striking without warning",
-              "wits": "Ambushed",
-              "cannot_tell": "The player names the action but not the manner of doing it"
+              "wits": "Ambushed"
+            }
+          },
+          "stat_battle": {
+            "type": "choice",
+            "instructions": "How does the character go about the action in `player_says`?",
+            "criteria": {
+              "edge": "Fight at range, or using your speed and the terrain to your advantage",
+              "heart": "Fight depending on your courage, allies, or companions",
+              "iron": "Fight in close to overpower your opponents",
+              "shadow": "Fight using trickery to befuddle your opponents",
+              "wits": "Fight using careful tactics to outsmart your opponents"
             }
           }
         }
@@ -264,82 +291,91 @@
         "answers": {
           "move": {
             "choice": "secure_an_advantage",
-            "confidence": 0.9203493592628185,
+            "confidence": 0.9191184987049621,
             "probabilities": {
-              "cannot_tell": 0.00031016922364084066,
-              "compel": 6.501348643541113e-05,
-              "draw_the_circle": 8.88670391498544e-05,
-              "enter_the_fray": 0.027919178923168315,
-              "face_danger": 0.046029002182101014,
-              "forge_a_bond": 8.887804330116223e-05,
-              "forsake_your_vow": 8.890475228894835e-05,
-              "fulfill_your_vow": 8.900728559718945e-05,
-              "gather_information": 0.0001768267747351684,
-              "heal": 5.066161314133927e-05,
-              "make_camp": 2.8860583593301415e-05,
-              "no_move": 9.465006181577668e-05,
-              "resupply": 8.348601965539962e-05,
-              "secure_an_advantage": 0.9245414982489859,
-              "sojourn": 7.40145533362975e-05,
-              "swear_an_iron_vow": 8.886978018986793e-05,
-              "test_your_bond": 3.072438644540479e-05,
-              "undertake_a_journey": 5.064449964074969e-05,
-              "write_your_epilogue": 0.0001007425427781023
+              "battle": 0.0012247862041916738,
+              "cannot_tell": 0.00035092269310188636,
+              "compel": 6.910636337001933e-05,
+              "draw_the_circle": 7.830670748307145e-05,
+              "enter_the_fray": 0.007048260304372243,
+              "face_danger": 0.06687505402916252,
+              "forge_a_bond": 9.449316027723107e-05,
+              "forsake_your_vow": 0.00010716285944440384,
+              "fulfill_your_vow": 0.00018787890783595533,
+              "gather_information": 0.00021289852195409178,
+              "heal": 3.06706645682285e-05,
+              "make_camp": 4.1946130799736644e-05,
+              "no_move": 7.831605240239193e-05,
+              "resupply": 4.4722556839945664e-05,
+              "secure_an_advantage": 0.923162573769714,
+              "sojourn": 0.00011394599387377449,
+              "swear_an_iron_vow": 5.382707271158865e-05,
+              "test_your_bond": 3.938567737593068e-05,
+              "undertake_a_journey": 0.00014634996813325877,
+              "write_your_epilogue": 3.9392362387972425e-05
+            },
+            "type": "choice"
+          },
+          "stat_battle": {
+            "choice": "edge",
+            "confidence": 0.39528091226637607,
+            "probabilities": {
+              "edge": 0.5162247298131009,
+              "heart": 0.0006849169511766765,
+              "iron": 0.0023905950569857483,
+              "shadow": 0.313106125933516,
+              "wits": 0.16759363224522064
             },
             "type": "choice"
           },
           "stat_compel": {
-            "choice": "cannot_tell",
-            "confidence": 0.7701631630797193,
+            "choice": "shadow",
+            "confidence": 0.9427498982408038,
             "probabilities": {
-              "cannot_tell": 0.8276223723097895,
-              "heart": 0.005576475430592857,
-              "iron": 0.0038326517768877415,
-              "shadow": 0.16296850048272998
+              "heart": 0.015546583538257665,
+              "iron": 0.02262015096787317,
+              "shadow": 0.9618332654938692
             },
             "type": "choice"
           },
           "stat_enter_the_fray": {
             "choice": "shadow",
-            "confidence": 0.9887039731933025,
+            "confidence": 0.9915515276507068,
             "probabilities": {
-              "cannot_tell": 0.005203061724843248,
-              "heart": 0.0004839601286678484,
-              "shadow": 0.9915279798949769,
-              "wits": 0.002784998251512078
+              "heart": 0.0010274779957888814,
+              "shadow": 0.9943676851004711,
+              "wits": 0.00460483690373989
             },
             "type": "choice"
           },
           "stat_face_danger": {
             "choice": "shadow",
-            "confidence": 0.9839215029577663,
+            "confidence": 0.98562967249027,
             "probabilities": {
-              "cannot_tell": 0.00853577414214712,
-              "edge": 0.00314013582137873,
-              "heart": 0.00012175622090006977,
-              "iron": 0.00029207799020397775,
-              "shadow": 0.9866012524648052,
-              "wits": 0.0013090033605647692
+              "edge": 0.008552234983722,
+              "heart": 0.0002011292888480442,
+              "iron": 0.00029264138850216865,
+              "shadow": 0.9885037379922159,
+              "wits": 0.0024502563467118828
             },
             "type": "choice"
           },
           "stat_secure_an_advantage": {
             "choice": "shadow",
-            "confidence": 0.9839215029577663,
+            "confidence": 0.98562967249027,
             "probabilities": {
-              "cannot_tell": 0.00853577414214712,
-              "edge": 0.00314013582137873,
-              "heart": 0.00012175622090006977,
-              "iron": 0.00029207799020397775,
-              "shadow": 0.9866012524648052,
-              "wits": 0.0013090033605647692
+              "edge": 0.008552234983722,
+              "heart": 0.0002011292888480442,
+              "iron": 0.00029264138850216865,
+              "shadow": 0.9885037379922159,
+              "wits": 0.0024502563467118828
             },
             "type": "choice"
           }
         },
         "usage": {
-          "input_tokens": 900,
-          "output_tokens": 5
+          "input_tokens": 942,
+          "output_tokens": 6
         }
       }
     }

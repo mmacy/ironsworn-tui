@@ -14,10 +14,12 @@ import pytest
 
 from ironsworn_tui.criteria import CriteriaStyle
 from ironsworn_tui.decide import (
+    ACTS_QUESTION,
     MOVE_QUESTION,
     TARGET_TIMEOUT_S,
     DecideError,
     JevtesterClient,
+    RequestShape,
     TurnState,
     build_request,
     parse_decision,
@@ -117,21 +119,36 @@ def test_exploring_request_has_a_stat_question_per_stat_move():
         "stat_secure_an_advantage",
         "stat_compel",
         "stat_enter_the_fray",
+        "stat_battle",
     ]
 
 
-def test_stat_question_offers_each_approach_and_cannot_tell():
+def test_stat_question_offers_each_approach():
     request = build_request(datasworn(), ditch_state(), CriteriaStyle.GUIDE)
     stat = request["questions"]["stat_face_danger"]
     assert stat["type"] == "choice"
-    assert list(stat["criteria"]) == ["edge", "heart", "iron", "shadow", "wits", CANNOT_TELL]
+    assert list(stat["criteria"]) == ["edge", "heart", "iron", "shadow", "wits"]
     assert stat["criteria"]["shadow"] == "With deception, stealth, or trickery"
 
 
 def test_fight_request_asks_how_the_character_attacks():
     request = build_request(datasworn(), ditch_state(Context.FIGHT), CriteriaStyle.GUIDE)
     attack = request["questions"][f"stat_{ATTACK}"]
-    assert list(attack["criteria"]) == ["iron", "edge", CANNOT_TELL]
+    assert list(attack["criteria"]) == ["iron", "edge"]
+
+
+def test_acts_shape_swaps_cannot_tell_for_a_yes_no_question():
+    shape = RequestShape(acts_question=True)
+    request = build_request(datasworn(), ditch_state(), CriteriaStyle.GUIDE, shape)
+    assert CANNOT_TELL not in request["questions"]["move"]["criteria"]
+    assert request["questions"][ACTS_QUESTION]["type"] == "noul"
+
+
+def test_stat_abstain_shape_adds_cannot_tell():
+    shape = RequestShape(stat_abstain=True)
+    request = build_request(datasworn(), ditch_state(), CriteriaStyle.GUIDE, shape)
+    stat = request["questions"]["stat_face_danger"]
+    assert list(stat["criteria"]) == ["edge", "heart", "iron", "shadow", "wits", CANNOT_TELL]
 
 
 def test_request_body_names_no_targets():
@@ -233,6 +250,7 @@ def test_noul_answers_parse():
     }
     decision = parse_decision(response, "decision-1@foundry")
     assert decision.ok is True
+    assert decision.acts == 0.97
     assert "acts" not in decision.stats
 
 
