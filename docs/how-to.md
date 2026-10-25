@@ -72,7 +72,7 @@ Use this when you have no network, no sign-in, or want to pick every move yourse
 1. Start the game with `--no-model` after the character's name:
 
    ```sh
-   uv run ironsworn-tui play Kira --no-model
+   uv run ironsworn-tui play Blarg --no-model
    ```
 
 2. Type what your character does and press Enter. The log shows your message, and the bar shows the full list of moves for where you are, with none selected.
@@ -102,7 +102,7 @@ Steps:
 1. Run `new`. Write each companion as its id, a colon, and the ability number, such as `hawk:2`:
 
    ```sh
-   uv run ironsworn-tui new Kira --description "a hunter" --stats edge=2,heart=2,iron=1,shadow=1,wits=3 --assets archer,hawk:2,wright --vow "Avenge my village"
+   uv run ironsworn-tui new Blarg --description "the Destructor" --stats edge=2,heart=2,iron=1,shadow=1,wits=3 --assets archer,hawk:2,wright --vow "Avenge my village"
    ```
 
 2. Add any of these options if you need them:
@@ -111,7 +111,7 @@ Steps:
    - `--harm 1` means your character doesn't carry a deadly weapon. The default is 2.
    - `--bond` names a background bond, such as `--bond "My sister Ash"`. Repeat it for up to three bonds. Each one marks a tick on your bonds track.
 
-The command prints the path of the new campaign file, such as `campaigns/Kira.json`. If something is wrong, it prints an error and creates nothing. For example:
+The command prints the path of the new campaign file, such as `campaigns/Blarg.json`. If something is wrong, it prints an error and creates nothing. For example:
 
 - "Error: Hawk starts with no ability marked; pick one from 1 to 3" means you left off the companion's ability, as in `hawk` instead of `hawk:2`.
 - "Error: stats must be assigned from (3, 2, 2, 1, 1)" means the stats don't add up that way.
@@ -455,14 +455,14 @@ To resume:
 1. Run `play` with the character's name, spelled as you spelled it with `new`:
 
    ```sh
-   uv run ironsworn-tui play Kira
+   uv run ironsworn-tui play Blarg
    ```
 
 The app opens with the panel as you left it and the last 50 lines of the log. If a move was owed, the bar shows it. If the name is wrong, the command prints "Error: no campaign at" and the path it looked for.
 
 To find the campaign file:
 
-1. The file is `campaigns/<name>.json` in the ironsworn-tui folder, such as `campaigns/Kira.json`.
+1. The file is `campaigns/<name>.json` in the ironsworn-tui folder, such as `campaigns/Blarg.json`.
 2. If `ironsworn-tui.toml` sets `campaigns_dir`, the file is in that folder instead. A relative path there starts at the ironsworn-tui folder, and `~` means your home folder.
 
 The app saves the file after every change, so there's no save command. To quit, press Ctrl+Q.
@@ -473,7 +473,7 @@ To back up the campaign:
 2. Copy the file somewhere else:
 
    ```sh
-   cp campaigns/Kira.json ~/Backups/Kira-2026-10-25.json
+   cp campaigns/Blarg.json ~/Backups/Blarg-2026-10-25.json
    ```
 
-To restore a backup, quit the app and copy the file back to `campaigns/Kira.json`.
+To restore a backup, quit the app and copy the file back to `campaigns/Blarg.json`.

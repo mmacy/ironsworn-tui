@@ -45,7 +45,7 @@ Creates a character and a campaign with one background vow. Saves it as `<name>.
 | Argument or option | Required | Default | Value |
 |---|---|---|---|
 | `<name>` | Yes | | The character's name. It's also the campaign's name and the file name, and it's case-sensitive. |
-| `--description` | Yes | | A few words about the character, such as `"a hunter"`. |
+| `--description` | Yes | | A few words about the character, such as `"the Destructor"`. |
 | `--stats` | Yes | | All five stats (`edge`, `heart`, `iron`, `shadow`, `wits`), given the values 3, 2, 2, 1, and 1 in any order. Write each as `<stat>=<n>` and separate them with commas and no spaces. |
 | `--assets` | Yes | | Exactly three asset ids, separated by commas with no spaces. Ids are lowercase, such as `archer` or `cave_lion`. An asset that starts with no ability marked, such as a companion, needs the ability to mark after a colon, from 1 to 3, such as `hawk:2`. An asset that starts with an ability marked takes no colon. `/asset list` in the play screen lists the ids. |
 | `--vow` | Yes | | The background vow's text. |
@@ -74,11 +74,11 @@ Errors, each with exit status 2. The command writes nothing when one occurs.
 Example:
 
 ```console
-$ ironsworn-tui new Kira --description "a hunter" \
+$ ironsworn-tui new Blarg --description "the Destructor" \
     --stats edge=3,heart=2,iron=2,shadow=1,wits=1 \
     --assets archer,hawk:2,wright \
     --vow "Avenge my village"
-/path/to/ironsworn-tui/campaigns/Kira.json
+/path/to/ironsworn-tui/campaigns/Blarg.json
 ```
 
 See also: [`ironsworn-tui play`](#ironsworn-tui-play).
@@ -109,7 +109,7 @@ Errors, each with exit status 2:
 Example:
 
 ```console
-$ ironsworn-tui play Kira --no-model
+$ ironsworn-tui play Blarg --no-model
 ```
 
 ### ironsworn-tui suggest
@@ -541,7 +541,7 @@ Owes Endure Harm (`harm`) or Endure Stress (`stress`) for `<n>` harm or stress, 
 
 ```text
 /endure harm 2
-Kira faces 2 harm
+Blarg faces 2 harm
 ```
 
 ### /asset
@@ -675,7 +675,7 @@ campaigns_dir = "campaigns"
 
 When `play` runs with the model, the app saves a case each time you answer a message the model answered: by rolling a move from the suggestion bar, rolling a move with a `/` command such as `/vow swear`, or pressing `n`. The case goes to the end of `suites/play-<context>.yaml`, for the context the message was asked in. Each case has:
 
-- An id made from the character's name and the time, such as `kira-20261025T143012123456`.
+- An id made from the character's name and the time, such as `blarg-20261025T143012123456`.
 - The state the model saw, and the move you made, with its stat when the move rolls with a chosen stat.
 - The tag `corrected` when you made a move other than the model's top answer, or `abstained` when the top answer was can't tell.
 

@@ -1,6 +1,6 @@
 # Getting started
 
-Install ironsworn-tui, create a character named Asha, and play her first session. You'll swear a vow, make a move, mark progress, and ask the oracle. You don't need to know *Ironsworn* first. Each rule is explained the first time you meet it, and only as far as this session needs.
+Install ironsworn-tui, create a character named Blarg the Destructor, and play their first session. You'll swear a vow, make a move, mark progress, and ask the oracle. You don't need to know *Ironsworn* first. Each rule is explained the first time you meet it, and only as far as this session needs.
 
 For the rules in depth, see [Playing Ironsworn](playing.md). The full rules are in the *Ironsworn* rulebook, a free download from the publisher, Tomkin Press, at [tomkinpress.com](https://tomkinpress.com/products/ironsworn-digital-edition).
 
@@ -31,19 +31,19 @@ If you can't sign in, you can still follow this tutorial. Add `--no-model` to th
 
 ## Create your character
 
-Create Asha with one command:
+Create Blarg with one command:
 
 ```sh
-uv run ironsworn-tui new Asha --description "a wandering hunter" --stats edge=2,heart=2,iron=1,shadow=1,wits=3 --assets archer,wayfinder,hawk:1 --vow "Find who burned my village"
+uv run ironsworn-tui new Blarg --description "the Destructor" --stats edge=2,heart=2,iron=1,shadow=1,wits=3 --assets archer,wayfinder,hawk:1 --vow "Find who burned my village"
 ```
 
-The command prints the full path of the new campaign file, which ends in `campaigns/Asha.json`. A campaign is your saved game: the character, their vows, and the log of everything that has happened.
+The command prints the full path of the new campaign file, which ends in `campaigns/Blarg.json`. A campaign is your saved game: the character, their vows, and the log of everything that has happened.
 
 Each part of the command is a choice you make about your character.
 
 ### Name and description
 
-`Asha` is the character's name. The app also uses it as the name of the campaign file, so you'll type it again to play. `--description` is a few words about who she is. The decision model reads it, so describe her the way you'd introduce her.
+`Blarg` is the character's name. The app also uses it as the name of the campaign file, so you'll type it again to play. `--description` is a few words about who they are. The decision model reads it, so describe them the way you'd introduce them.
 
 ### Stats
 
@@ -55,44 +55,44 @@ Your character has five stats. Each stat is a number you add to the dice when yo
 - Shadow is sneakiness, deceptiveness, and cunning.
 - Wits is expertise, knowledge, and observation.
 
-You give the five stats the values 3, 2, 2, 1, and 1, in any order. Put the 3 in what your character does best. Asha is a hunter who reads the land, so she has wits 3, edge 2, heart 2, iron 1, and shadow 1. The app rejects any other spread.
+You give the five stats the values 3, 2, 2, 1, and 1, in any order. Put the 3 in what your character does best. Blarg reads the land well, so they have wits 3, edge 2, heart 2, iron 1, and shadow 1. The app rejects any other spread.
 
 ### Assets
 
-Assets are cards that give your character special abilities. Each asset has three abilities, and you start with the first one marked. You pick three assets. Asha's are:
+Assets are cards that give your character special abilities. Each asset has three abilities, and you start with the first one marked. You pick three assets. Blarg's are:
 
 - `archer`, a combat talent for fighting with a bow.
 - `wayfinder`, a path that helps on journeys and when scouting.
 - `hawk:1`, a hawk companion.
 
-A companion starts with no ability marked, so you pick one after a colon. `hawk:1` marks the hawk's first ability, which helps when Asha travels or hunts. Once you're playing, type `/asset list` to see every asset.
+A companion starts with no ability marked, so you pick one after a colon. `hawk:1` marks the hawk's first ability, which helps when Blarg travels or hunts. Once you're playing, type `/asset list` to see every asset.
 
 ### Background vow
 
-A vow is a promise your character swears to complete. Your background vow is the big goal that drives your character's whole story. `--vow "Find who burned my village"` sets Asha's. A background vow is epic, the hardest of the five ranks, so it takes a long time to fulfill.
+A vow is a promise your character swears to complete. Your background vow is the big goal that drives your character's whole story. `--vow "Find who burned my village"` sets Blarg's. A background vow is epic, the hardest of the five ranks, so it takes a long time to fulfill.
 
 ## Start playing
 
 Start the game:
 
 ```sh
-uv run ironsworn-tui play Asha
+uv run ironsworn-tui play Blarg
 ```
 
 The app prints `Starting jevtester for decision-1@foundry…`, then opens the game screen. The screen has four parts:
 
-- The character panel, on the left, shows Asha's stats, meters, assets, and vows.
+- The character panel, on the left, shows Blarg's stats, meters, assets, and vows.
 - The log, on the right, shows everything that happens.
 - The suggestion bar, below them, shows the moves you can make and the result of each roll.
 - The input line, at the bottom, says "Action or /command". You type here.
 
-![The play screen for a new campaign. The character panel on the left shows Asha, a wandering hunter, with her stats, health, spirit, and supply at 5, momentum +2, her three assets, and her background vow with ten empty boxes. The log on the right is empty. The suggestion bar lists the slash commands, and the input line at the bottom reads "Action or /command".](images/start.svg)
+![The play screen for a new campaign. The character panel on the left shows Blarg, the Destructor, with their stats, health, spirit, and supply at 5, momentum +2, their three assets, and their background vow with ten empty boxes. The log on the right is empty. The suggestion bar lists the slash commands, and the input line at the bottom reads "Action or /command".](images/start.svg)
 
-Look at the character panel. Asha has health 5, spirit 5, and supply 5. These are meters, which go down as she's hurt, shaken, or runs low on gear. The panel also shows `Momentum +2 (max 10, reset 2)`. Momentum is a measure of how well things are going. Good results raise it, and bad results lower it. You can spend it later to improve a roll.
+Look at the character panel. Blarg has health 5, spirit 5, and supply 5. These are meters, which go down as they're hurt, shaken, or runs low on gear. The panel also shows `Momentum +2 (max 10, reset 2)`. Momentum is a measure of how well things are going. Good results raise it, and bad results lower it. You can spend it later to improve a roll.
 
 ## Swear a vow
 
-Asha's background vow is a long-term goal. She also needs a goal for this session, and in *Ironsworn* a goal starts with a vow. Type this line and press Enter:
+Blarg's background vow is a long-term goal. They also need a goal for this session, and in *Ironsworn* a goal starts with a vow. Type this line and press Enter:
 
 ```text
 /vow swear dangerous Free my brother from the raiders
@@ -112,7 +112,7 @@ Your result may be different, because the dice are random. The card shows the ru
 
 ## Make a move
 
-Now describe what Asha does. Type an action in your own words and press Enter:
+Now describe what Blarg does. Type an action in your own words and press Enter:
 
 ```text
 I creep across the frozen river toward the raider camp
@@ -126,7 +126,7 @@ Stat edge  Add +0
 Enter roll · 1-9 or arrows move · e h i s w stat · + - add · n no move · Esc back
 ```
 
-![The suggestion bar after Asha's action. The log shows the typed line "I creep across the frozen river toward the raider camp". The bar shows "1 Face Danger 0.94" highlighted, "Stat edge  Add +0", and the key hints.](images/suggestion.svg)
+![The suggestion bar after Blarg's action. The log shows the typed line "I creep across the frozen river toward the raider camp". The bar shows "1 Face Danger 0.94" highlighted, "Stat edge  Add +0", and the key hints.](images/suggestion.svg)
 
 Read the bar from top to bottom:
 
@@ -178,17 +178,17 @@ Choose one:
 
 ![A roll card for Face Danger with edge, a weak hit. The log shows "5 vs 4, 6, weak hit". The card shows the outcome text and the prompt "Choose one:" with four costs: delayed, tired or hurt, dispirited or afraid, and sacrifice resources.](images/weak-hit.svg)
 
-Press the number of the cost that fits the story, then press Enter. If the ice slowed Asha down, press `1`, then Enter. She loses 1 momentum, and the character panel shows it. Some costs, like `2` (tired or hurt), lead to another roll. When that happens, the suggestion bar shows the next roll and the keys to press.
+Press the number of the cost that fits the story, then press Enter. If the ice slowed Blarg down, press `1`, then Enter. They lose 1 momentum, and the character panel shows it. Some costs, like `2` (tired or hurt), lead to another roll. When that happens, the suggestion bar shows the next roll and the keys to press.
 
 On a miss, press Enter, and the suggestion bar shows Pay the Price. This move decides what goes wrong. Press `o` to take the most obvious bad outcome, then describe it in your next action.
 
 ![The suggestion bar after a miss on Face Danger. It shows "Pay the Price" and the keys "o obvious outcome", "a ask the oracle", and "t roll the table".](images/pay-the-price.svg)
 
-Whatever the result, decide what it means for Asha. The app changes the numbers, and you decide what happens in the story.
+Whatever the result, decide what it means for Blarg. The app changes the numbers, and you decide what happens in the story.
 
 ## Mark progress on your vow
 
-Say Asha reaches the raider camp without being seen. That's a step toward freeing her brother. In *Ironsworn*, a step like this is a milestone, and you mark progress on the vow. Type:
+Say Blarg reaches the raider camp without being seen. That's a step toward freeing their brother. In *Ironsworn*, a step like this is a milestone, and you mark progress on the vow. Type:
 
 ```text
 /vow mark Free my brother from the raiders
@@ -200,7 +200,7 @@ Type `/vow` to list your vows and their progress.
 
 ## Ask the oracle
 
-Solo play has no game master to answer questions about the world. The oracle answers them instead. Say you want to know whether Asha's brother is in the camp. You think he probably is. Type:
+Solo play has no game master to answer questions about the world. The oracle answers them instead. Say you want to know whether Blarg's brother is in the camp. You think he probably is. Type:
 
 ```text
 /ask likely
@@ -215,7 +215,7 @@ Oracle classic/action_and_theme/action, 13: Surrender
 Oracle classic/action_and_theme/theme, 47: Freedom
 ```
 
-Read the two words together and decide what they mean. "Surrender" and "freedom" might mean a raider offers to free the brother in exchange for safe passage. Type what Asha does about it, and keep playing.
+Read the two words together and decide what they mean. "Surrender" and "freedom" might mean a raider offers to free the brother in exchange for safe passage. Type what Blarg does about it, and keep playing.
 
 ![The log after marking the vow and asking the oracle. It shows "Reach a Milestone: Free my brother from the raiders is at 2/10", "Ask the Oracle (likely), 69: yes", and the oracle table results Surrender and Freedom. The vow's track in the character panel has two filled boxes.](images/oracle.svg)
 
@@ -226,10 +226,10 @@ Finish any roll card before you quit. The app saves after each roll is applied, 
 Press Ctrl+Q to quit. To pick up where you stopped, run the same command again:
 
 ```sh
-uv run ironsworn-tui play Asha
+uv run ironsworn-tui play Blarg
 ```
 
-The log shows your recent history, and the character panel shows Asha as you left her.
+The log shows your recent history, and the character panel shows Blarg as you left them.
 
 ## Next steps
 
