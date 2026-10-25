@@ -445,6 +445,17 @@ def _asset_problems(character: Character) -> list[str]:
             problems.append(f"{owned.id} isn't an asset")
             continue
         asset = data.asset(owned.id)
+        enabled = [ability.enabled for ability in asset.abilities]
+        if not any(owned.marked) or any(
+            e and not m for e, m in zip(enabled, owned.marked, strict=True)
+        ):
+            problems.append(f"{owned.id} is missing a marked ability")
+        if asset.counts_as_debility and not owned.debility:
+            problems.append(f"{owned.id} must count as a debility")
+        if owned.fields.get("equipped") == "geared_for_war" and (
+            "encumbered" not in character.debilities
+        ):
+            problems.append(f"{owned.id} is geared for war, so encumbered must be marked")
         if set(owned.meters) != set(asset.meters):
             problems.append(f"{owned.id} has meters {sorted(owned.meters)}")
             continue
@@ -501,13 +512,15 @@ def create_character(
         if pick:
             _check_no_stat_change(data, asset_id, int(pick))
         owned.append(new_owned(data, asset_id, int(pick) if pick else None))
-    return Character(
+    character = Character(
         name=name,
         description=description,
         stats=Stats.model_validate(stats),
         assets=owned,
         harm=harm,
     )
+    character.health = character.health_max
+    return character
 
 
 # Abilities whose marking moves stat points, which a new character can't take.

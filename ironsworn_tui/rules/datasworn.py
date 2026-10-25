@@ -413,7 +413,10 @@ def _asset(asset_id: str, raw: YamlMap) -> Asset:
     meters: dict[str, AssetMeter] = {}
     selects: dict[str, AssetSelect] = {}
     texts: list[str] = []
+    # Kindred's `expertise` is the one field an ability, not the asset, defines.
     fields: YamlMap = {**(raw.get("controls") or {}), **(raw.get("options") or {})}
+    for ability in raw["abilities"]:
+        fields.update(ability.get("options") or {})
     for field_id, field in fields.items():
         match field["field_type"]:
             case "condition_meter":

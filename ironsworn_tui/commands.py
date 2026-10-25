@@ -4,7 +4,15 @@ import shlex
 from dataclasses import dataclass
 from typing import get_args
 
-from ironsworn_tui.assets import StatChanges, buy, change_asset_meter, discard, set_field, upgrade
+from ironsworn_tui.assets import (
+    StatChanges,
+    buy,
+    change_asset_meter,
+    discard,
+    set_debility,
+    set_field,
+    upgrade,
+)
 from ironsworn_tui.campaign import AssetError, Debility, Meter, OwnedAsset, ProgressTrack, meter_max
 from ironsworn_tui.rules.datasworn import Asset, Datasworn, Stat, plain_text
 from ironsworn_tui.rules.oracles import Likelihood, ask_yes_no, roll_oracle
@@ -26,7 +34,7 @@ COMMANDS = ("oracle", "ask", "vow", "scene", "target", "tide", "adjust", "asset"
 ASSET_USAGE = (
     "usage: /asset [list [category] | show <asset> | buy <asset> [ability] [+stat -stat] | "
     "upgrade <asset> <ability> [+stat -stat] | meter <asset> <meter> <n> | "
-    "set <asset> <field> <value> | discard <asset>]"
+    "set <asset> <field> <value> | debility <asset> on|off | discard <asset>]"
 )
 
 
@@ -330,11 +338,11 @@ def _asset(engine: TurnEngine, rest: str) -> CommandResult:
         if not assets:
             raise CommandError("categories: combat_talent, companion, path, ritual")
         return CommandResult(tuple(f"{a.id}: {a.name}" for a in assets))
-    if action == "show" and len(args) == 1:
-        return CommandResult(_asset_card(engine, find_asset(data, args[0])))
     if not args:
         raise CommandError(ASSET_USAGE)
-    asset = find_asset(data, args[0])
+    asset, args = _split_asset(data, args)
+    if action == "show" and len(args) == 1:
+        return CommandResult(_asset_card(engine, asset))
     match action:
         case "buy":
             ability = _ability(args[1]) if len(args) > 1 else None
@@ -353,6 +361,10 @@ def _asset(engine: TurnEngine, rest: str) -> CommandResult:
             value = " ".join(args[2:])
             set_field(character, data, asset.id, args[1], value)
             line = f"{asset.name} {args[1]} is now {value}"
+        case "debility" if args[1:] in (["on"], ["off"]):
+            on = args[1] == "on"
+            set_debility(character, asset.id, on=on)
+            line = f"{asset.name} {'counts' if on else 'no longer counts'} as a debility"
         case "discard" if len(args) == 1:
             discard(character, asset.id)
             line = f"discarded {asset.name}"
@@ -361,6 +373,21 @@ def _asset(engine: TurnEngine, rest: str) -> CommandResult:
     engine.campaign.add_log("command", f"Asset: {line}")
     engine.save()
     return CommandResult()
+
+
+def _split_asset(data: Datasworn, words: list[str]) -> tuple[Asset, list[str]]:
+    """Find the asset the leading words name, trying the longest run first.
+
+    Returns:
+        The asset, and the words with the name replaced by the asset id.
+    """
+    for end in range(len(words), 0, -1):
+        try:
+            asset = find_asset(data, " ".join(words[:end]))
+        except CommandError:
+            continue
+        return asset, [asset.id, *words[end:]]
+    raise CommandError(f"no asset named {words[0]!r}; /asset list shows them")
 
 
 def _asset_card(engine: TurnEngine, asset: Asset) -> tuple[str, ...]:

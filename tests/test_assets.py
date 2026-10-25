@@ -1,10 +1,18 @@
 """Owning assets: buying, upgrading, meters, fields, and one-time changes."""
 
+from collections.abc import Callable
 from pathlib import Path
 
 import pytest
 
-from ironsworn_tui.assets import buy, change_asset_meter, discard, set_field, upgrade
+from ironsworn_tui.assets import (
+    buy,
+    change_asset_meter,
+    discard,
+    set_debility,
+    set_field,
+    upgrade,
+)
 from ironsworn_tui.campaign import (
     AssetError,
     Campaign,
@@ -254,4 +262,95 @@ def test_load_rejects_a_meter_over_its_max(tmp_path: Path):
     campaign: Campaign = new_campaign(kira(), "Avenge my village", Rank.EPIC)
     campaign.character.asset("hawk").meters["health"] = 9
     with pytest.raises(ValueError, match="health"):
+        campaign.check()
+
+
+def test_new_character_with_battle_scarred_overcome_loads(tmp_path: Path):
+    character = create_character(
+        datasworn(), "Kira", "a hunter", STATS, ["archer", "battle_scarred:2", "wright"]
+    )
+    assert character.health == 4
+    campaign = new_campaign(character, "Avenge my village", Rank.EPIC)
+    campaign.save(tmp_path / "kira.json")
+    Campaign.load(tmp_path / "kira.json")
+
+
+def test_discarding_battle_scarred_lowers_momentum_to_the_new_max():
+    character = kira()
+    buy(character, datasworn(), "battle_scarred", 2)
+    character.mark_debility("maimed")
+    character.momentum = 10
+    discard(character, "battle_scarred")
+    assert character.momentum == 9
+
+
+def test_animal_kin_doesnt_discount_kindred():
+    character = kira(experience=10)
+    character.assets.append(new_owned(datasworn(), "animal_kin", None))
+    character.asset("animal_kin").marked[1] = True
+    assert buy(character, datasworn(), "kindred", 1) == 3
+
+
+def test_kindred_has_an_expertise_field():
+    character = kira()
+    buy(character, datasworn(), "kindred", 1)
+    set_field(character, datasworn(), "kindred", "expertise", "healer")
+    assert character.asset("kindred").fields["expertise"] == "healer"
+
+
+def test_lightly_armored_keeps_encumbered_from_elsewhere():
+    character = kira()
+    character.mark_debility("encumbered")
+    buy(character, datasworn(), "ironclad")
+    set_field(character, datasworn(), "ironclad", "equipped", "lightly_armored")
+    assert "encumbered" in character.debilities
+
+
+def test_asset_debility_can_be_set_by_hand():
+    character = kira()
+    set_debility(character, "hawk", on=True)
+    assert character.bounds.max == 9
+    set_debility(character, "hawk", on=False)
+    assert character.bounds.max == 10
+
+
+def test_shadow_kin_can_add_nothing_when_shadow_is_four():
+    character = kira()
+    character.stats.shadow = 4
+    buy(character, datasworn(), "shadow_kin", 1, {"heart": -1})
+    assert character.stats.shadow == 4
+
+
+def _unmark_archer(character: Character) -> None:
+    character.asset("archer").marked[0] = False
+
+
+def _unmark_hawk(character: Character) -> None:
+    character.asset("hawk").marked[1] = False
+
+
+def _oathbreaker_without_debility(character: Character) -> None:
+    character.assets[0].id = "oathbreaker"
+
+
+@pytest.mark.parametrize(
+    ("change", "message"),
+    [
+        (_unmark_archer, "archer"),
+        (_unmark_hawk, "hawk"),
+        (_oathbreaker_without_debility, "oathbreaker"),
+    ],
+)
+def test_load_rejects_bad_marks_and_debility(change: Callable[[Character], None], message: str):
+    campaign = new_campaign(kira(), "Avenge my village", Rank.EPIC)
+    change(campaign.character)
+    with pytest.raises(ValueError, match=message):
+        campaign.check()
+
+
+def test_load_rejects_geared_for_war_without_encumbered():
+    campaign = new_campaign(kira(), "Avenge my village", Rank.EPIC)
+    buy(campaign.character, datasworn(), "ironclad")
+    campaign.character.asset("ironclad").fields["equipped"] = "geared_for_war"
+    with pytest.raises(ValueError, match="encumbered"):
         campaign.check()

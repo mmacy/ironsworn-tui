@@ -222,3 +222,18 @@ def test_asset_errors(tmp_path: Path, command: str, message: str):
     turn, _, _ = engine(tmp_path)
     with pytest.raises(CommandError, match=message):
         run_command(turn, command)
+
+
+def test_asset_names_with_spaces(tmp_path: Path):
+    turn, _, _ = engine(tmp_path)
+    turn.campaign.character.experience = 3
+    run_command(turn, "/asset buy cave lion 2")
+    assert turn.campaign.character.asset("cave_lion").marked == [False, True, False]
+    assert run_command(turn, "/asset show animal kin").lines[0].startswith("Animal Kin")
+
+
+def test_asset_debility(tmp_path: Path):
+    turn, _, _ = engine(tmp_path)
+    run_command(turn, "/asset debility hawk on")
+    assert turn.campaign.character.asset("hawk").debility
+    assert turn.campaign.log[-1].text == "Asset: Hawk counts as a debility"

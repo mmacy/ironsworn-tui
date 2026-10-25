@@ -25,6 +25,8 @@ _DISCOUNTS: dict[tuple[str, int], str] = {
     ("ritualist", 3): "Ritual",
     ("weaponmaster", 2): "Combat Talent",
 }
+# Animal Kin's discount is for an animal or beast companion, and Kindred is a person.
+_NOT_ANIMALS = {"kindred"}
 
 type StatChanges = dict[Stat, int]
 
@@ -44,7 +46,9 @@ def owned(character: Character, asset_id: str) -> OwnedAsset:
 def cost(character: Character, asset: Asset, base: int) -> int:
     """Return what buying or upgrading an asset costs, after any discount."""
     discounted = any(
-        character.has_ability(path, ability) and category == asset.category
+        character.has_ability(path, ability)
+        and category == asset.category
+        and not (path == "animal_kin" and asset.id in _NOT_ANIMALS)
         for (path, ability), category in _DISCOUNTS.items()
     )
     return base - discounted
@@ -146,8 +150,8 @@ def _check_changes(character: Character, asset: Asset, ability: int, changes: St
     raised: StatChanges = {stat: amount for stat, amount in changes.items() if amount > 0}
     if asset.id == "shadow_kin":
         # "Reduce your heart stat by 1 and add up to +2 to shadow."
-        valid = lowered == {"heart": 1} and set(raised) == {"shadow"} and raised["shadow"] <= 2
-        rule = "lower heart by 1 and raise shadow by 1 or 2"
+        valid = lowered == {"heart": 1} and set(raised) <= {"shadow"} and sum(raised.values()) <= 2
+        rule = "lower heart by 1 and raise shadow by up to 2"
     else:
         # "Reduce your edge or iron by 1 and add +2 to wits or heart, or +1 to each."
         valid = (
@@ -217,11 +221,12 @@ def set_field(character: Character, data: Datasworn, asset_id: str, field: str, 
         raise AssetError(
             f"{asset.name} has no field {field!r}; it has: {', '.join(fields) or 'none'}"
         )
+    before = target.fields.get(field)
     target.fields[field] = value
     if (asset_id, field) == ("ironclad", "equipped"):
         if value == "geared_for_war":
             character.mark_debility("encumbered")
-        else:
+        elif before == "geared_for_war":
             character.clear_debility("encumbered")
 
 
@@ -232,3 +237,17 @@ def discard(character: Character, asset_id: str) -> None:
         AssetError: If the character doesn't own it.
     """
     character.assets.remove(owned(character, asset_id))
+    character.health = min(character.health, character.health_max)
+    character.momentum = min(character.momentum, character.bounds.max)
+
+
+def set_debility(character: Character, asset_id: str, *, on: bool) -> None:
+    """Make an asset count as a debility, or stop it counting.
+
+    Fated counts as one once its protection is used, and Leech while its rune is unquenched.
+
+    Raises:
+        AssetError: If the character doesn't own it.
+    """
+    owned(character, asset_id).debility = on
+    character.momentum = min(character.momentum, character.bounds.max)
