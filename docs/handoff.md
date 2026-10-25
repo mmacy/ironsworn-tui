@@ -24,7 +24,9 @@ ironsworn-tui is a terminal app for solo Ironsworn. A decision model reads what 
 - The port fixes two `iron.py` bugs. Burning momentum now cancels only the challenge dice below the momentum, so it can't make a result worse. Sub-rolls now follow the `oracle_rollable:` ids that `iron.py` couldn't resolve. Momentum also stops at -6 now, and any loss past that is reported as `setback` for Face a Setback.
 - Build step 2 is done: typed pydantic move models in `ironsworn_tui/rules/datasworn.py`, and the move groups, contexts, and stat questions in `ironsworn_tui/moves.py`.
 - Build step 3 is done: `ironsworn_tui/decide.py` builds the request, starts one `jevtester serve`, and parses the answers. `ironsworn_tui/criteria.py` has the two criteria styles. Read [`decision-model-guidance.md`](decision-model-guidance.md) before changing a question, the criteria, or the state.
-- Start with build step 4, the recognizer experiment.
+- Build step 4 is built, and ran on `decision-1@foundry` only: move accuracy is 87.5 to 100 percent per suite, and `exploring` clears the 80 percent bar with both criteria styles. [`experiments/results.md`](../experiments/results.md) has the numbers, the misses, and what's unmeasured. The stat questions' `cannot_tell` option wins too often and needs rework.
+- The 120 phrasings are `claude-draft`, so `jevtester run` skips them until the user approves them by setting `PROVENANCE = "human"` in `ironsworn_tui/experiment.py` and running `uv run ironsworn-tui write-suites`. The 2026-10-24 numbers came from a scratch copy with the field flipped.
+- The handoff's stop after step 4 applies: review the numbers with the user before starting step 5.
 - The user said to use `decision-1@foundry` for live calls. The Ollama models aren't downloaded, and won't be while the user is on a hotspot. Ask before adding a second hosted target, such as `clef-flash@workers-ai`, to an experiment.
 - The user allowed changing `~/repos/jevtester` if it makes sense, for example to send structured criteria.
 - `diary/` holds the dev diary. Add an entry when a step or decision lands.

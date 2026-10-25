@@ -1,0 +1,61 @@
+name: moves-exploring-trigger
+questions:
+  move:
+    type: choice
+    instructions: Which move does the action in `player_says` trigger, given `circumstances` and `situation`?
+    criteria:
+      face_danger: When you attempt something risky or react to an imminent threat...
+      secure_an_advantage: When you assess a situation, make preparations, or attempt to gain leverage...
+      gather_information: When you search an area, ask questions, conduct an investigation, or follow a track...
+      heal: When you treat an injury or ailment...
+      resupply: When you hunt, forage, or scavenge...
+      make_camp: When you rest and recover for several hours in the wild...
+      undertake_a_journey: When you travel across hazardous or unfamiliar lands...
+      compel: When you attempt to persuade someone to do something...
+      sojourn: When you spend time in a community seeking assistance...
+      draw_the_circle: When you challenge someone to a formal duel, or accept a challenge...
+      forge_a_bond: When you spend significant time with a person or community, stand together to face hardships, or make sacrifices for their cause...
+      test_your_bond: When your bond is tested through conflict, betrayal, or circumstance...
+      swear_an_iron_vow: When you swear upon iron to complete a quest...
+      fulfill_your_vow: When you achieve what you believe to be the fulfillment of your vow...
+      forsake_your_vow: When you renounce your quest, betray your promise, or the goal is lost to you...
+      enter_the_fray: When you enter into combat...
+      write_your_epilogue: When you retire from your life as Ironsworn...
+      no_move: The character does something with no risk and no doubt about the outcome, such as small talk with a friend over a meal in a safe place
+      cannot_tell: The player only asks something out of character, or describes the scene or a feeling, and the character takes no action
+  stat_face_danger:
+    type: choice
+    instructions: How does the character go about the action in `player_says`?
+    criteria:
+      edge: With speed, agility, or precision
+      heart: With charm, loyalty, or courage
+      iron: With aggressive action, forceful defense, strength, or endurance
+      shadow: With deception, stealth, or trickery
+      wits: With expertise, insight, or observation
+      cannot_tell: The player names the action but not the manner of doing it
+  stat_secure_an_advantage:
+    type: choice
+    instructions: How does the character go about the action in `player_says`?
+    criteria:
+      edge: With speed, agility, or precision
+      heart: With charm, loyalty, or courage
+      iron: With aggressive action, forceful defense, strength, or endurance
+      shadow: With deception, stealth, or trickery
+      wits: With expertise, insight, or observation
+      cannot_tell: The player names the action but not the manner of doing it
+  stat_compel:
+    type: choice
+    instructions: How does the character go about the action in `player_says`?
+    criteria:
+      heart: Charm, pacify, barter, or convince
+      iron: Threaten or incite
+      shadow: Lie or swindle
+      cannot_tell: The player names the action but not the manner of doing it
+  stat_enter_the_fray:
+    type: choice
+    instructions: How does the character go about the action in `player_says`?
+    criteria:
+      heart: Facing off against your foe
+      shadow: Moving into position against an unaware foe, or striking without warning
+      wits: Ambushed
+      cannot_tell: The player names the action but not the manner of doing it

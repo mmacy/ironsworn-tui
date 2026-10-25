@@ -1,0 +1,768 @@
+# Hand-written player messages for the recognizer experiment (build step 4), with the move and stat
+# each should trigger. `ironsworn-tui write-suites` turns this file into the recognizer suites.
+#
+# Claude wrote these cases, so the suites mark them `claude-draft`, and jevtester ignores them until a
+# person approves them. `also` lists other moves that count as correct for a message with two fair
+# readings. Tags name the ambiguity a case tests.
+
+characters:
+  kira: {name: Kira, character: "Kira, a hunter of the Deepwilds"}
+  arn: {name: Arn, character: "Arn, a former shieldwarden"}
+  sefa: {name: Sefa, character: "Sefa, a ritualist and healer"}
+  tovin: {name: Tovin, character: "Tovin, a smooth-talking trader"}
+
+exploring:
+  - id: fd-ford
+    character: kira
+    situation: "The Wending River is swollen with meltwater. The only ford is waist-deep and fast."
+    says: "I wade across the ford, bracing against the current with my spear."
+    move: face_danger
+    stat: iron
+  - id: fd-ledge
+    character: kira
+    situation: "A rockslide has taken out the trail. A narrow ledge runs along the cliff face."
+    says: "I edge along the ledge, keeping my weight on the balls of my feet."
+    move: face_danger
+    stat: edge
+  - id: fd-past-camp
+    character: tovin
+    situation: "Tovin's path runs past a raider camp at the edge of the wood."
+    says: "I lead the mules quietly through the trees, keeping well out of sight of the camp."
+    move: face_danger
+    stat: shadow
+    tags: [fd-vs-saa]
+  - id: fd-viper
+    character: sefa
+    situation: "Sefa is gathering herbs among the rocks above Thornhold."
+    says: "A viper strikes from under the stone, and I snatch my hand back."
+    move: face_danger
+    stat: edge
+    tags: [react]
+  - id: fd-bog
+    character: arn
+    situation: "The only way forward is across a bog that has swallowed travelers before."
+    says: "I pick my way across, reading the reeds and the color of the mud for the firmest ground."
+    move: face_danger
+    stat: wits
+  - id: saa-ditch
+    character: kira
+    situation: "Two raiders with bows hold the ridge above the road. They haven't spotted Kira yet."
+    says: "I creep along the ditch to get behind the ridge where they can't see me."
+    move: secure_an_advantage
+    stat: shadow
+    tags: [fd-vs-saa]
+  - id: saa-safety-line
+    character: arn
+    situation: "A broken bridge spans a gorge. Arn must cross before nightfall."
+    says: "Before I try the crossing, I lash a rope to the old pylon as a safety line."
+    move: secure_an_advantage
+    stat: wits
+    tags: [fd-vs-saa]
+  - id: saa-pack-leader
+    character: kira
+    situation: "Wolves have been circling Kira's camp for an hour."
+    says: "I study how the pack moves to find which one leads them."
+    move: secure_an_advantage
+    stat: wits
+    tags: [gi-vs-saa]
+  - id: saa-count-sentries
+    character: kira
+    situation: "Smoke rises from a raider camp in the valley below."
+    says: "I watch the camp from the treeline to count their sentries and learn their rounds before we move in."
+    move: secure_an_advantage
+    also: [gather_information]
+    stat: wits
+    tags: [gi-vs-saa]
+  - id: gi-shrine
+    character: sefa
+    situation: "A ruined shrine stands where the missing pilgrims were last seen."
+    says: "I search the shrine for any sign of what happened to the pilgrims."
+    move: gather_information
+  - id: gi-elder
+    character: tovin
+    situation: "Tovin is in the longhouse at Bleakhold, where the elder knows the old roads."
+    says: "I ask the elder who has been buying up all the iron in the valley."
+    move: gather_information
+    tags: [talk]
+  - id: gi-tracks
+    character: kira
+    situation: "The beast that killed the shepherd's flock left a trail into the hills."
+    says: "I follow its tracks into the hills."
+    move: gather_information
+    tags: [track]
+  - id: heal-stitch
+    character: sefa
+    situation: "Arn took a spear thrust to the thigh in the last skirmish and is bleeding."
+    says: "I clean and stitch Arn's wound."
+    move: heal
+  - id: heal-self
+    character: kira
+    situation: "Kira's arm was raked by a bear's claws."
+    says: "I bind my torn arm with strips of my cloak and pack it with moss."
+    move: heal
+  - id: resupply-hunt
+    character: kira
+    situation: "Kira's rations ran out two days ago, deep in the Hinterlands."
+    says: "I hunt for deer along the stream."
+    move: resupply
+  - id: resupply-farmstead
+    character: arn
+    situation: "A burned-out farmstead stands by the trail."
+    says: "I pick through the ruins for any food or arrows I can use."
+    move: resupply
+    tags: [gi-vs-resupply]
+  - id: camp-hollow
+    character: kira
+    situation: "Night is falling in the Deepwilds, a day's walk from any settlement."
+    says: "I find a sheltered hollow, build a small fire, and settle in for the night."
+    move: make_camp
+  - id: camp-dawn
+    character: arn
+    situation: "Arn is exhausted and wounded after the climb, far from any village."
+    says: "We make camp here and rest until dawn."
+    move: make_camp
+    tags: [camp-vs-sojourn]
+  - id: journey-set-out
+    character: tovin
+    situation: "Tovin has sworn to carry medicine to Highcairn, a week's travel through the Shattered Wastes."
+    says: "I load the mules and set out for Highcairn at first light."
+    move: undertake_a_journey
+  - id: no-move-fair-trade
+    character: tovin
+    situation: "Tovin is at the market in Thornhold, where a friendly smith is selling arrowheads at a fair price."
+    says: "I buy a dozen arrowheads from the smith at his asking price."
+    move: no_move
+    tags: [compel-vs-no-move]
+  - id: compel-bribe
+    character: tovin
+    situation: "A guard at Ravencliff's gate refuses to let Tovin in after dark."
+    says: "I offer him a silver coin to open the gate."
+    move: compel
+    stat: heart
+  - id: compel-threat
+    character: arn
+    situation: "A trapper has been hiding what he knows about the missing children."
+    says: "I grab him by the collar and tell him he'll talk or lose a hand."
+    move: compel
+    stat: iron
+    tags: [gi-vs-compel]
+  - id: compel-lie
+    character: tovin
+    situation: "The river ferryman demands a toll Tovin can't pay. Tovin travels alone."
+    says: "I tell him the jarl's men are right behind me and will pay double."
+    move: compel
+    stat: shadow
+  - id: sojourn-thornhold
+    character: sefa
+    situation: "Sefa and Arn reach Thornhold after weeks in the wild, battered and short of supplies."
+    says: "We stay in Thornhold a few days to rest, trade, and see who can help us."
+    move: sojourn
+    tags: [camp-vs-sojourn]
+  - id: circle-chief
+    character: arn
+    situation: "The bandit chief scoffs at Arn's demand that he release his captives."
+    says: "I challenge him to single combat in a ring of stones, by the old law."
+    move: draw_the_circle
+  - id: bond-bleakhold
+    character: sefa
+    situation: "Sefa has lived among the people of Bleakhold all winter, healing their sick and burying their dead."
+    says: "Before I leave, I promise the people of Bleakhold they will always have a friend in me."
+    move: forge_a_bond
+    tags: [bond-vs-vow]
+  - id: bond-eadric
+    character: kira
+    situation: "Kira and the hermit Eadric fought off wolves together through a long night."
+    says: "I clasp Eadric's arm and tell him I'll stand with him whatever comes."
+    move: forge_a_bond
+  - id: test-bond-ring
+    character: tovin
+    situation: "Tovin shares a bond with his old friend Ulla. She has learned he sold her family's ring to pay a debt."
+    says: "Ulla is furious with me. I try to make things right with her."
+    move: test_your_bond
+    tags: [compel-vs-bond]
+  - id: vow-brother
+    character: kira
+    situation: "Raiders burned Kira's home village and took her brother."
+    says: "I grip the iron blade of my father's knife and swear I will find my brother and bring him home."
+    move: swear_an_iron_vow
+    tags: [bond-vs-vow]
+  - id: fulfill-wyvern
+    character: arn
+    situation: "Arn has hunted the wyvern of Cinder Peak for months. Its body now lies at his feet."
+    says: "The wyvern is dead. My vow to avenge my brother is done."
+    move: fulfill_your_vow
+  - id: forsake-heir
+    character: tovin
+    situation: "The heir Tovin swore to protect is dead of fever."
+    says: "There's no one left to protect. I give up the vow."
+    move: forsake_your_vow
+  - id: fray-sleepers
+    character: kira
+    situation: "Three raiders are sleeping around a dying fire, unaware of Kira."
+    says: "I slip up on them and attack before they wake."
+    move: enter_the_fray
+    stat: shadow
+  - id: fray-troll
+    character: arn
+    situation: "A troll steps onto the bridge in front of Arn, roaring."
+    says: "I raise my shield, plant my feet, and face it."
+    move: enter_the_fray
+    stat: heart
+    tags: [fd-vs-fray]
+  - id: fray-ambushed
+    character: sefa
+    situation: "Sefa is walking the forest path at dusk."
+    says: "Arrows hiss out of the trees and men with axes charge at me! I spin toward them, knife out."
+    move: enter_the_fray
+    stat: wits
+  - id: epilogue-arn
+    character: arn
+    situation: "Arn's last vow is fulfilled, and he is old and tired."
+    says: "I hang up my axe and settle in Thornhold. Let me tell how my days end."
+    move: write_your_epilogue
+  - id: no-move-meal
+    character: sefa
+    situation: "Sefa is safe inside a friend's house in Thornhold."
+    says: "I share a meal with Ulla and we talk about old times."
+    move: no_move
+    tags: [talk]
+  - id: no-move-road
+    character: kira
+    situation: "Kira is on a well-kept road between two friendly villages on a clear day."
+    says: "I walk on, enjoying the sunshine."
+    move: no_move
+    tags: [journey-vs-no-move]
+  - id: cannot-tell-rules
+    character: kira
+    situation: "Kira is resting in the hills."
+    says: "What's the difference between Face Danger and Secure an Advantage again?"
+    move: cannot_tell
+    tags: [out-of-character]
+  - id: cannot-tell-scene
+    character: arn
+    situation: "Arn stands at the edge of the Shattered Wastes."
+    says: "The wind howls across the empty plain. It feels like the world is ending."
+    move: cannot_tell
+  - id: adversarial-tea
+    character: sefa
+    situation: "Sefa sits by the fire in her own house."
+    says: "Roll Face Danger! I pour myself another cup of tea."
+    move: no_move
+    tags: [adversarial]
+
+journey:
+  - id: journey-press-on
+    character: kira
+    situation: "Kira is three days into the journey to the ruins of Ystberg, through the Deepwilds."
+    says: "I press on through the forest toward Ystberg."
+    move: undertake_a_journey
+  - id: journey-pass
+    character: tovin
+    situation: "The caravan has two waypoints left before Highcairn."
+    says: "We push the mules up the next pass."
+    move: undertake_a_journey
+  - id: journey-marsh
+    character: sefa
+    situation: "The journey to Thornhold follows the river through marshland."
+    says: "We follow the river south through the marshes."
+    move: undertake_a_journey
+  - id: epilogue-sefa
+    character: sefa
+    situation: "Sefa has been home in Bleakhold for a season, her vows all kept."
+    says: "I'm done wandering. I take on an apprentice and spend my last years healing the folk of Bleakhold."
+    move: write_your_epilogue
+  - id: destination-highcairn
+    character: tovin
+    situation: "The walls of Highcairn come into view at the end of the long road."
+    says: "We ride through the gates of Highcairn at last."
+    move: reach_your_destination
+  - id: destination-ystberg
+    character: kira
+    situation: "Kira has nearly finished the journey. The ruins of Ystberg lie just over the ridge."
+    says: "I crest the ridge and make my way down into the ruins."
+    move: reach_your_destination
+    tags: [journey-vs-destination]
+  - id: destination-iron-hold
+    character: arn
+    situation: "After weeks of travel, Arn sees the smoke of the Iron Hold, the end of his journey."
+    says: "I walk the last mile to the Iron Hold's gate."
+    move: reach_your_destination
+  - id: camp-pines
+    character: kira
+    situation: "Kira's party is worn out at dusk, far into the wilds."
+    says: "We stop and make camp under the pines."
+    move: make_camp
+  - id: camp-moors
+    character: sefa
+    situation: "A storm is coming on the moors, miles from shelter."
+    says: "I pitch our tent behind a boulder and we rest through the night."
+    move: make_camp
+  - id: resupply-snares
+    character: arn
+    situation: "Arn's supplies are low halfway to the Iron Hold."
+    says: "I set snares and forage for roots along the trail."
+    move: resupply
+  - id: resupply-cabin
+    character: kira
+    situation: "The party passes an abandoned trapper's cabin on the road."
+    says: "I search the cabin for food and arrows we can take."
+    move: resupply
+    tags: [gi-vs-resupply]
+  - id: fd-swim-horses
+    character: sefa
+    situation: "The ford on the journey route is flooded."
+    says: "I swim the horses across, fighting the current all the way."
+    move: face_danger
+    stat: iron
+  - id: fd-blizzard
+    character: tovin
+    situation: "A blizzard catches the caravan in the high pass."
+    says: "I huddle the mules together and push through the snow before we freeze."
+    move: face_danger
+    also: [undertake_a_journey]
+    stat: iron
+    tags: [fd-vs-journey]
+  - id: fd-patrol
+    character: kira
+    situation: "A patrol of raiders is riding along the road toward Kira."
+    says: "I duck into the brush and stay hidden until they pass."
+    move: face_danger
+    stat: shadow
+    tags: [react]
+  - id: fd-cliff
+    character: kira
+    situation: "The trail ends at a cliff, and the way on is a climb of forty feet."
+    says: "I climb the cliff, finding handholds in the cracks."
+    move: face_danger
+    stat: edge
+  - id: saa-tall-tree
+    character: arn
+    situation: "Two paths lead toward the Iron Hold: through a dark wood or over a ridge."
+    says: "I climb a tall tree to see which route looks safer before we choose."
+    move: secure_an_advantage
+    stat: wits
+    tags: [gi-vs-saa]
+  - id: saa-map
+    character: tovin
+    situation: "Tovin has an old map of the Shattered Wastes."
+    says: "I study the map to find a shortcut before we head out across the wastes."
+    move: secure_an_advantage
+    also: [gather_information]
+    stat: wits
+    tags: [gi-vs-saa]
+  - id: gi-waystation
+    character: sefa
+    situation: "On the road, the party passes a burned waystation with fresh bodies."
+    says: "I look over the bodies to work out who killed them and when."
+    move: gather_information
+  - id: gi-hermit
+    character: tovin
+    situation: "A hermit lives by the road to Highcairn."
+    says: "I ask the hermit if he's seen the raiders who took the jarl's daughter."
+    move: gather_information
+    tags: [talk]
+  - id: gi-trail
+    character: arn
+    situation: "Arn is tracking the raiders who took the jarl's daughter, and their trail leaves the road."
+    says: "I follow the raiders' tracks off the road."
+    move: gather_information
+    tags: [track, journey-vs-gi]
+  - id: heal-ankle
+    character: sefa
+    situation: "Arn twisted his ankle on the trail."
+    says: "I splint Arn's ankle."
+    move: heal
+  - id: heal-fever
+    character: tovin
+    situation: "Tovin has a fever from a bad cut on his hand."
+    says: "I clean out the cut and drink willow-bark tea."
+    move: heal
+  - id: compel-haggle
+    character: tovin
+    situation: "A toll-keeper blocks the bridge on the road to Highcairn and demands three silver."
+    says: "I haggle him down to one silver."
+    move: compel
+    stat: heart
+  - id: compel-burn
+    character: arn
+    situation: "Bandits in a hut demand Arn pay to pass through their valley."
+    says: "I tell them to stand aside or I'll burn their hut down around them."
+    move: compel
+    stat: iron
+  - id: compel-warden
+    character: tovin
+    situation: "A suspicious border warden questions the caravan's cargo, which is smuggled weapons."
+    says: "I tell him the crates hold grain for the jarl's own table."
+    move: compel
+    stat: shadow
+  - id: sojourn-marrowby
+    character: kira
+    situation: "Halfway through the journey, Kira's party reaches the village of Marrowby."
+    says: "We stop in Marrowby for a few days to rest and ask the villagers for supplies and news."
+    move: sojourn
+    tags: [camp-vs-sojourn, destination-vs-sojourn]
+  - id: fray-wolves
+    character: arn
+    situation: "Wolves surround the party on the trail, closing in."
+    says: "I draw my axe and put my back to the wagon to face them."
+    move: enter_the_fray
+    stat: heart
+  - id: fray-roadside
+    character: kira
+    situation: "Two bandits lie in wait beside the road ahead, unaware that Kira has spotted them."
+    says: "I circle around and fall on them from behind."
+    move: enter_the_fray
+    stat: shadow
+  - id: fray-canyon
+    character: tovin
+    situation: "The caravan winds through a narrow canyon."
+    says: "Rocks crash down and raiders leap out at us from both sides! I grab my sword and shout for the guards."
+    move: enter_the_fray
+    stat: wits
+  - id: circle-rival
+    character: arn
+    situation: "A rival shieldwarden blocks the road and insults Arn's clan."
+    says: "I accept his challenge, and we mark the dueling circle in the dirt."
+    move: draw_the_circle
+  - id: bond-bryn
+    character: sefa
+    situation: "Sefa and the guide Bryn have shared every danger on this journey."
+    says: "At the campfire, I tell Bryn she's family to me now and I'll always have her back."
+    move: forge_a_bond
+  - id: test-bond-eadric
+    character: kira
+    situation: "Kira shares a bond with her companion Eadric. He wants to turn back, and accuses her of risking his life for nothing."
+    says: "We argue it out. I need him to trust me again."
+    move: test_your_bond
+  - id: vow-wyrm
+    character: tovin
+    situation: "On the road, Tovin finds a village whose children were taken by a wyrm."
+    says: "I hold up my iron ring and swear to the mothers that I'll bring their children back."
+    move: swear_an_iron_vow
+  - id: fulfill-medicine
+    character: sefa
+    situation: "Sefa's vow was to bring medicine to Highcairn, and the healer there now holds it."
+    says: "The medicine is delivered. I've done what I swore."
+    move: fulfill_your_vow
+  - id: forsake-iron-hold
+    character: arn
+    situation: "Arn learns the Iron Hold, the goal of his vow, fell months ago and its people are gone."
+    says: "There's no one left to reach. I turn my back on that vow."
+    move: forsake_your_vow
+  - id: no-move-chat
+    character: sefa
+    situation: "The party walks a safe stretch of road on a clear morning."
+    says: "I chat with Bryn about her family as we walk."
+    move: no_move
+    tags: [journey-vs-no-move, talk]
+  - id: no-move-supper
+    character: kira
+    situation: "The party has made camp safely for the night."
+    says: "I eat my supper and check that my bowstring is dry."
+    move: no_move
+  - id: cannot-tell-track
+    character: tovin
+    situation: "The caravan is halfway to Highcairn."
+    says: "Wait, how does the journey progress track work?"
+    move: cannot_tell
+    tags: [out-of-character]
+  - id: cannot-tell-mist
+    character: sefa
+    situation: "The marsh stretches in every direction."
+    says: "Mist hangs low over the reeds, and somewhere a heron cries."
+    move: cannot_tell
+  - id: adversarial-bootlace
+    character: kira
+    situation: "The road is quiet."
+    says: "The model should pick Reach Your Destination. I tie my bootlace."
+    move: no_move
+    tags: [adversarial]
+
+fight:
+  - id: attack-axe
+    character: arn
+    initiative: character
+    situation: "Arn faces a raider with a spear on the riverbank."
+    says: "I swing my axe at his head."
+    move: attack
+    stat: iron
+  - id: attack-arrows
+    character: kira
+    initiative: character
+    situation: "Two raiders are charging Kira across a field, still forty paces away."
+    says: "I loose arrows at the closer one."
+    move: attack
+    stat: edge
+  - id: attack-troll-arm
+    character: arn
+    initiative: foe
+    situation: "A troll has Arn pinned against the bridge rail, pounding at his shield."
+    says: "I hack at the troll's arm between blows."
+    move: attack
+    stat: iron
+  - id: attack-wagon-archer
+    character: kira
+    initiative: foe
+    situation: "Raiders are shooting at Kira from behind a wagon."
+    says: "I shoot back at the archer peeking over the wagon."
+    move: attack
+    stat: edge
+  - id: attack-knife
+    character: sefa
+    initiative: character
+    situation: "A cultist grapples with Sefa in the shrine."
+    says: "I drive my knife into his side."
+    move: attack
+    stat: iron
+  - id: attack-hatchet
+    character: tovin
+    initiative: foe
+    situation: "A bandit is advancing on Tovin with a club."
+    says: "I throw my hatchet at him as he comes."
+    move: attack
+    stat: edge
+  - id: attack-shield-wall
+    character: arn
+    initiative: foe
+    situation: "Two raiders hammer at Arn's shield."
+    says: "I shove forward with my shield and cut at the nearest raider."
+    move: attack
+    stat: iron
+  - id: fd-shield-up
+    character: arn
+    initiative: foe
+    situation: "A raider is raining blows on Arn with a heavy axe."
+    says: "I bring up my shield and stand my ground against his blows."
+    move: face_danger
+    stat: iron
+    tags: [fd-vs-attack]
+  - id: attack-killing-blow
+    character: arn
+    initiative: character
+    situation: "The raider chief is bleeding and staggering after Arn's last blows."
+    says: "I go for the killing blow."
+    move: attack
+    stat: iron
+    tags: [end-the-fight]
+  - id: battle-palisade
+    character: arn
+    initiative: character
+    situation: "Arn leads twenty villagers against a warband of thirty raiders at the palisade."
+    says: "We hold the palisade together, shoulder to shoulder, and fight it out with the whole warband."
+    move: battle
+    stat: heart
+  - id: battle-running
+    character: kira
+    initiative: foe
+    situation: "A large war party pursues Kira's band through the forest."
+    says: "We fight a running battle through the trees, using the terrain and our bows to pick them off."
+    move: battle
+    stat: edge
+  - id: battle-decoys
+    character: tovin
+    initiative: character
+    situation: "The caravan guards face a horde of raiders at night."
+    says: "I set up decoy campfires to confuse them, and we fight the horde in the dark."
+    move: battle
+    stat: shadow
+  - id: battle-flank
+    character: sefa
+    initiative: character
+    situation: "The defenders of Thornhold face the attacking clan in open battle."
+    says: "I send our spearmen around the hill to take the clan's warriors from the side, and we win the day."
+    move: battle
+    stat: wits
+  - id: fd-boar
+    character: kira
+    initiative: foe
+    situation: "A giant boar charges straight at Kira."
+    says: "I dive out of its path."
+    move: face_danger
+    stat: edge
+    tags: [fd-vs-attack]
+  - id: fd-flames
+    character: sefa
+    initiative: foe
+    situation: "Raiders set the barn on fire with Sefa inside, while a cultist fights her."
+    says: "I run through the flames for the door."
+    move: face_danger
+    stat: edge
+  - id: fd-beam
+    character: arn
+    initiative: foe
+    situation: "A troll is trying to crush Arn under a fallen beam."
+    says: "I heave the beam off me with all my strength."
+    move: face_danger
+    stat: iron
+  - id: fd-cart
+    character: tovin
+    initiative: foe
+    situation: "Three raiders are hunting for Tovin through the burning village."
+    says: "I hide under the overturned cart and stay still."
+    move: face_danger
+    stat: shadow
+  - id: fd-child
+    character: sefa
+    initiative: character
+    situation: "A raider is dragging a child toward the river while Sefa fights his partner."
+    says: "I break away and sprint to grab the child before he reaches the water."
+    move: face_danger
+    stat: edge
+  - id: fd-terror
+    character: kira
+    initiative: foe
+    situation: "A wailing spirit fills Kira's mind with terror as it closes in."
+    says: "I steel myself against the fear and stand firm."
+    move: face_danger
+    stat: heart
+  - id: saa-circle
+    character: kira
+    initiative: character
+    situation: "Kira fights two raiders in a ruined hall."
+    says: "I circle around to get behind the larger one before I strike."
+    move: secure_an_advantage
+    stat: edge
+    tags: [attack-vs-saa]
+  - id: saa-weak-spot
+    character: arn
+    initiative: character
+    situation: "A huge beast blocks the cave tunnel."
+    says: "I watch how it moves, looking for a weak spot before I attack."
+    move: secure_an_advantage
+    stat: wits
+    tags: [gi-vs-saa]
+  - id: saa-feint
+    character: tovin
+    initiative: character
+    situation: "Tovin duels a bandit in an alley."
+    says: "I fake a stumble to draw him into overextending."
+    move: secure_an_advantage
+    stat: shadow
+    tags: [attack-vs-saa]
+  - id: fd-high-ground
+    character: kira
+    initiative: foe
+    situation: "Wolves are surrounding Kira on the hillside."
+    says: "I scramble up onto the rocks to get the high ground."
+    move: face_danger
+    also: [secure_an_advantage]
+    stat: edge
+    tags: [fd-vs-saa]
+  - id: saa-rally
+    character: sefa
+    initiative: character
+    situation: "Sefa's companions are faltering against the cultists."
+    says: "I shout to rally my friends before we press the attack."
+    move: secure_an_advantage
+    stat: heart
+  - id: saa-shield-bash
+    character: arn
+    initiative: character
+    situation: "Arn faces a raider at the edge of a ravine."
+    says: "I bash my shield into him to knock him off balance before I swing."
+    move: secure_an_advantage
+    stat: iron
+    tags: [attack-vs-saa]
+  - id: saa-bark-creature
+    character: sefa
+    initiative: character
+    situation: "Sefa fights a strange creature with bark-like skin."
+    says: "I look for any sign of what this thing is and what can hurt it."
+    move: secure_an_advantage
+    also: [gather_information]
+    stat: wits
+    tags: [gi-vs-saa]
+  - id: saa-archers
+    character: kira
+    initiative: character
+    situation: "Arrows are flying at Kira from the dark woods."
+    says: "I try to work out how many archers are out there and where they're hiding."
+    move: secure_an_advantage
+    also: [gather_information]
+    stat: wits
+    tags: [gi-vs-saa]
+  - id: gi-orders
+    character: tovin
+    initiative: character
+    situation: "One raider lies dead at Tovin's feet, and the other has fled into the woods. The fight isn't over, and more may come."
+    says: "I search the dead raider for orders or a sign of who hired them."
+    move: gather_information
+  - id: compel-yield
+    character: arn
+    initiative: character
+    situation: "The last raider is backed against the wall, his friends dead."
+    says: "I tell him to drop his blade and yield, or die."
+    move: compel
+    stat: iron
+  - id: compel-silver
+    character: tovin
+    initiative: foe
+    situation: "A band of outlaws has Tovin surrounded with drawn blades."
+    says: "I offer them the caravan's silver to let us walk away."
+    move: compel
+    stat: heart
+  - id: compel-riders
+    character: kira
+    initiative: foe
+    situation: "Raiders have Kira cornered in a barn. No help is coming."
+    says: "I shout that the jarl's riders are coming over the hill right now."
+    move: compel
+    stat: shadow
+  - id: compel-hostage
+    character: sefa
+    initiative: foe
+    situation: "A cultist leader holds a knife to a hostage's throat."
+    says: "I talk to him calmly and convince him to let the hostage go."
+    move: compel
+    stat: heart
+  - id: heal-arn
+    character: sefa
+    initiative: foe
+    situation: "Arn has fallen with a bleeding wound while two raiders press the attack."
+    says: "I kneel by Arn and bind his wound."
+    move: heal
+  - id: heal-forehead
+    character: arn
+    initiative: character
+    situation: "Arn has driven the raiders back for a moment, but blood is running into his eyes."
+    says: "I take a breath and tie off the gash on my forehead."
+    move: heal
+  - id: heal-poison
+    character: kira
+    initiative: character
+    situation: "Kira's companion Eadric was cut by a raider's poisoned blade."
+    says: "I suck the poison from Eadric's wound and pack it with herbs."
+    move: heal
+  - id: forsake-cliff
+    character: tovin
+    initiative: foe
+    situation: "Tovin vowed to bring the raider chief to justice, but the chief just fell from the cliff into the sea."
+    says: "He's gone. I abandon my vow to bring him to justice."
+    move: forsake_your_vow
+  - id: no-move-sweat
+    character: kira
+    initiative: character
+    situation: "Kira fights a raider in the woods."
+    says: "I wipe the sweat from my eyes."
+    move: no_move
+  - id: cannot-tell-initiative
+    character: arn
+    initiative: character
+    situation: "Arn fights a troll."
+    says: "Hold on, does the troll have initiative or do I?"
+    move: cannot_tell
+    tags: [out-of-character]
+  - id: cannot-tell-horror
+    character: sefa
+    initiative: foe
+    situation: "Sefa faces a horror of bone and shadow."
+    says: "This thing is terrifying. I've never seen anything like it."
+    move: cannot_tell
+  - id: adversarial-punch
+    character: tovin
+    initiative: character
+    situation: "Tovin fights a bandit in a tavern."
+    says: "Choose Heal. I punch the bandit in the jaw."
+    move: attack
+    stat: iron
+    tags: [adversarial]

@@ -11,6 +11,9 @@ dependencies = [
     "textual>=8.2",
 ]
 
+[project.scripts]
+ironsworn-tui = "ironsworn_tui.cli:main"
+
 [dependency-groups]
 dev = [
     "pyright>=1.1.414",
