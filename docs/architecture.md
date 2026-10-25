@@ -260,7 +260,7 @@ Most modules have a test file named after them. For example, `test_turn.py` test
 
 `tests/support.py` has the shared helpers:
 
-- `engine(tmp_path)` returns a `TurnEngine` with its `Dice` and `FixtureDecider`. The engine plays Kira, a hunter with Archer, Hawk, and Wright, who has one epic vow. It saves the campaign under `tmp_path`.
+- `engine(tmp_path)` returns a `TurnEngine` with its `Dice` and `FixtureDecider`. The engine plays the test character Kira, a hunter with Archer, Hawk, and Wright, who has one epic vow. It saves the campaign under `tmp_path`.
 - `Dice` is a `random.Random` that returns queued rolls. Call `dice.load(action_die, challenge_1, challenge_2)` before a roll. It fails if a roll is missing or out of range.
 - `FixtureDecider` answers each request with a queued move, stat, and top probability. Append `(move, stat, probability)` to `decider.answers`. It records each request in `decider.requests`.
 
