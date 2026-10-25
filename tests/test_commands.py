@@ -148,3 +148,77 @@ def test_tide_off_disarms_it(tmp_path: Path):
     assert turn.campaign.tide_armed
     run_command(turn, "/tide off")
     assert not turn.campaign.tide_armed
+
+
+def test_asset_lists_owned_assets(tmp_path: Path):
+    turn, _, _ = engine(tmp_path)
+    result = run_command(turn, "/asset")
+    assert result.lines[0] == "Archer: 1"
+    assert result.lines[1] == "Hawk: 2, health 3/3"
+
+
+def test_asset_catalog_by_category(tmp_path: Path):
+    turn, _, _ = engine(tmp_path)
+    lines = run_command(turn, "/asset list ritual").lines
+    assert len(lines) == 17
+    assert lines[0] == "augur: Augur"
+
+
+def test_asset_show(tmp_path: Path):
+    turn, _, _ = engine(tmp_path)
+    lines = run_command(turn, "/asset show archer").lines
+    assert lines[0] == "Archer (combat talent). If you wield a bow..."
+    assert lines[1].startswith("[x] 1. When you Secure an Advantage")
+    assert lines[2].startswith("[ ] 2. Once per fight")
+
+
+def test_asset_buy_and_upgrade(tmp_path: Path):
+    turn, _, _ = engine(tmp_path)
+    turn.campaign.character.experience = 5
+    run_command(turn, "/asset buy owl 3")
+    assert turn.campaign.log[-1].text == "Asset: bought Owl for 3 experience"
+    run_command(turn, "/asset upgrade owl 1")
+    assert turn.campaign.character.asset("owl").marked == [True, False, True]
+    assert turn.campaign.character.experience == 0
+    assert Campaign.load(tmp_path / "kira.json").character.experience == 0
+
+
+def test_asset_buy_with_stat_changes(tmp_path: Path):
+    turn, _, _ = engine(tmp_path)
+    turn.campaign.character.experience = 3
+    run_command(turn, "/asset buy shadow-kin 1 -heart +shadow +shadow")
+    stats = turn.campaign.character.stats
+    assert (stats.heart, stats.shadow) == (1, 3)
+
+
+def test_asset_meter_and_set(tmp_path: Path):
+    turn, _, _ = engine(tmp_path)
+    run_command(turn, "/asset meter hawk health -2")
+    assert turn.campaign.log[-1].text == "Asset: Hawk health -2, now 1"
+    run_command(turn, "/asset set hawk name Kestrel the Swift")
+    assert turn.campaign.character.asset("hawk").fields["name"] == "Kestrel the Swift"
+    assert run_command(turn, "/asset").lines[1] == "Hawk (Kestrel the Swift): 2, health 1/3"
+
+
+def test_asset_discard(tmp_path: Path):
+    turn, _, _ = engine(tmp_path)
+    run_command(turn, "/asset discard hawk")
+    assert turn.campaign.character.asset_or_none("hawk") is None
+
+
+@pytest.mark.parametrize(
+    ("command", "message"),
+    [
+        ("/asset buy laser", "no asset"),
+        ("/asset buy slayer", "experience"),
+        ("/asset upgrade archer", "usage"),
+        ("/asset upgrade archer two", "usage"),
+        ("/asset buy shadow_kin 1 heart", "stat change"),
+        ("/asset meter hawk health", "usage"),
+        ("/asset juggle", "usage"),
+    ],
+)
+def test_asset_errors(tmp_path: Path, command: str, message: str):
+    turn, _, _ = engine(tmp_path)
+    with pytest.raises(CommandError, match=message):
+        run_command(turn, command)

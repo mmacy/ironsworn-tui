@@ -29,7 +29,6 @@ and neither is a message waiting for a move: its case is lost.
 
 import dataclasses
 import random
-import re
 from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
@@ -79,7 +78,7 @@ from ironsworn_tui.outcomes import (
 )
 from ironsworn_tui.policy import Suggestion, Thresholds, suggest
 from ironsworn_tui.rules.action import ActionRoll, burn_momentum, evaluate_action
-from ironsworn_tui.rules.datasworn import Datasworn, Stat, StatOption
+from ironsworn_tui.rules.datasworn import Datasworn, Stat, StatOption, plain_text
 from ironsworn_tui.rules.dice import Hit, roll_challenge_dice
 from ironsworn_tui.rules.oracles import (
     Likelihood,
@@ -110,7 +109,6 @@ FATE_DEBILITIES: dict[str, tuple[Debility, Debility]] = {
     "endure_harm": ("wounded", "maimed"),
     "endure_stress": ("shaken", "corrupted"),
 }
-_LINK = re.compile(r"\[([^\]]+)\]\(datasworn:[^)]+\)")
 
 
 class TurnError(Exception):
@@ -194,11 +192,6 @@ class _Pending:
     details: MoveDetails
     vow: ProgressTrack | None
     endurance: Endurance | None = None
-
-
-def plain_text(text: str) -> str:
-    """Show each `datasworn:` link in move text as the move name."""
-    return _LINK.sub(r"\1", text)
 
 
 class TurnEngine:

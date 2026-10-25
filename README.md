@@ -8,7 +8,7 @@ The app is under construction. See [`docs/plan.md`](docs/plan.md) for the plan a
 
 ```sh
 uv sync
-uv run ironsworn-tui new Kira --description "a hunter" --stats edge=2,heart=2,iron=1,shadow=1,wits=3 --assets archer,hawk,wright --vow "Avenge my village"
+uv run ironsworn-tui new Kira --description "a hunter" --stats edge=2,heart=2,iron=1,shadow=1,wits=3 --assets archer,hawk:2,wright --vow "Avenge my village"
 uv run ironsworn-tui play Kira
 ```
 

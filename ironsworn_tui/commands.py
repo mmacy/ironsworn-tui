@@ -4,11 +4,12 @@ import shlex
 from dataclasses import dataclass
 from typing import get_args
 
-from ironsworn_tui.campaign import Debility, Meter, ProgressTrack
-from ironsworn_tui.rules.datasworn import Datasworn
+from ironsworn_tui.assets import StatChanges, buy, change_asset_meter, discard, set_field, upgrade
+from ironsworn_tui.campaign import AssetError, Debility, Meter, OwnedAsset, ProgressTrack, meter_max
+from ironsworn_tui.rules.datasworn import Asset, Datasworn, Stat, plain_text
 from ironsworn_tui.rules.oracles import Likelihood, ask_yes_no, roll_oracle
 from ironsworn_tui.rules.progress import TRACK_TICKS, Rank
-from ironsworn_tui.turn import MoveInputs, RollCard, TurnEngine, plain_text
+from ironsworn_tui.turn import MoveInputs, RollCard, TurnEngine
 
 LIKELIHOODS = {
     "almost certain": Likelihood.ALMOST_CERTAIN,
@@ -20,7 +21,13 @@ LIKELIHOODS = {
 RANKS = {rank.name.lower(): rank for rank in Rank}
 METERS: dict[str, Meter] = {"health": "health", "spirit": "spirit", "supply": "supply"}
 DEBILITIES: dict[str, Debility] = {name: name for name in get_args(Debility.__value__)}
-COMMANDS = ("oracle", "ask", "vow", "scene", "target", "tide", "adjust", "moves")
+STATS: dict[str, Stat] = {name: name for name in get_args(Stat.__value__)}
+COMMANDS = ("oracle", "ask", "vow", "scene", "target", "tide", "adjust", "asset", "moves")
+ASSET_USAGE = (
+    "usage: /asset [list [category] | show <asset> | buy <asset> [ability] [+stat -stat] | "
+    "upgrade <asset> <ability> [+stat -stat] | meter <asset> <meter> <n> | "
+    "set <asset> <field> <value> | discard <asset>]"
+)
 
 
 class CommandError(ValueError):
@@ -87,6 +94,19 @@ def find_table(data: Datasworn, name: str) -> str:
     raise CommandError(f"{name!r} could be: {', '.join(sorted(matches))}")
 
 
+def find_asset(data: Datasworn, name: str) -> Asset:
+    """Return the asset an id or a name refers to, such as `shadow_kin` or `Shadow-kin`.
+
+    Raises:
+        CommandError: If no asset matches.
+    """
+    key = name.strip().lower()
+    for asset in data.assets.values():
+        if key in (asset.id, asset.name.lower(), asset.id.replace("_", "-")):
+            return asset
+    raise CommandError(f"no asset named {name!r}; /asset list shows them")
+
+
 def run_command(engine: TurnEngine, text: str) -> CommandResult:
     """Run a `/` command against the engine's campaign.
 
@@ -130,6 +150,11 @@ def run_command(engine: TurnEngine, text: str) -> CommandResult:
             return CommandResult()
         case "adjust":
             return _adjust(engine, rest)
+        case "asset":
+            try:
+                return _asset(engine, rest)
+            except AssetError as error:
+                raise CommandError(str(error)) from error
         case "moves":
             return CommandResult(show_moves=True)
         case _:
@@ -273,3 +298,103 @@ def _adjust(engine: TurnEngine, rest: str) -> CommandResult:
     campaign.add_log("command", f"Adjust: {line}")
     engine.save()
     return CommandResult()
+
+
+def asset_summary(data: Datasworn, owned: OwnedAsset) -> str:
+    """Describe an owned asset in one line: its name, marked abilities, and meters.
+
+    For example, `Hawk (Kestrel): 2, health 3/3`.
+    """
+    asset = data.asset(owned.id)
+    name = asset.name
+    if "name" in owned.fields:
+        name += f" ({owned.fields['name']})"
+    parts = [", ".join(str(n) for n, mark in enumerate(owned.marked, 1) if mark)]
+    parts += [
+        f"{meter} {value}/{meter_max(data, owned, meter)}" for meter, value in owned.meters.items()
+    ]
+    parts += [f"{field} {value}" for field, value in owned.fields.items() if field != "name"]
+    return f"{name}: {', '.join(parts)}"
+
+
+def _asset(engine: TurnEngine, rest: str) -> CommandResult:
+    data = engine.data
+    character = engine.campaign.character
+    words = rest.split()
+    if not words:
+        return CommandResult(tuple(asset_summary(data, owned) for owned in character.assets))
+    action, args = words[0], words[1:]
+    if action == "list" and len(args) <= 1:
+        category = args[0].replace("_", " ").lower() if args else None
+        assets = [a for a in data.assets.values() if category in (None, a.category.lower())]
+        if not assets:
+            raise CommandError("categories: combat_talent, companion, path, ritual")
+        return CommandResult(tuple(f"{a.id}: {a.name}" for a in assets))
+    if action == "show" and len(args) == 1:
+        return CommandResult(_asset_card(engine, find_asset(data, args[0])))
+    if not args:
+        raise CommandError(ASSET_USAGE)
+    asset = find_asset(data, args[0])
+    match action:
+        case "buy":
+            ability = _ability(args[1]) if len(args) > 1 else None
+            spent = buy(character, data, asset.id, ability, _changes(args[2:]))
+            line = f"bought {asset.name} for {spent} experience"
+        case "upgrade" if len(args) >= 2:
+            ability = _ability(args[1])
+            spent = upgrade(character, data, asset.id, ability, _changes(args[2:]))
+            line = f"marked {asset.name}'s ability {ability} for {spent} experience"
+        case "meter" if len(args) == 3:
+            meter = args[1]
+            changed = change_asset_meter(character, data, asset.id, meter, _amount(args[2]))
+            now = character.asset(asset.id).meters[meter]
+            line = f"{asset.name} {meter} {changed:+d}, now {now}"
+        case "set" if len(args) >= 3:
+            value = " ".join(args[2:])
+            set_field(character, data, asset.id, args[1], value)
+            line = f"{asset.name} {args[1]} is now {value}"
+        case "discard" if len(args) == 1:
+            discard(character, asset.id)
+            line = f"discarded {asset.name}"
+        case _:
+            raise CommandError(ASSET_USAGE)
+    engine.campaign.add_log("command", f"Asset: {line}")
+    engine.save()
+    return CommandResult()
+
+
+def _asset_card(engine: TurnEngine, asset: Asset) -> tuple[str, ...]:
+    owned = engine.campaign.character.asset_or_none(asset.id)
+    head = f"{asset.name} ({asset.category.lower()})."
+    if asset.requirement:
+        head += f" {asset.requirement}"
+    lines = [head]
+    for number, ability in enumerate(asset.abilities, 1):
+        mark = "[x]" if owned is not None and owned.marked[number - 1] else "[ ]"
+        text = " ".join(ability.text.split())
+        lines.append(f"{mark} {number}. {text}")
+    if owned is not None:
+        lines.append(asset_summary(engine.data, owned))
+    return tuple(lines)
+
+
+def _ability(text: str) -> int:
+    if not text.isdigit():
+        raise CommandError(ASSET_USAGE)
+    return int(text)
+
+
+def _is_change(word: str) -> bool:
+    return word[:1] in "+-"
+
+
+def _changes(words: list[str]) -> StatChanges:
+    changes: StatChanges = {}
+    for word in words:
+        stat = STATS.get(word[1:].lower())
+        if not _is_change(word) or stat is None:
+            raise CommandError(
+                f"write a stat change as +stat or -stat, such as +wits, not {word!r}"
+            )
+        changes[stat] = changes.get(stat, 0) + (1 if word[0] == "+" else -1)
+    return changes

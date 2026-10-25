@@ -1,5 +1,6 @@
 """The vendored Datasworn data, indexed by id."""
 
+import re
 import warnings
 from collections.abc import Mapping
 from dataclasses import dataclass
@@ -114,20 +115,38 @@ class BondsTrackOption(_StrictModel):
 
 
 class AssetControlOption(_StrictModel):
-    """A roll with an asset's control, such as a companion's health.
+    """A roll with an asset's meter, such as a companion's health.
 
     Attributes:
-        control: The control, such as `health`.
-        assets: Patterns for the assets that have the control, such as `asset:*/companion/*`.
+        control: The meter, such as `health`.
+        assets: Patterns for the assets that have the meter, such as `asset:*/companion/*`, or
+            None in an asset ability, where the meter is the ability's own asset's.
     """
 
     using: Literal["asset_control"]
     control: str
-    assets: tuple[str, ...]
+    assets: tuple[str, ...] | None = None
+
+
+class AssetOptionRoll(_StrictModel):
+    """A roll with the stat an asset's select field names, such as a Devotant's god's stat.
+
+    Attributes:
+        option: The select field, such as `stat`.
+    """
+
+    using: Literal["asset_option"]
+    option: str
+    assets: None = None
 
 
 type RollOption = Annotated[
     StatOption | ConditionMeterOption | ProgressTrackOption | BondsTrackOption | AssetControlOption,
+    Field(discriminator="using"),
+]
+
+type EnhancementRollOption = Annotated[
+    StatOption | ConditionMeterOption | AssetControlOption | AssetOptionRoll,
     Field(discriminator="using"),
 ]
 
@@ -218,6 +237,232 @@ class Move(_StrictModel):
         return self
 
 
+class AssetMeter(_StrictModel):
+    """An asset's meter, such as a companion's health or a warband's strength.
+
+    Attributes:
+        label: The meter's name, such as `health`.
+        max: The highest value.
+        value: The value a new asset starts with.
+    """
+
+    label: str
+    max: int
+    value: int
+
+
+class SelectChoice(_StrictModel):
+    """One choice of an asset's select field.
+
+    Attributes:
+        label: The choice's name, such as `ghostwood`.
+        stat: The stat the choice names, for a field a roll can use.
+        counts_as_debility: True when choosing it makes the asset count as a debility, as
+            Ironclad's geared for war does.
+    """
+
+    label: str
+    stat: Stat | None = None
+    counts_as_debility: bool = False
+
+
+class AssetSelect(_StrictModel):
+    """An asset's select field, such as a Devotant's god's stat or Ironclad's armor.
+
+    Attributes:
+        label: The field's name.
+        choices: Each choice, by id.
+    """
+
+    label: str
+    choices: Mapping[str, SelectChoice]
+
+
+class By(_StrictModel):
+    """Who can make the enhanced move: the character, an ally, or both."""
+
+    player: bool
+    ally: bool
+
+
+class EnhancementCondition(_StrictModel):
+    """One condition of an ability's enhancement, such as "by hunting".
+
+    Attributes:
+        text: The condition, or None when it only adds a way to roll.
+        method: How the condition rolls. `strong_hit` means an automatic strong hit.
+        roll_options: The values it lets the move roll with instead.
+        by: Who can make the move, or None for the character only.
+    """
+
+    text: str | None = None
+    method: Literal["player_choice", "highest", "strong_hit"] | None = None
+    roll_options: tuple[EnhancementRollOption, ...] = ()
+    by: By | None = None
+
+
+class Enhancement(_StrictModel):
+    """How an ability changes some moves.
+
+    Attributes:
+        moves: The move ids it enhances, or None for any move whose condition holds.
+        roll_type: The kind of roll it enhances.
+        conditions: When it applies, and any way to roll it adds.
+    """
+
+    moves: tuple[str, ...] | None
+    roll_type: RollType
+    conditions: tuple[EnhancementCondition, ...] = ()
+
+    @property
+    def roll_options(self) -> tuple[EnhancementRollOption, ...]:
+        """Every way to roll the enhancement adds, across its conditions."""
+        return tuple(option for condition in self.conditions for option in condition.roll_options)
+
+
+class Ability(_StrictModel):
+    """One of an asset's three abilities.
+
+    Attributes:
+        name: The ability's name, which some path abilities have.
+        text: The ability's text, with links reduced to their labels.
+        enabled: True when a new asset starts with it marked.
+        enhancements: How it changes moves.
+        moves: The moves it adds, such as a ritual's move.
+        meter_max: New maximums for the asset's meters, as Awakening's second ability gives.
+    """
+
+    name: str | None = None
+    text: str
+    enabled: bool = False
+    enhancements: tuple[Enhancement, ...] = ()
+    moves: tuple[Move, ...] = ()
+    meter_max: Mapping[str, int] = Field(default_factory=dict[str, int])
+
+
+class Asset(_StrictModel):
+    """An asset.
+
+    Attributes:
+        id: The asset id, such as `archer`.
+        category: `Combat Talent`, `Companion`, `Path`, or `Ritual`.
+        name: The asset's name.
+        requirement: What must hold to use it, such as "If you wield a bow...", or None.
+        abilities: The three abilities.
+        meters: Its meters, by id.
+        selects: Its select fields, by id.
+        texts: The ids of its text fields, such as a companion's `name`.
+        counts_as_debility: True when owning it counts as a debility, as Oathbreaker does.
+    """
+
+    id: str
+    category: Literal["Combat Talent", "Companion", "Path", "Ritual"]
+    name: str
+    requirement: str | None = None
+    abilities: tuple[Ability, Ability, Ability]
+    meters: Mapping[str, AssetMeter] = Field(default_factory=dict[str, AssetMeter])
+    selects: Mapping[str, AssetSelect] = Field(default_factory=dict[str, AssetSelect])
+    texts: tuple[str, ...] = ()
+    counts_as_debility: bool = False
+
+
+_LINK = re.compile(r"\[([^\]]+)\]\(datasworn:[^)]+\)")
+
+
+def plain_text(text: str) -> str:
+    """Reduce Datasworn's `[label](datasworn:...)` links to their labels."""
+    return _LINK.sub(r"\1", text)
+
+
+def _leaf(move_ref: str) -> str:
+    """Turn `move:classic/combat/strike` or `asset.ability.move:classic/ritual/augur.0.augur`
+    into the leaf move id, `strike` or `augur`."""
+    return move_ref.rsplit("/", 1)[-1].rsplit(".", 1)[-1]
+
+
+def _enhancement(raw: YamlMap) -> Enhancement:
+    enhances: list[str] | None = raw.get("enhances")
+    trigger: YamlMap = raw.get("trigger") or {}
+    conditions = [
+        {**condition, "roll_options": condition.get("roll_options") or ()}
+        for condition in trigger.get("conditions") or ()
+    ]
+    return Enhancement(
+        moves=None if enhances is None else tuple(_leaf(ref) for ref in enhances),
+        roll_type=raw["roll_type"],
+        conditions=tuple(EnhancementCondition.model_validate(c) for c in conditions),
+    )
+
+
+def _choice(raw: YamlMap) -> SelectChoice:
+    enhance_asset: YamlMap = raw.get("enhance_asset") or {}
+    return SelectChoice(
+        label=raw["label"],
+        stat=raw.get("stat"),
+        counts_as_debility=bool(enhance_asset.get("count_as_impact")),
+    )
+
+
+def _select(raw: YamlMap) -> AssetSelect:
+    choices = {choice_id: _choice(choice) for choice_id, choice in raw["choices"].items()}
+    return AssetSelect(label=raw["label"], choices=choices)
+
+
+def _asset(asset_id: str, raw: YamlMap) -> Asset:
+    """Build an asset model from its YAML."""
+    meters: dict[str, AssetMeter] = {}
+    selects: dict[str, AssetSelect] = {}
+    texts: list[str] = []
+    fields: YamlMap = {**(raw.get("controls") or {}), **(raw.get("options") or {})}
+    for field_id, field in fields.items():
+        match field["field_type"]:
+            case "condition_meter":
+                meters[field_id] = AssetMeter(
+                    label=field["label"], max=field["max"], value=field["value"]
+                )
+            case "select_value" | "select_enhancement":
+                selects[field_id] = _select(field)
+            case "text":
+                texts.append(field_id)
+            case other:
+                raise ValueError(f"{asset_id} has a field of unknown type {other}")
+    abilities: list[Ability] = []
+    for ability in raw["abilities"]:
+        asset_moves: YamlMap = ability.get("moves") or {}
+        enhance_asset: YamlMap = ability.get("enhance_asset") or {}
+        controls: YamlMap = enhance_asset.get("controls") or {}
+        abilities.append(
+            Ability(
+                name=ability.get("name"),
+                text=plain_text(ability["text"]),
+                enabled=bool(ability.get("enabled")),
+                enhancements=tuple(_enhancement(e) for e in ability.get("enhance_moves") or ()),
+                moves=tuple(
+                    Move.model_validate(
+                        {
+                            **{k: v for k, v in move.items() if k not in _UNUSED_MOVE_KEYS},
+                            "id": move_id,
+                            "category": "asset",
+                        }
+                    )
+                    for move_id, move in asset_moves.items()
+                ),
+                meter_max={meter: control["max"] for meter, control in controls.items()},
+            )
+        )
+    return Asset(
+        id=asset_id,
+        category=raw["category"],
+        name=raw["name"],
+        requirement=raw.get("requirement"),
+        abilities=(abilities[0], abilities[1], abilities[2]),
+        meters=meters,
+        selects=selects,
+        texts=tuple(texts),
+        counts_as_debility=bool(raw.get("count_as_impact")),
+    )
+
+
 # Move keys the app doesn't use. `oracles` are indexed with the other oracle tables.
 _UNUSED_MOVE_KEYS = {"type", "_source", "oracles"}
 
@@ -235,14 +480,17 @@ class Datasworn:
     Attributes:
         moves: Each move, by move id.
         oracles: Each rollable oracle table, by oracle id.
-        assets: Each asset's YAML, by asset id.
+        assets: Each asset, by asset id.
+        asset_moves: Each move an asset ability adds, such as a ritual's, by move id. These
+            aren't in `moves`, which the decision model's questions are built from.
         npcs: Each NPC's YAML, by NPC id.
         rules: The ruleset's `rules` section.
     """
 
     moves: Mapping[str, Move]
     oracles: Mapping[str, OracleTable]
-    assets: Mapping[str, YamlMap]
+    assets: Mapping[str, Asset]
+    asset_moves: Mapping[str, Move]
     npcs: Mapping[str, YamlMap]
     rules: YamlMap
 
@@ -262,13 +510,34 @@ class Datasworn:
         """
         return _lookup(self.oracles, oracle_id, "oracle")
 
-    def asset(self, asset_id: str) -> YamlMap:
-        """Return an asset's YAML.
+    def asset(self, asset_id: str) -> Asset:
+        """Return an asset.
 
         Raises:
             UnknownIdError: If no asset has the id.
         """
         return _lookup(self.assets, asset_id, "asset")
+
+    def asset_move(self, move_id: str) -> Move:
+        """Return a move an asset ability adds.
+
+        Raises:
+            UnknownIdError: If no asset move has the id.
+        """
+        return _lookup(self.asset_moves, move_id, "asset move")
+
+    def asset_for_move(self, move_id: str) -> str:
+        """Return the id of the asset whose ability adds a move.
+
+        Raises:
+            UnknownIdError: If no asset move has the id.
+        """
+        self.asset_move(move_id)
+        return next(
+            asset.id
+            for asset in self.assets.values()
+            if any(move.id == move_id for ability in asset.abilities for move in ability.moves)
+        )
 
     def npc(self, npc_id: str) -> YamlMap:
         """Return an NPC's YAML.
@@ -332,7 +601,7 @@ def load_datasworn(directory: Path = DATASWORN_DIR) -> Datasworn:
         The indices.
 
     Raises:
-        ValueError: If two assets or two NPCs share an id.
+        ValueError: If two assets, two NPCs, or two moves share an id.
     """
     moves: dict[str, Move] = {}
     oracles: dict[str, OracleTable] = {}
@@ -348,10 +617,18 @@ def load_datasworn(directory: Path = DATASWORN_DIR) -> Datasworn:
     for path in sorted((directory / "oracles").glob("*.yaml")):
         _walk_oracles(_load(path)["oracles"], "classic", oracles)
 
-    assets: dict[str, YamlMap] = {}
+    raw_assets: dict[str, YamlMap] = {}
     for path in sorted((directory / "assets").glob("*.yaml")):
         for category in _load(path)["assets"].values():
-            _add_all(assets, category["contents"], "asset")
+            _add_all(raw_assets, category["contents"], "asset")
+    assets = {asset_id: _asset(asset_id, raw) for asset_id, raw in raw_assets.items()}
+    asset_moves: dict[str, Move] = {}
+    for asset in assets.values():
+        for ability in asset.abilities:
+            for move in ability.moves:
+                if move.id in asset_moves or move.id in moves:
+                    raise ValueError(f"two moves have the id {move.id}")
+                asset_moves[move.id] = move
 
     npcs: dict[str, YamlMap] = {}
     for category in _load(directory / "npcs.yaml")["npcs"].values():
@@ -361,6 +638,7 @@ def load_datasworn(directory: Path = DATASWORN_DIR) -> Datasworn:
         moves=MappingProxyType(moves),
         oracles=MappingProxyType(oracles),
         assets=MappingProxyType(assets),
+        asset_moves=MappingProxyType(asset_moves),
         npcs=MappingProxyType(npcs),
         rules=_load(directory / "rules.yaml")["rules"],
     )
