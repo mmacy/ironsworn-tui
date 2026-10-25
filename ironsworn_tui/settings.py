@@ -20,7 +20,9 @@ class Settings(BaseModel):
         jevtester_project: The jevtester checkout, which the app runs with `uv run --project`.
         target: The jevtester target that answers the decision questions.
         campaigns_dir: Where campaign JSON files are saved.
-        jevtester_config: This repository's `jevtester.toml`, beside the settings file.
+        jevtester_config: The jevtester config beside the settings file: `jevtester.local.toml`
+            when it exists, which holds the user's own account details and isn't committed,
+            and otherwise `jevtester.toml`, which has placeholders.
     """
 
     model_config = ConfigDict(frozen=True, extra="forbid")
@@ -72,7 +74,8 @@ def load_settings(path: Path = SETTINGS_FILE) -> Settings:
     for key in ("jevtester_project", "campaigns_dir"):
         if isinstance(values[key], str):
             values[key] = _resolve(base, values[key])
-    values["jevtester_config"] = base / "jevtester.toml"
+    local = base / "jevtester.local.toml"
+    values["jevtester_config"] = local if local.exists() else base / "jevtester.toml"
     try:
         return Settings.model_validate(values)
     except ValidationError as error:

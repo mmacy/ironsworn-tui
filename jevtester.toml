@@ -1,5 +1,8 @@
 # jevtester config for ironsworn-tui. The target entries are copied from ~/repos/jevtester/jevtester.toml.
 #
+# Copy this file to jevtester.local.toml, which git ignores, and fill in your own Cloudflare account ID and Foundry
+# resource name there. The app uses jevtester.local.toml when it exists.
+#
 # Credentials never go in this file: Foundry uses the `az` sign-in, and Workers AI uses the Wrangler sign-in or
 # CLOUDFLARE_API_TOKEN.
 

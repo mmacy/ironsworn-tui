@@ -654,7 +654,7 @@ The app reads `ironsworn-tui.toml` in the repository root, beside the `ironsworn
 | `target` | `decision-1@foundry` | The jevtester target that answers the decision questions in `play`, and in `suggest` without `--target`. The app also uses it to look up the confidence thresholds in `suites/policies/moves.yaml`. |
 | `campaigns_dir` | `campaigns` | The folder for campaign files. |
 
-A missing key takes its default. A missing or unreadable file, invalid TOML, an unknown key, a value of the wrong type, or a `jevtester_config` key stops the command with `Error:` and the reason, and exit status 2. jevtester reads its settings, including how it signs in to each target, from `jevtester.toml` beside `ironsworn-tui.toml`.
+A missing key takes its default. A missing or unreadable file, invalid TOML, an unknown key, a value of the wrong type, or a `jevtester_config` key stops the command with `Error:` and the reason, and exit status 2. jevtester reads its settings, including how it signs in to each target, from `jevtester.local.toml` beside `ironsworn-tui.toml` when that file exists, and otherwise from `jevtester.toml`. `jevtester.toml` has placeholders for your Cloudflare account ID and Foundry resource. `jevtester.local.toml` holds your own values, and git ignores it.
 
 ```toml
 jevtester_project = "~/repos/jevtester"
