@@ -2,7 +2,7 @@
 
 ironsworn-tui is a terminal app for playing *Ironsworn*, a solo tabletop roleplaying game. You type what your character does, and a decision model suggests which move that action triggers. You confirm the move with a key, and the app rolls the dice, shows the result, and updates your character.
 
-![The play screen. The character panel on the left shows Asha's stats, meters, assets, and vows. The log on the right shows her latest action, and the suggestion bar below it suggests Face Danger with edge.](images/suggestion.svg)
+![The play screen. The character panel on the left shows the stats, meters, assets, and vows of Blarg the Destructor. The log on the right shows their latest action, and the suggestion bar below it suggests Face Danger with edge.](images/suggestion.svg)
 
 ## What you need
 
@@ -22,13 +22,13 @@ Clone the repository, sign in, create a character, and start playing:
 git clone https://github.com/mmacy/ironsworn-tui.git
 cd ironsworn-tui
 az login
-uv run ironsworn-tui new Kira --description "a hunter" --stats edge=2,heart=2,iron=1,shadow=1,wits=3 --assets archer,hawk:2,wright --vow "Avenge my village"
-uv run ironsworn-tui play Kira
+uv run ironsworn-tui new Blarg --description "the Destructor" --stats edge=2,heart=2,iron=1,shadow=1,wits=3 --assets archer,hawk:2,wright --vow "Avenge my village"
+uv run ironsworn-tui play Blarg
 ```
 
 There's no separate install step. The first time you run `uv run`, uv installs the app's dependencies.
 
-Type what Kira does and press Enter. When the app suggests a move, press Enter to roll it, then Enter again to apply the result. Press Ctrl+Q to quit. The app saves your campaign after every turn, so `play Kira` picks up where you stopped.
+Type what Blarg does and press Enter. When the app suggests a move, press Enter to roll it, then Enter again to apply the result. Press Ctrl+Q to quit. The app saves your campaign after every turn, so `play Blarg` picks up where you stopped.
 
 ## Documentation
 

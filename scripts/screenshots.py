@@ -2,8 +2,8 @@
 
 Each screen runs the real app headlessly with Textual's pilot. Loaded dice and a fixture
 decider stand in for chance and the decision model, so the script calls no hosted model,
-uses no network, and draws the same screens every time. The screens follow Asha, the
-character from the tutorial in `docs/getting-started.md`.
+uses no network, and draws the same screens every time. The screens follow Blarg the
+Destructor, the character from the tutorial in `docs/getting-started.md`.
 
 Run it from the repository root:
 
@@ -36,14 +36,14 @@ type Drive = Callable[[IronswornApp, Pilot[None], Dice, FixtureDecider], Awaitab
 type SetUp = Callable[[TurnEngine, Dice], None]
 
 
-def asha(turn: TurnEngine) -> None:
-    """Give the engine a new campaign for Asha, as the tutorial creates her.
+def blarg(turn: TurnEngine) -> None:
+    """Give the engine a new campaign for Blarg, as the tutorial creates them.
 
     Args:
         turn: The turn engine.
     """
     character = create_character(
-        datasworn(), "Asha", "a wandering hunter", STATS, ["archer", "wayfinder", "hawk:1"]
+        datasworn(), "Blarg", "the Destructor", STATS, ["archer", "wayfinder", "hawk:1"]
     )
     turn.campaign = new_campaign(character, "Find who burned my village", Rank.EPIC)
 
@@ -170,7 +170,7 @@ def set_up_fight(turn: TurnEngine, dice: Dice) -> None:
         dice: The loaded dice.
     """
     turn.set_scene("A raider blocks the path to the camp")
-    # Heart 2 + 6 = 8 against 1 and 2: a strong hit, so Asha has initiative.
+    # Heart 2 + 6 = 8 against 1 and 2: a strong hit, so Blarg has initiative.
     dice.load(6, 1, 2)
     turn.make_move(
         "enter_the_fray", stat="heart", inputs=MoveInputs(foes=(("Raider", Rank.DANGEROUS),))
@@ -205,7 +205,7 @@ SETUPS: dict[str, SetUp] = {"fight": set_up_fight}
 
 
 async def capture(name: str, drive: Drive, folder: Path) -> Path:
-    """Run the app on a new campaign for Asha, drive it, and save a screenshot.
+    """Run the app on a new campaign for Blarg, drive it, and save a screenshot.
 
     Args:
         name: The screenshot's file name, without `.svg`.
@@ -216,7 +216,7 @@ async def capture(name: str, drive: Drive, folder: Path) -> Path:
         The path of the saved screenshot.
     """
     turn, dice, decider = engine(folder)
-    asha(turn)
+    blarg(turn)
     setup = SETUPS.get(name)
     if setup is not None:
         setup(turn, dice)

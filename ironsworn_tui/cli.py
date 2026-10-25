@@ -258,7 +258,7 @@ def make_parser() -> argparse.ArgumentParser:
         ),
         epilog=(
             "example:\n"
-            '  ironsworn-tui new Kira --description "a hunter" \\\n'
+            '  ironsworn-tui new Blarg --description "the Destructor" \\\n'
             "    --stats edge=3,heart=2,iron=2,shadow=1,wits=1 \\\n"
             "    --assets archer,hawk:2,wright \\\n"
             '    --vow "Avenge my village"'
@@ -267,7 +267,9 @@ def make_parser() -> argparse.ArgumentParser:
     )
     n.add_argument("name", help="The character's name, which also names the campaign file.")
     n.add_argument(
-        "--description", required=True, help="A few words about the character, such as 'a hunter'."
+        "--description",
+        required=True,
+        help="A few words about the character, such as 'the Destructor'.",
     )
     n.add_argument(
         "--stats",
@@ -326,7 +328,7 @@ def make_parser() -> argparse.ArgumentParser:
             "which can cost money. If jevtester doesn't start, you play without suggestions. "
             "Exits with 2 if there's no campaign with that name or it can't be loaded."
         ),
-        epilog="example:\n  ironsworn-tui play Kira --no-model",
+        epilog="example:\n  ironsworn-tui play Blarg --no-model",
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     p.add_argument("name", help="The campaign's name, as given to `ironsworn-tui new`.")
