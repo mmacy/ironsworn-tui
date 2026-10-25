@@ -15,12 +15,12 @@ ironsworn-tui is a terminal app for solo Ironsworn. A decision model reads what 
 | Rules engine and data to vendor | `~/repos/osr-plugins/plugins/ironsworn-referee/skills/referee/` at commit `7e2e4a8`: `scripts/iron.py`, `scripts/test_iron.py`, and `references/datasworn/` |
 | Move disambiguation guide | `references/move_disambiguation.md` in the same folder |
 | Rules about player choices | `references/constitution.md` in the same folder |
-| Decision model test tool | `~/repos/jevtester`, run with `uv run --project ~/repos/jevtester jevtester ...` |
-| jevtester suite example | `~/repos/jevtester/suites/parley.yaml` and `suites/question-sets/parley.yaml` |
+| Decision model test tool | `~/repos/jevtester`. Run it with `uv run --project ~/repos/jevtester jevtester --config <path to this repo's jevtester.toml> ...`. Without `--config`, jevtester looks for `jevtester.toml` in the working directory and exits 2. |
+| jevtester suite, question set, and policy examples | `~/repos/jevtester/suites/parley.yaml`, `suites/question-sets/parley.yaml`, and `suites/policies/parley.yaml` |
 
 ## Status
 
-- The plan and this handoff are the only files. No code exists yet.
+- The repository has the plan, this handoff, a README, and a `.gitignore`. No code exists yet.
 - Start with build step 1, the scaffold.
 
 ## How to work
@@ -28,7 +28,7 @@ ironsworn-tui is a terminal app for solo Ironsworn. A decision model reads what 
 - Write a step's tests before its implementation. Each build step ends with a command that shows it works, so run it before you call the step done.
 - Don't call a hosted model in the default test run. Record jevtester's JSON output into `tests/fixtures/` and test against that. Put live calls behind `-m live`.
 - Keep rules decisions in code and mechanical choices with the player. The model only suggests a move and a stat.
-- After build step 4, stop and report the accuracy numbers to the user before starting the TUI.
+- After build step 4, stop and give the user the accuracy numbers from `jevtester report` before you start step 5.
 - Refactor freely and update every call site. Don't keep aliases or deprecated code.
 
 ## Gates
@@ -46,7 +46,7 @@ Fix a finding in the code. Don't add `noqa`, `type: ignore`, or ignore lists.
 
 ## Decision model targets
 
-jevtester's `jevtester.toml` lists the targets. Check them with `uv run --project ~/repos/jevtester jevtester targets check`.
+`~/repos/jevtester/jevtester.toml` lists the targets. Build step 3 copies the ones this app uses into this repository's `jevtester.toml`. Check them with `uv run --project ~/repos/jevtester jevtester --config jevtester.toml targets check`.
 
 - `decision-1@foundry` (Microsoft-Decision-1) answered in about 1 second when tested on 2026-10-24.
 - `clef-flash@workers-ai` answered in 2 to 3 seconds and was less confident on the same inputs.
