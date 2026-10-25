@@ -26,7 +26,15 @@ ironsworn-tui is a terminal app for solo Ironsworn. A decision model reads what 
 - Build step 3 is done: `ironsworn_tui/decide.py` builds the request, starts one `jevtester serve`, and parses the answers. `ironsworn_tui/criteria.py` has the two criteria styles. Read [`decision-model-guidance.md`](decision-model-guidance.md) before changing a question, the criteria, or the state.
 - Build step 4 is done. The user approved the 120 cases on 2026-10-24. Both targets clear the 80 percent bar on `exploring`: `decision-1@foundry` at 95 percent and `clef-flash@workers-ai` at 87.5 percent. Play uses the guide criteria, stat questions without a `cannot_tell` option, and the `move` question's `cannot_tell` option. [`experiments/results.md`](../experiments/results.md) has the numbers and what's unmeasured.
 - Clef-flash's confidence is less calibrated than Decision-1's, so the policy needs per-target thresholds before play relies on it.
-- Start with build step 5.
+- Build step 5 is done: `campaign.py` (the saved campaign), `outcomes.py` (each move's effects per result), `policy.py` (thresholds to a suggestion), and `turn.py` (the game loop, with no UI). The module docstring of `turn.py` gives the order the TUI calls it in.
+- Known gaps in step 5, each a Note or an `/adjust` for now:
+  - Face Death and Face Desolation have outcome entries, but no table result triggers them.
+  - Companion Endure Harm waits for assets (step 8).
+  - Sojourn's extra choice for a bond isn't applied.
+  - Bare yourself's +1 foe harm isn't applied.
+  - A rolled card that isn't resolved is lost on restart.
+- Draw the Circle offers up to two boasts, as the vendored Datasworn says. The rulebook says up to three.
+- Start with build step 6, the TUI.
 - The user said to use `decision-1@foundry` for live calls. The Ollama models aren't downloaded, and won't be while the user is on a hotspot. The user approved `clef-flash@workers-ai` as the second target for the recognizer suites.
 - The user allowed changing `~/repos/jevtester` if it makes sense, for example to send structured criteria.
 - `diary/` holds the dev diary. Add an entry when a step or decision lands.

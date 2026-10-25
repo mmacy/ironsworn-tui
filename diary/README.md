@@ -7,3 +7,4 @@
 | [03](03-decision-adapter-and-vendor-guidance.md) | The decision adapter and the vendor guidance | 24 October 2026, 18:51 to 19:12 PDT | Claude Opus 5.5 |
 | [04](04-recognizer-experiment.md) | The recognizer experiment | 24 October 2026, 19:12 to 19:26 PDT | Claude Opus 5.5 |
 | [05](05-two-targets-and-abstain-options.md) | Two targets and the abstain options | 24 October 2026, 19:26 to 20:10 PDT | Claude Opus 5.5 |
+| [06](06-outcomes-campaign-and-turn-loop.md) | Outcomes, the campaign, and the turn loop | 24 October 2026, 20:10 to 20:40 PDT | Claude Opus 5.5 |
