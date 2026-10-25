@@ -1,30 +1,64 @@
 # ironsworn-tui
 
-A terminal app for solo Ironsworn. A decision model suggests which move your action triggers, you confirm it, and the app rolls and shows the outcome.
+ironsworn-tui is a terminal app for playing *Ironsworn*, a solo tabletop roleplaying game. You type what your character does, and a decision model suggests which move that action triggers. You confirm the move with a key, and the app rolls the dice, shows the result, and updates your character.
 
-The app is under construction. See [`docs/plan.md`](docs/plan.md) for the plan and [`docs/handoff.md`](docs/handoff.md) to start work.
+## What you need
 
-## Play
+- Python 3.14.
+- [uv](https://docs.astral.sh/uv/).
+- A checkout of jevtester at `~/repos/jevtester`. The app runs it to ask the decision model.
+- A sign-in for the decision model. The default target, `decision-1@foundry`, uses the Azure CLI, so run `az login`. The `clef-flash@workers-ai` target uses Wrangler, so run `npx wrangler login`.
+
+If you don't have jevtester or a sign-in, you can still play. Start the game with `--no-model`, and you'll pick each move from a list yourself.
+
+## Install
 
 ```sh
-uv sync
+git clone git@github.com:mmacy/ironsworn-tui.git
+cd ironsworn-tui
+```
+
+There's no separate install step. The first time you run `uv run`, uv installs the app's dependencies.
+
+## Quickstart
+
+From the `ironsworn-tui` folder, sign in, create a character, and start playing:
+
+```sh
+az login
 uv run ironsworn-tui new Kira --description "a hunter" --stats edge=2,heart=2,iron=1,shadow=1,wits=3 --assets archer,hawk:2,wright --vow "Avenge my village"
 uv run ironsworn-tui play Kira
 ```
 
-A companion starts with one ability of your choice, so `hawk:2` marks the hawk's second ability.
+Type what Kira does and press Enter. When the app suggests a move, press Enter to roll it, then Enter again to apply the result. Press Ctrl+Q to quit. The app saves your campaign after every turn, so `play Kira` picks up where you stopped.
 
-Type what your character does and press Enter. The app asks the decision model in `ironsworn-tui.toml` which move it triggers, through jevtester. Press Enter on the suggestion bar to roll, then pick any choices on the roll card. Press `n` when the message triggers no move, or Escape to leave it. Press `a` on the suggestion bar, or before an Endure Harm or Endure Stress roll, to turn on the asset abilities whose condition holds, such as Archer's "Trust your instincts". On the roll card, `r` rerolls dice and `+` adds after rolling when an ability allows it. Moves your assets add, such as a ritual's, are on the full move list (`/moves`). Results that last, such as a talisman, are listed by `/effects` and show up with the abilities when they apply. `/asset harm hawk 2` has a companion endure harm. Each message the model answered is saved, with what you did, as a test case in `suites/play-<context>.yaml`, so those files change as you play. Text that starts with `/` is a command: `/oracle`, `/ask`, `/vow`, `/scene`, `/target`, `/tide`, `/adjust`, `/asset`, `/effects`, and `/moves`. `/asset` lists your assets, and `/asset buy`, `/asset upgrade`, `/asset meter`, and `/asset set` spend experience, change an asset's meter, or fill in a field such as a companion's name. Add `--no-model` to `play` to pick every move from the list yourself.
+When the model answers a message and you make a move or press `n`, the app saves that message as a test case in `suites/play-<context>.yaml`. Those files change as you play.
+
+## Documentation
+
+- Tutorial: [Getting started](docs/getting-started.md) walks you through a first character and a first session.
+- How-to guides: [How-to guides](docs/how-to.md) cover tasks like choosing a model target, playing without the model, fights, journeys, buying assets, and fixing mistakes.
+- Reference: [Reference](docs/reference.md) lists every command, flag, key, `/` command, and setting.
+- Explanation: [Playing Ironsworn](docs/playing.md) explains the rules as the app handles them.
+
+The full rules are in the *Ironsworn* rulebook, a free download from the publisher, Tomkin Press, at [tomkinpress.com](https://tomkinpress.com/products/ironsworn-digital-edition).
 
 ## Development
 
+Run these four gates from the repository root before every commit:
+
 ```sh
-uv sync
 uv run ruff format --check
 uv run ruff check
 uv run pyright
 uv run pytest
 ```
+
+The developer documentation is in three files:
+
+- [`docs/handoff.md`](docs/handoff.md) is where to start work on the project.
+- [`docs/plan.md`](docs/plan.md) is the build plan.
+- [`docs/decision-model-guidance.md`](docs/decision-model-guidance.md) covers the decision model's questions, criteria, and state.
 
 ## License
 
