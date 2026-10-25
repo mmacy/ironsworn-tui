@@ -3,6 +3,7 @@
 import argparse
 import random
 import sys
+import textwrap
 from collections.abc import Sequence
 from contextlib import ExitStack
 from pathlib import Path
@@ -171,43 +172,172 @@ def write_suites(args: argparse.Namespace) -> int:
     return 0
 
 
+def _paragraph(text: str) -> str:
+    """Wrap a description for help that `RawDescriptionHelpFormatter` prints as written."""
+    return textwrap.fill(text, width=79)
+
+
 def make_parser() -> argparse.ArgumentParser:
     """Return the command-line parser."""
-    parser = argparse.ArgumentParser(prog="ironsworn-tui", description="Solo Ironsworn.")
-    commands = parser.add_subparsers(dest="command", required=True)
+    parser = argparse.ArgumentParser(
+        prog="ironsworn-tui",
+        description=(
+            "Play solo Ironsworn in the terminal. Create a character with `new`, then play the "
+            "campaign with `play`. Settings, such as where campaign files go, are in "
+            "ironsworn-tui.toml at the repository root."
+        ),
+        epilog="Run `ironsworn-tui <command> --help` for a command's options.",
+    )
+    commands = parser.add_subparsers(dest="command", required=True, metavar="<command>")
 
-    s = commands.add_parser("suggest", help="Show the moves the decision model suggests.")
-    s.add_argument("text", help="What the player types.")
-    s.add_argument("--context", choices=[c.value for c in Context], default="exploring")
-    s.add_argument("--initiative", choices=["character", "foe"], default=None)
-    s.add_argument("--name", default="Kira")
-    s.add_argument("--character", default="Kira, a hunter")
-    s.add_argument("--situation", default="")
-    s.add_argument("--style", choices=[c.value for c in CriteriaStyle], default="guide")
-    s.add_argument("--target", default=None, help="Defaults to the settings file's target.")
+    s = commands.add_parser(
+        "suggest",
+        help="Show the moves the decision model suggests for one message.",
+        description=_paragraph(
+            "Ask the decision model which move a player's message triggers, and print the "
+            "target and latency, the model's confidence, the top three moves with their "
+            "probabilities, and the stat for the top move. Nothing is saved. Each run starts "
+            "jevtester and sends one request to the target, which can cost money. Exits with "
+            "3 if jevtester can't answer or the model gives no answer."
+        ),
+        epilog=(
+            "examples:\n"
+            '  ironsworn-tui suggest "I search the ruins for tracks" --situation "A burned '
+            'village"\n'
+            '  ironsworn-tui suggest "I swing my axe at the raider" --context fight'
+        ),
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+    s.add_argument("text", help="What the player types, in quotes.")
+    s.add_argument(
+        "--context",
+        choices=[c.value for c in Context],
+        default="exploring",
+        help="Which moves the model chooses from (default: exploring).",
+    )
+    s.add_argument(
+        "--initiative",
+        choices=["character", "foe"],
+        default=None,
+        help="Who has initiative. Used only with --context fight (default: character).",
+    )
+    s.add_argument("--name", default="Kira", help="The character's name (default: Kira).")
+    s.add_argument(
+        "--character",
+        default="Kira, a hunter",
+        help="The character as the model sees it (default: 'Kira, a hunter').",
+    )
+    s.add_argument(
+        "--situation", default="", help="The scene, as /scene sets it in play (default: none)."
+    )
+    s.add_argument(
+        "--style",
+        choices=[c.value for c in CriteriaStyle],
+        default="guide",
+        help=(
+            "How the question describes each move: guide uses short criteria, trigger uses "
+            "the rulebook trigger text (default: guide)."
+        ),
+    )
+    s.add_argument(
+        "--target",
+        default=None,
+        help="The jevtester target to ask (default: the target in ironsworn-tui.toml).",
+    )
     s.set_defaults(func=suggest)
 
-    n = commands.add_parser("new", help="Create a character and a campaign.")
+    n = commands.add_parser(
+        "new",
+        help="Create a character and a campaign.",
+        description=_paragraph(
+            "Create a character and a campaign with one background vow, save it as "
+            "<name>.json in the campaigns folder, and print the file's path. The character "
+            "starts with full health, spirit, and supply, and +2 momentum. Play the campaign "
+            "with `ironsworn-tui play <name>`. Exits with 2, and writes nothing, if the file "
+            "already exists or an option isn't valid."
+        ),
+        epilog=(
+            "example:\n"
+            '  ironsworn-tui new Kira --description "a hunter" \\\n'
+            "    --stats edge=3,heart=2,iron=2,shadow=1,wits=1 \\\n"
+            "    --assets archer,hawk:2,wright \\\n"
+            '    --vow "Avenge my village"'
+        ),
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
     n.add_argument("name", help="The character's name, which also names the campaign file.")
-    n.add_argument("--description", required=True, help="A few words, such as 'a hunter'.")
-    n.add_argument("--stats", required=True, help="edge=3,heart=2,iron=2,shadow=1,wits=1")
+    n.add_argument(
+        "--description", required=True, help="A few words about the character, such as 'a hunter'."
+    )
+    n.add_argument(
+        "--stats",
+        required=True,
+        metavar="<stat>=<n>,...",
+        help=(
+            "All five stats, edge, heart, iron, shadow, and wits, given the values 3, 2, 2, 1, "
+            "and 1 in any order, separated by commas with no spaces, such as "
+            "edge=3,heart=2,iron=2,shadow=1,wits=1."
+        ),
+    )
     n.add_argument(
         "--assets",
         required=True,
-        help="Three asset ids. A companion adds its starting ability: archer,hawk:2,wright.",
+        metavar="<asset>[:<ability>],...",
+        help=(
+            "Three asset ids, separated by commas with no spaces. An asset that starts with no "
+            "ability marked, such as a companion, needs the ability to mark after a colon: "
+            "archer,hawk:2,wright."
+        ),
     )
-    n.add_argument("--vow", required=True, help="The background vow.")
-    n.add_argument("--rank", default="epic", help="The background vow's rank.")
-    n.add_argument("--harm", type=int, choices=[1, 2], default=2, help="2 with a deadly weapon.")
+    n.add_argument("--vow", required=True, help="The background vow, in quotes.")
+    n.add_argument(
+        "--rank",
+        default="epic",
+        help=(
+            "The background vow's rank: troublesome, dangerous, formidable, extreme, or epic "
+            "(default: epic)."
+        ),
+    )
+    n.add_argument(
+        "--harm",
+        type=int,
+        choices=[1, 2],
+        default=2,
+        help="The harm the character deals: 2 with a deadly weapon, 1 without (default: 2).",
+    )
     n.set_defaults(func=new)
 
-    p = commands.add_parser("play", help="Play a campaign.")
-    p.add_argument("name", help="The campaign's name.")
-    p.add_argument("--no-model", action="store_true", help="Play without move suggestions.")
+    p = commands.add_parser(
+        "play",
+        help="Play a campaign in the terminal app.",
+        description=_paragraph(
+            "Open the campaign saved as <name>.json in the campaigns folder, and play it. The "
+            "app saves the campaign after every change. Unless you pass --no-model, the app "
+            "starts jevtester and asks the decision model which move each message triggers, "
+            "which can cost money. If jevtester doesn't start, you play without suggestions. "
+            "Exits with 2 if there's no campaign with that name or it can't be loaded."
+        ),
+        epilog="example:\n  ironsworn-tui play Kira --no-model",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+    p.add_argument("name", help="The campaign's name, as given to `ironsworn-tui new`.")
+    p.add_argument(
+        "--no-model",
+        action="store_true",
+        help="Play without move suggestions, and don't start jevtester or save cases.",
+    )
     p.set_defaults(func=play)
 
     w = commands.add_parser(
-        "write-suites", help="Write the recognizer suites, and create missing play suites."
+        "write-suites",
+        help="Write the recognizer suites, and create missing play suites.",
+        description=(
+            "Write the decision model's question sets and recognizer suites under suites/ from "
+            "experiments/recognizer-phrasings.yaml, replacing the files there, and print each "
+            "path. Then create suites/play-<context>.yaml for each context that has none. "
+            "Existing play suites are never changed, because they hold the cases saved in play. "
+            "Calls no model."
+        ),
     )
     w.set_defaults(func=write_suites)
     return parser
