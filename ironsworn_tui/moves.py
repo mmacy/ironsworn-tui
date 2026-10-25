@@ -100,7 +100,8 @@ class Context(StrEnum):
     """A fight is active, whether or not a journey is."""
 
 
-_FIGHT_ONLY = {"strike", "clash", "battle"}
+# Battle can replace a whole fight, so it stays outside one (rulebook page 84).
+_FIGHT_ONLY = {"strike", "clash"}
 
 _EXPLORING = tuple(
     move_id

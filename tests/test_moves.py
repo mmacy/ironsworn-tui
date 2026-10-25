@@ -52,7 +52,7 @@ def test_groups_of_named_moves():
 
 @pytest.mark.parametrize(
     ("context", "count"),
-    [(Context.EXPLORING, 19), (Context.JOURNEY, 20), (Context.FIGHT, 10)],
+    [(Context.EXPLORING, 20), (Context.JOURNEY, 21), (Context.FIGHT, 10)],
 )
 def test_context_sizes(context: Context, count: int):
     assert len(context_options(context)) == count
@@ -100,6 +100,7 @@ EXPLORING = (
     "fulfill_your_vow",
     "forsake_your_vow",
     "enter_the_fray",
+    "battle",
     "write_your_epilogue",
     NO_MOVE,
     CANNOT_TELL,
@@ -130,7 +131,8 @@ def test_exact_option_order():
 
 def test_exploring_leaves_out_fight_and_destination_moves():
     options = set(context_options(Context.EXPLORING))
-    assert options.isdisjoint({"strike", "clash", "battle", "reach_your_destination", ATTACK})
+    assert options.isdisjoint({"strike", "clash", "reach_your_destination", ATTACK})
+    assert "battle" in options
     assert "enter_the_fray" in options
 
 
@@ -150,11 +152,11 @@ def test_attack_is_strike_with_initiative_and_clash_without():
     [
         (
             Context.EXPLORING,
-            ("face_danger", "secure_an_advantage", "compel", "enter_the_fray"),
+            ("face_danger", "secure_an_advantage", "compel", "enter_the_fray", "battle"),
         ),
         (
             Context.JOURNEY,
-            ("face_danger", "secure_an_advantage", "compel", "enter_the_fray"),
+            ("face_danger", "secure_an_advantage", "compel", "enter_the_fray", "battle"),
         ),
         (
             Context.FIGHT,

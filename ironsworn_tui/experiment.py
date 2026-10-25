@@ -8,18 +8,67 @@ from pydantic import BaseModel, ConfigDict, model_validator
 from ruamel.yaml import YAML
 
 from ironsworn_tui.criteria import CriteriaStyle
-from ironsworn_tui.decide import MOVE_QUESTION, TurnState, build_request
-from ironsworn_tui.moves import Context, Initiative, context_options, stat_choices, stat_question_id
+from ironsworn_tui.decide import (
+    ACTS_QUESTION,
+    MOVE_QUESTION,
+    RequestShape,
+    TurnState,
+    build_request,
+)
+from ironsworn_tui.moves import (
+    CANNOT_TELL,
+    Context,
+    Initiative,
+    context_options,
+    stat_choices,
+    stat_question_id,
+)
 from ironsworn_tui.rules.datasworn import Datasworn
 
 PHRASINGS_FILE = (
     Path(__file__).resolve().parent.parent / "experiments" / "recognizer-phrasings.yaml"
 )
 SUITES_DIR = Path(__file__).resolve().parent.parent / "suites"
-POLICY = "moves"
-TARGETS = ("decision-1@foundry",)
-# jevtester ignores cases Claude wrote until a person approves them by changing this to "human".
-PROVENANCE: Literal["human", "claude-draft"] = "claude-draft"
+TARGETS = ("decision-1@foundry", "clef-flash@workers-ai")
+# Claude wrote the phrasings, and the user approved them on 2026-10-24. jevtester ignores
+# `claude-draft` cases.
+PROVENANCE: Literal["human", "claude-draft"] = "human"
+
+
+class Variant(BaseModel):
+    """One way of asking the questions, run on every phrasing.
+
+    Attributes:
+        name: The name, which the suite and question set names end with.
+        style: The criteria style.
+        shape: How the request handles messages that don't fit an option.
+        policy: The policy that turns the answers into an action.
+    """
+
+    model_config = ConfigDict(frozen=True)
+
+    name: str
+    style: CriteriaStyle
+    shape: RequestShape
+    policy: str
+
+
+VARIANTS = (
+    Variant(name="guide", style=CriteriaStyle.GUIDE, shape=RequestShape(), policy="moves"),
+    Variant(name="trigger", style=CriteriaStyle.TRIGGER, shape=RequestShape(), policy="moves"),
+    Variant(
+        name="guide-stat-abstain",
+        style=CriteriaStyle.GUIDE,
+        shape=RequestShape(stat_abstain=True),
+        policy="moves",
+    ),
+    Variant(
+        name="guide-acts",
+        style=CriteriaStyle.GUIDE,
+        shape=RequestShape(stat_abstain=True, acts_question=True),
+        policy="moves-acts",
+    ),
+)
 
 
 class _Strict(BaseModel):
@@ -106,17 +155,17 @@ def turn_state(phrasings: Phrasings, context: Context, phrasing: Phrasing) -> Tu
     )
 
 
-def question_set_name(context: Context, style: CriteriaStyle) -> str:
+def question_set_name(context: Context, variant: Variant) -> str:
     """Return the name of a question set, such as `moves-exploring-guide`."""
-    return f"moves-{context.value}-{style.value}"
+    return f"moves-{context.value}-{variant.name}"
 
 
-def suite_name(context: Context, style: CriteriaStyle) -> str:
+def suite_name(context: Context, variant: Variant) -> str:
     """Return the name of a recognizer suite, such as `recognizer-exploring-guide`."""
-    return f"recognizer-{context.value}-{style.value}"
+    return f"recognizer-{context.value}-{variant.name}"
 
 
-def question_set(data: Datasworn, context: Context, style: CriteriaStyle) -> dict[str, Any]:
+def question_set(data: Datasworn, context: Context, variant: Variant) -> dict[str, Any]:
     """Return a question set with the questions play sends in a context.
 
     The questions don't depend on the state, so any state for the context gives the same ones.
@@ -129,16 +178,20 @@ def question_set(data: Datasworn, context: Context, style: CriteriaStyle) -> dic
         initiative="character" if context is Context.FIGHT else None,
         player_says="",
     )
-    questions = build_request(data, state, style)["questions"]
-    return {"name": question_set_name(context, style), "questions": questions}
+    questions = build_request(data, state, variant.style, variant.shape)["questions"]
+    return {"name": question_set_name(context, variant), "questions": questions}
 
 
 def _case(
-    data: Datasworn, phrasings: Phrasings, context: Context, phrasing: Phrasing
+    data: Datasworn, phrasings: Phrasings, context: Context, phrasing: Phrasing, variant: Variant
 ) -> dict[str, Any]:
-    expected: dict[str, Any] = {MOVE_QUESTION: {"answer": phrasing.move}}
-    if phrasing.also:
-        expected[MOVE_QUESTION]["acceptable"] = list(phrasing.also)
+    expected: dict[str, Any] = {}
+    if variant.shape.acts_question:
+        expected[ACTS_QUESTION] = {"answer": phrasing.move != CANNOT_TELL}
+    if not (variant.shape.acts_question and phrasing.move == CANNOT_TELL):
+        expected[MOVE_QUESTION] = {"answer": phrasing.move}
+        if phrasing.also:
+            expected[MOVE_QUESTION]["acceptable"] = list(phrasing.also)
     stats = stat_choices(data, phrasing.move)
     if stats:
         if phrasing.stat is None:
@@ -159,19 +212,23 @@ def _case(
 
 
 def suite(
-    data: Datasworn, phrasings: Phrasings, context: Context, style: CriteriaStyle
+    data: Datasworn, phrasings: Phrasings, context: Context, variant: Variant
 ) -> dict[str, Any]:
-    """Return a recognizer suite: a context's phrasings asked with one criteria style.
+    """Return a recognizer suite: a context's phrasings asked one way.
+
+    With the `acts` question, a `cannot_tell` phrasing expects `acts` to be no and expects
+    nothing of the `move` question, which has no `cannot_tell` option.
 
     Raises:
         ValueError: If a phrasing's expected stat doesn't fit its move.
     """
+    cases = [_case(data, phrasings, context, p, variant) for p in phrasings.for_context(context)]
     return {
-        "name": suite_name(context, style),
-        "question_set": question_set_name(context, style),
-        "policy": POLICY,
+        "name": suite_name(context, variant),
+        "question_set": question_set_name(context, variant),
+        "policy": variant.policy,
         "targets": list(TARGETS),
-        "cases": [_case(data, phrasings, context, p) for p in phrasings.for_context(context)],
+        "cases": cases,
     }
 
 
@@ -189,12 +246,12 @@ def generated_files(data: Datasworn, phrasings: Phrasings) -> dict[Path, str]:
     """Return every generated question set and suite, by path relative to `suites/`."""
     files: dict[Path, str] = {}
     for context in Context:
-        for style in CriteriaStyle:
-            name = question_set_name(context, style)
+        for variant in VARIANTS:
+            name = question_set_name(context, variant)
             files[Path("question-sets") / f"{name}.yaml"] = dump_yaml(
-                question_set(data, context, style)
+                question_set(data, context, variant)
             )
-            files[Path(f"{suite_name(context, style)}.yaml")] = dump_yaml(
-                suite(data, phrasings, context, style)
+            files[Path(f"{suite_name(context, variant)}.yaml")] = dump_yaml(
+                suite(data, phrasings, context, variant)
             )
     return files

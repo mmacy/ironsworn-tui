@@ -86,11 +86,11 @@ The option list depends on the context, and each context has a fixed list so tha
 
 | Context | When | Options |
 |---|---|---|
-| `exploring` | No fight, no journey | Every fiction move except Strike, Clash, Battle, and Reach Your Destination |
+| `exploring` | No fight, no journey | Every fiction move except Strike, Clash, and Reach Your Destination |
 | `journey` | A journey is active, no fight | The `exploring` options plus Reach Your Destination |
 | `fight` | A fight is active, whether or not a journey is | `attack`, Battle, Face Danger, Secure an Advantage, Gather Information, Compel, Heal, and Forsake Your Vow |
 
-Every context adds `no_move` (the action has no risk, so nothing triggers) and `cannot_tell`. `exploring` has 19 options, `journey` 20, and `fight` 10. All three are under Clef-flash's limit of 26 on Ollama.
+Every context adds `no_move` (the action has no risk, so nothing triggers) and `cannot_tell`. `exploring` has 20 options, `journey` 21, and `fight` 10. Battle is in all three, because it can replace a whole fight, including Enter the Fray (rulebook page 84). All three are under Clef-flash's limit of 26 on Ollama.
 
 In the `fight` context, Strike and Clash are one option, `attack`. Code picks Strike when the character has initiative and Clash when the foe has it. Both moves offer iron in close quarters and edge at range, so they share one stat question.
 
@@ -101,7 +101,7 @@ One request contains every question for the turn:
 | Id | Type | What it asks | Options from |
 |---|---|---|---|
 | `move` | choice | Which move the action triggers | The context's move list, each move described by a short criterion written from the disambiguation guide |
-| `stat_<move>` | choice | Which approach the action takes, for that move | That move's `player_choice` conditions with text, each condition's text as the description, plus `cannot_tell` |
+| `stat_<move>` | choice | Which approach the action takes, for that move | That move's `player_choice` conditions with text, each condition's text as the description. Build step 4 dropped a `cannot_tell` option, which won too often. |
 
 Stat questions go only to moves with two or more `player_choice` conditions that have text: Face Danger, Secure an Advantage, Battle, Compel, Enter the Fray, and `attack`. Because the move isn't known until the answer comes back, the request contains a `stat_<move>` question for each of those moves in the context. The app reads the one for the move the player confirms. Other moves have one stat, and code handles the rest:
 
