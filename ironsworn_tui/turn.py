@@ -238,10 +238,26 @@ class TurnEngine:
     def suggest(self, text: str) -> Suggestion:
         """Log a message and ask the decision model which move it triggers.
 
-        A failed request gives a suggestion with the full move list.
+        A failed request gives a suggestion with the full move list, and logs why.
+        """
+        self.log_message(text)
+        suggestion = self.decide(text)
+        if suggestion.note is not None:
+            self.campaign.add_log("note", suggestion.note)
+        return suggestion
+
+    def log_message(self, text: str) -> None:
+        """Log and save a player message."""
+        self.campaign.add_log("message", text)
+        self.save()
+
+    def decide(self, text: str) -> Suggestion:
+        """Ask the decision model which move a message triggers, without changing the campaign.
+
+        The TUI calls this from a worker thread, so it reads the campaign and writes nothing.
+        A failed request gives a suggestion with the full move list and a note saying why.
         """
         campaign = self.campaign
-        campaign.add_log("message", text)
         character = campaign.character
         state = TurnState(
             name=character.name,
@@ -252,14 +268,18 @@ class TurnEngine:
             player_says=text,
         )
         decision: Decision | None = None
+        note: str | None = None
         if self.decider is not None:
+            request = build_request(self.data, state, self.style)
             try:
-                decision = self.decider.decide(
-                    build_request(self.data, state, self.style), self.target
-                )
+                decision = self.decider.decide(request, self.target)
             except DecideError as error:
-                campaign.add_log("note", f"No suggestion: {error}")
-        return suggest(decision, campaign.context, self.thresholds)
+                note = f"No suggestion: {error}"
+            else:
+                if decision.move is None:
+                    note = f"No suggestion: {decision.error}"
+        result = suggest(decision, campaign.context, self.thresholds)
+        return dataclasses.replace(result, note=note)
 
     def _situation(self) -> str:
         campaign = self.campaign
@@ -270,11 +290,36 @@ class TurnEngine:
             parts.append(f"Journey: {campaign.journey.name}.")
         return " ".join(parts)
 
+    def full_list(self) -> Suggestion:
+        """Return a suggestion that offers every move in the context, with none selected."""
+        return suggest(None, self.campaign.context, self.thresholds)
+
+    def inputs_needed(self, option: str) -> tuple[str, ...]:
+        """Return the fields the player must fill in before a move, such as `vow` and `rank`.
+
+        Fields: `vow`, `rank`, `foes`, `destination`, and `treat` (for Heal: yourself or
+        someone else).
+        """
+        campaign = self.campaign
+        match option:
+            case "swear_an_iron_vow":
+                return ("vow", "rank")
+            case "enter_the_fray" | "draw_the_circle":
+                return ("foes",)
+            case "undertake_a_journey" if campaign.journey is None:
+                return ("destination", "rank")
+            case "heal":
+                return ("treat",)
+            case "fulfill_your_vow" | "forsake_your_vow" if len(campaign.vows) > 1:
+                return ("vow",)
+            case _:
+                return ()
+
     def set_scene(self, text: str) -> None:
         """Replace the situation text."""
         self.campaign.situation = text
         self.campaign.add_log("command", f"Scene: {text}")
-        self._save()
+        self.save()
 
     def set_target(self, name: str) -> None:
         """Select the foe an attack targets.
@@ -283,9 +328,10 @@ class TurnEngine:
             TurnError: If no foe in the fight has the name.
         """
         if name not in {foe.name for foe in self.campaign.foes}:
-            raise TurnError(f"no foe named {name!r} in the fight")
+            raise TurnError(f"No foe named {name!r} in the fight")
         self.campaign.target = name
-        self._save()
+        self.campaign.add_log("command", f"Target: {name}")
+        self.save()
 
     def end_fight(self, how: str) -> None:
         """End the fight without End the Fight, as when it's lost, fled, or settled by Battle.
@@ -295,7 +341,7 @@ class TurnEngine:
         """
         self.campaign.end_fight()
         self.campaign.add_log("command", f"The fight ends: {how}")
-        self._save()
+        self.save()
 
     def arm_tide(self) -> None:
         """Arm Turn the Tide for the next move.
@@ -310,12 +356,13 @@ class TurnEngine:
             raise TurnError("Turn the Tide was already used in this fight")
         campaign.tide_armed = True
         campaign.add_log("command", "Turn the Tide is armed")
-        self._save()
+        self.save()
 
     def disarm_tide(self) -> None:
         """Disarm Turn the Tide without using it."""
         self.campaign.tide_armed = False
-        self._save()
+        self.campaign.add_log("command", "Turn the Tide is disarmed")
+        self.save()
 
     def make_move(
         self,
@@ -343,15 +390,17 @@ class TurnEngine:
         """
         campaign = self.campaign
         if self._pending is not None:
-            raise TurnError("resolve the current roll card first")
+            raise TurnError("Resolve the current roll card first")
         if campaign.follow_ups:
-            raise TurnError(f"make the owed {campaign.follow_ups[0].move} first")
+            owed = self.data.move(campaign.follow_ups[0].move).name
+            raise TurnError(f"Make the owed {owed} first")
         if option in (NO_MOVE, CANNOT_TELL):
             raise TurnError(f"{option} makes no move")
         if option == "end_the_fight":
             return self._end_the_fight()
         if option not in context_options(campaign.context):
-            raise TurnError(f"{option} isn't a move in the {campaign.context} context")
+            name = "Attack" if option == ATTACK else self.data.move(option).name
+            raise TurnError(f"{name} isn't a move in the {campaign.context} context")
         if option == "forsake_your_vow":
             self._forsake(self._vow(inputs))
             return None
@@ -467,7 +516,8 @@ class TurnEngine:
         if len(stats) == 1:
             return stats[0], character.stats.value(stats[0])
         if stat is None or stat not in stats:
-            raise TurnError(f"{move} needs one of these stats: {', '.join(stats)}")
+            name = self.data.move(move).name
+            raise TurnError(f"{name} needs one of these stats: {', '.join(stats)}")
         return stat, character.stats.value(stat)
 
     def _roll(self, value: int, adds: int) -> ActionRoll:
@@ -639,7 +689,7 @@ class TurnEngine:
             and foe.ticks >= TICKS_PER_BOX
         )
         self._pending = None
-        self._save()
+        self.save()
         return self.follow_ups
 
     def _check_choices(self, effects: tuple[Effect, ...], choices: list[Sequence[int]]) -> None:
@@ -762,7 +812,7 @@ class TurnEngine:
         self.campaign.vows.remove(vow)
         self.campaign.add_log("outcome", f"Forsook the vow: {vow.name}")
         self.campaign.follow_ups.append(OwedMove(move="endure_stress", amount=int(vow.rank)))
-        self._save()
+        self.save()
 
     def forsake(self) -> tuple[OwedMove, ...]:
         """Make the next follow-up, Forsake Your Vow: clear the vow, then owe Endure Stress.
@@ -865,10 +915,11 @@ class TurnEngine:
             )
         else:
             self.campaign.add_log("outcome", "Pay the Price: the most obvious negative outcome")
-        self._save()
+        self.save()
         return result
 
-    def _save(self) -> None:
+    def save(self) -> None:
+        """Save the campaign, if the engine has a path."""
         if self.path is not None:
             self.campaign.save(self.path)
 

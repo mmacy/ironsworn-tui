@@ -452,7 +452,7 @@ def jevtester_server(
     """
     root = settings.jevtester_config.parent
     log_path = root / ".jevtester" / "serve.log"
-    log_path.parent.mkdir(exist_ok=True)
+    log_path.parent.mkdir(parents=True, exist_ok=True)
     last_error = DecideError("jevtester serve wasn't started")
     for _ in range(SERVER_STARTS):
         port = _free_port()
