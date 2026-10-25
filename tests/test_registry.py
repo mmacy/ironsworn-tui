@@ -271,3 +271,20 @@ def test_ask_and_oracle_help_show_the_question_form(tmp_path: Path):
     for name in ("ask", "oracle"):
         text = "\n".join(run_command(turn, f"/{name} help").help)
         assert "Do I know which castle I'm in?" in text
+
+
+def test_a_missing_argument_lists_its_options(tmp_path: Path):
+    turn, _, _ = engine(tmp_path)
+    with pytest.raises(CommandError) as raised:
+        run_command(turn, "/vow swear")
+    assert "troublesome, dangerous, formidable, extreme, epic" in str(raised.value)
+    with pytest.raises(CommandError) as raised:
+        run_command(turn, "/oracle")
+    assert "such as action or theme" in str(raised.value)
+
+
+def test_help_says_how_to_play_and_how_to_quit(tmp_path: Path):
+    turn, _, _ = engine(tmp_path)
+    text = "\n".join(run_command(turn, "/help").help)
+    assert "Type what your character does" in text
+    assert "/quit" in text

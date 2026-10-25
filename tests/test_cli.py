@@ -103,3 +103,62 @@ def test_a_bad_settings_file_is_an_error_not_a_traceback(
     monkeypatch.setattr(cli, "load_settings", broken)
     assert cli.main(["play", "Kira", "--no-model"]) == 2
     assert capsys.readouterr().err == "Error: ironsworn-tui.toml: targett isn't a setting\n"
+
+
+def test_new_takes_stats_with_spaces_and_capitals(settings: Settings):
+    args = [*ARGS]
+    args[5] = "Edge=2, Heart=2, iron=1, shadow=1, wits=3"
+    assert cli.main(args) == 0
+
+
+def test_new_explains_bad_stats_plainly(settings: Settings, capsys: pytest.CaptureFixture[str]):
+    args = [*ARGS]
+    args[5] = "edge=3,heart=3,iron=3,shadow=3,wits=3"
+    assert cli.main(args) == 2
+    error = capsys.readouterr().err
+    assert "3, 2, 2, 1, and 1" in error
+    assert "{" not in error
+
+
+def test_new_suggests_an_asset_for_a_typo(settings: Settings, capsys: pytest.CaptureFixture[str]):
+    args = [*ARGS]
+    args[7] = "archer,hawk:2,wrigt"
+    assert cli.main(args) == 2
+    assert "Did you mean wright?" in capsys.readouterr().err
+
+
+def test_new_lists_the_assets_for_an_unknown_one(
+    settings: Settings, capsys: pytest.CaptureFixture[str]
+):
+    args = [*ARGS]
+    args[7] = "archer,hawk:2,zzzz"
+    assert cli.main(args) == 2
+    error = capsys.readouterr().err
+    assert "Companion: cave_lion" in error
+    assert "swordmaster" in error
+
+
+def test_new_says_how_to_start_over(settings: Settings, capsys: pytest.CaptureFixture[str]):
+    assert cli.main(ARGS) == 0
+    assert cli.main(ARGS) == 2
+    error = capsys.readouterr().err
+    assert "a campaign named Kira already exists" in error
+    assert "--overwrite" in error
+
+
+def test_new_overwrite_starts_over(settings: Settings):
+    assert cli.main(ARGS) == 0
+    args = [*ARGS, "--overwrite"]
+    args[-2] = "Find my brother"
+    assert cli.main(args) == 0
+    campaign = Campaign.load(settings.campaigns_dir / "Kira.json")
+    assert campaign.vows[0].name == "Find my brother"
+
+
+def test_new_assets_help_lists_the_ids(settings: Settings, capsys: pytest.CaptureFixture[str]):
+    args = [*ARGS]
+    args[5] = "x"
+    args[7] = "help"
+    assert cli.main(args) == 0
+    assert "Companion: cave_lion" in capsys.readouterr().out
+    assert not (settings.campaigns_dir / "Kira.json").exists()

@@ -668,11 +668,13 @@ class TurnEngine:
         Args:
             option: A `move` option, or a follow-up move such as `endure_harm`.
         """
-        move = self._move_for(option)
+        move = self.move_for(option)
         found = [*self._owned_boosts(), *self._lasting_boosts()]
         return tuple(a for a in found if self._why_not(a, move) is None)
 
-    def _move_for(self, option: str) -> str:
+    def move_for(self, option: str) -> str:
+        """Return the move an option makes: Strike or Clash for `attack`, by initiative, and
+        the option itself for any other."""
         if option != ATTACK:
             return option
         campaign = self.campaign
@@ -922,7 +924,7 @@ class TurnEngine:
             self._forsake(vow)
             return None
         tide = campaign.tide_armed
-        move = self._move_for(option)
+        move = self.move_for(option)
         self._check_inputs(move, inputs)
         chosen = self._unleash(self._check_boosts(move, boosts), inputs)
         automatic = any(a.boost.automatic for a in chosen)
@@ -2030,9 +2032,13 @@ class TurnEngine:
         """
         campaign = self.campaign
         vow = self._vow(MoveInputs(vow=name))
-        boxes = vow.boxes
+        boxes, ticks = vow.boxes, vow.ticks
         vow.mark()
-        campaign.add_log("outcome", f"Reach a Milestone: {vow.name} is at {vow.boxes}/10")
+        change = progress_change(vow.ticks - ticks)
+        campaign.add_log(
+            "outcome",
+            f"Reach a Milestone: {vow.name}, progress {change} (now {progress_text(vow.ticks)})",
+        )
         character = campaign.character
         if vow.name == campaign.background_vow:
             if character.has_ability("fated", 3):
@@ -2386,8 +2392,12 @@ def _count(amount: int, one: str, many: str) -> str:
     return f"{amount} {one if abs(amount) == 1 else many}"
 
 
-def _progress(ticks: int) -> str:
-    """Show ticks of progress as boxes and ticks, such as "2 boxes, 1 tick"."""
+def progress_text(ticks: int) -> str:
+    """Show ticks of progress as boxes and ticks, such as "2 boxes, 1 tick".
+
+    Args:
+        ticks: The ticks of progress, 4 to a box.
+    """
     boxes, rest = divmod(ticks, TICKS_PER_BOX)
     parts = [_count(boxes, "box", "boxes")] if boxes or not rest else []
     if rest:
@@ -2395,7 +2405,12 @@ def _progress(ticks: int) -> str:
     return ", ".join(parts)
 
 
-def _progress_change(delta: int) -> str:
+def progress_change(delta: int) -> str:
+    """Show a change in progress, such as "+2 boxes" or "-1 tick".
+
+    Args:
+        delta: The change in ticks.
+    """
     sign = "+" if delta > 0 else "-"
     if delta % TICKS_PER_BOX == 0:
         return sign + _count(abs(delta) // TICKS_PER_BOX, "box", "boxes")
@@ -2431,8 +2446,8 @@ def _diff(before: _State, after: _State) -> list[str]:
             continue
         old_rank, old_ticks = before.tracks[key]
         if ticks != old_ticks:
-            change = _progress_change(ticks - old_ticks)
-            lines.append(f"{label}: progress {change} (now {_progress(ticks)})")
+            change = progress_change(ticks - old_ticks)
+            lines.append(f"{label}: progress {change} (now {progress_text(ticks)})")
         if rank != old_rank and rank is not None:
             lines.append(f"{label}: rank now {rank.name.lower()}")
     for key in before.tracks:

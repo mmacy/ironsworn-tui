@@ -32,12 +32,14 @@ class CommandResult:
         card: A roll card, when the command made a move (`/vow swear` or `/vow fulfill`).
         show_moves: True when the suggestion bar should show the full move list.
         help: Help lines to show, which aren't in the campaign log either.
+        quit: True when the app should quit.
     """
 
     lines: tuple[str, ...] = ()
     card: RollCard | None = None
     show_moves: bool = False
     help: tuple[str, ...] = ()
+    quit: bool = False
 
 
 type Values = tuple[str, ...]
@@ -327,7 +329,7 @@ class Registry:
             if not rest:
                 if arg.optional or arg.repeat:
                     break
-                raise UsageError(f"it needs a value for <{arg.name}>")
+                raise UsageError(_missing(arg, arg.choices(engine, tuple(values))))
             while rest:
                 last = index == len(args) - 1
                 value, rest = self._take(engine, arg, tuple(values), rest, last=last)
@@ -470,10 +472,17 @@ class Registry:
 
     def overview(self) -> tuple[str, ...]:
         """Return the list `/help` shows: each command with its summary."""
-        lines = ["Commands:"]
+        lines = [
+            "Type what your character does, such as I search the ruins for tracks, and press "
+            "Enter. The bar below the log then offers the moves that fit. A move is a rule for a "
+            "risky action: pick one with its key, pick a stat if it asks for one, and press "
+            "Enter to roll. If no roll is needed, press n. Esc goes back to typing.",
+            "Commands:",
+        ]
         lines += [f"/{command.name}: {command.summary}" for command in self.commands]
         lines.append("Add help after any command for more, such as /oracle help.")
         lines.append("Type / and press Tab to complete a command or its options.")
+        lines.append("The campaign saves after every change. /quit or Ctrl+Q leaves the app.")
         return tuple(lines)
 
     def usages(self, path: Sequence[Command]) -> tuple[str, ...]:
@@ -503,6 +512,16 @@ class Registry:
 
     def _sub_names(self, command: Command) -> tuple[str, ...]:
         return tuple(sub.name for sub in command.subcommands)
+
+
+def _missing(arg: Arg, options: Sequence[str]) -> str:
+    """Say that a required argument is missing, with its options when it has some."""
+    problem = f"it needs a value for <{arg.name}>"
+    if 0 < len(options) <= 12:
+        return f"{problem}, one of: {', '.join(options)}"
+    if len(options) > 12:
+        return f"{problem}, such as {options[0]} or {options[1]}"
+    return problem
 
 
 def _skip(text: str, position: int) -> tuple[int, str]:

@@ -65,7 +65,7 @@ Assets are cards that give your character special abilities. Each asset has thre
 - `wayfinder`, a path that helps on journeys and when scouting.
 - `hawk:1`, a hawk companion.
 
-A companion starts with no ability marked, so you pick one after a colon. `hawk:1` marks the hawk's first ability, which helps when Blarg travels or hunts. Once you're playing, type `/asset list` to see every asset.
+A companion starts with no ability marked, so you pick one after a colon. `hawk:1` marks the hawk's first ability, which helps when Blarg travels or hunts. To see every asset id before you create a character, run `uv run ironsworn-tui new Blarg --description x --stats x --assets help --vow x`, which lists them and creates nothing. Once you're playing, `/asset list` shows them too.
 
 ### Background vow
 
@@ -84,9 +84,9 @@ The app prints `Starting jevtester for decision-1@foundry…`, then opens the ga
 - The character panel, on the left, shows Blarg's stats, meters, assets, and vows.
 - The log, on the right, shows everything that happens.
 - The suggestion bar, below them, shows the moves you can make and the result of each roll.
-- The input line, at the bottom, says "Action or /command". You type here.
+- The input line, at the bottom, says "Type what your character does, or / for a command". You type here.
 
-![The play screen for a new campaign. The character panel on the left shows Blarg, the Destructor, with their stats, health, spirit, and supply at 5, momentum +2, their three assets, and their background vow with ten empty boxes. The log on the right is empty. The suggestion bar lists the slash commands, and the input line at the bottom reads "Action or /command".](images/start.svg)
+![The play screen for a new campaign. The character panel on the left shows Blarg, the Destructor, with their stats, health, spirit, and supply at 5, momentum +2, their three assets, and their background vow with ten empty boxes. The log on the right shows a welcome note that says how to start. The suggestion bar lists the keys for the input line, and the input line at the bottom reads "Type what your character does, or / for a command".](images/start.svg)
 
 Look at the character panel. Blarg has health 5, spirit 5, and supply 5. These are meters, which go down as they're hurt, shaken, or runs low on gear. The panel also shows `Momentum +2 (max 10, reset 2)`. Momentum is a measure of how well things are going. Good results raise it, and bad results lower it. You can spend it later to improve a roll.
 
@@ -135,7 +135,7 @@ Read the bar from top to bottom:
 - `Add +0` is any bonus you add to the roll.
 - The last line lists the keys you can press.
 
-When the model is less sure, the bar shows two moves or the full list. If you started with `--no-model`, it always shows the full list. In either case, press the number before Face Danger to select it. In the full list, it's `1`. If the bar says `Stat not set`, press `e` to pick edge.
+When the model is less sure, the bar shows two moves or the full list. If you started with `--no-model`, it always shows the full list. In either case, press the number before Face Danger to select it. In the full list, it's `1`. If the bar says `Stat: press e edge, i iron, ...`, press `e` to pick edge.
 
 ![The full move list in the suggestion bar, as `/moves` or a low-confidence answer shows it. Moves 1 to 9 have number keys, from Face Danger to Sojourn, and the moves after them have capital-letter keys, from A Draw the Circle to J. The hints read "1-9 A-J or arrows move".](images/move-list.svg)
 
@@ -221,7 +221,7 @@ Say Blarg reaches the raider camp without being seen. That's a step toward freei
 /vow mark Free my brother from the raiders
 ```
 
-The log shows `Reach a Milestone: Free my brother from the raiders is at 2/10`. The vow's track in the character panel now has two filled boxes. A dangerous vow fills two boxes for each milestone. A harder vow fills fewer, so it takes more milestones.
+The log shows `Reach a Milestone: Free my brother from the raiders, progress +2 boxes (now 2 boxes)`. The vow's track in the character panel now has two filled boxes. A dangerous vow fills two boxes for each milestone. A harder vow fills fewer, so it takes more milestones.
 
 Type `/vow` to list your vows and their progress.
 
@@ -258,13 +258,13 @@ To keep track of what you learn, write a note. It's saved in the log:
 
 Type `/help` to list every command with a one-line summary. Add `help` after any command to learn what it's for, when to use it, and its options, such as `/oracle help` or `/vow swear help`. If you mistype a command, the log shows how to write it and which help to read.
 
-![The log after marking the vow and asking the oracle. It shows "Reach a Milestone: Free my brother from the raiders is at 2/10", "Ask (likely): Is my brother in the camp? 69: yes", and the oracle table results Surrender and Freedom. The vow's track in the character panel has two filled boxes.](images/oracle.svg)
+![The log after marking the vow and asking the oracle. It shows "Reach a Milestone: Free my brother from the raiders, progress +2 boxes (now 2 boxes)", "Ask (likely): Is my brother in the camp? 69: yes", and the oracle table results Surrender and Freedom. The vow's track in the character panel has two filled boxes.](images/oracle.svg)
 
 ## Quit and resume
 
-Finish any roll card before you quit. The app saves after each roll is applied, but it doesn't save a card you haven't applied.
+The app saves after every change, and it saves a roll card you haven't applied too, so you can quit at any time.
 
-Press Ctrl+Q to quit. To pick up where you stopped, run the same command again:
+Type `/quit`, or press Ctrl+Q, to quit. To pick up where you stopped, run the same command again:
 
 ```sh
 uv run ironsworn-tui play Blarg

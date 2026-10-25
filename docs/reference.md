@@ -37,7 +37,7 @@ ironsworn-tui <command> [options]
 ### ironsworn-tui new
 
 ```text
-ironsworn-tui new <name> --description <text> --stats <stat>=<n>,... --assets <asset>[:<ability>],... --vow <text> [--bond <text>]... [--rank <rank>] [--harm 1|2]
+ironsworn-tui new <name> --description <text> --stats <stat>=<n>,... --assets <asset>[:<ability>],... --vow <text> [--bond <text>]... [--rank <rank>] [--harm 1|2] [--overwrite]
 ```
 
 Creates a character and a campaign with one background vow. Saves it as `<name>.json` in the campaigns folder, and prints the file's path to standard output. The character starts with full health, spirit, and supply, +2 momentum, and 0 experience.
@@ -46,25 +46,26 @@ Creates a character and a campaign with one background vow. Saves it as `<name>.
 |---|---|---|---|
 | `<name>` | Yes | | The character's name. It's also the campaign's name and the file name, and it's case-sensitive. |
 | `--description` | Yes | | A few words about the character, such as `"the Destructor"`. |
-| `--stats` | Yes | | All five stats (`edge`, `heart`, `iron`, `shadow`, `wits`), given the values 3, 2, 2, 1, and 1 in any order. Write each as `<stat>=<n>` and separate them with commas and no spaces. |
-| `--assets` | Yes | | Exactly three asset ids, separated by commas with no spaces. Ids are lowercase, such as `archer` or `cave_lion`. An asset that starts with no ability marked, such as a companion, needs the ability to mark after a colon, from 1 to 3, such as `hawk:2`. An asset that starts with an ability marked takes no colon. `/asset list` in the play screen lists the ids. |
+| `--stats` | Yes | | All five stats (`edge`, `heart`, `iron`, `shadow`, `wits`), given the values 3, 2, 2, 1, and 1 in any order. Write each as `<stat>=<n>` and separate them with commas. Case doesn't matter. |
+| `--assets` | Yes | | Exactly three asset ids, separated by commas with no spaces. Ids are lowercase, such as `archer` or `cave_lion`. An asset that starts with no ability marked, such as a companion, needs the ability to mark after a colon, from 1 to 3, such as `hawk:2`. An asset that starts with an ability marked takes no colon. `--assets help` prints the ids by category, exits with 0, and creates nothing. |
 | `--vow` | Yes | | The background vow's text. |
 | `--bond` | No | None | A person or community the character shares a background bond with. Repeat it for up to three bonds. Each marks one tick on the bonds track and logs `Bond: <text>`. |
 | `--rank` | No | `epic` | The background vow's rank: `troublesome`, `dangerous`, `formidable`, `extreme`, or `epic`. Case doesn't matter. |
 | `--harm` | No | `2` | The harm the character deals: `2` with a deadly weapon, `1` without. |
+| `--overwrite` | No | Off | Replaces an existing campaign with the same name, to start the character over. The old campaign is lost. |
 
 Errors, each with exit status 2. The command writes nothing when one occurs.
 
 | Message | Cause |
 |---|---|
-| `Error: <path> already exists` | A campaign with that name exists. Choose another name, or delete the file. |
-| `Error: stats must be assigned from (3, 2, 2, 1, 1), got {...}` | A stat is missing, or the values aren't 3, 2, 2, 1, 1. |
-| `Error: unknown stat '<word>'` | A name in `--stats` isn't one of the five stats. A space after a comma causes this. |
-| `Error: invalid literal for int() with base 10: '<value>'` | A stat value isn't a whole number. |
+| `Error: a campaign named <name> already exists at <path>. Use --overwrite to start over, or choose another name.` | A campaign with that name exists, and `--overwrite` isn't given. |
+| `Error: give the five stats, edge, heart, iron, shadow, and wits, the values 3, 2, 2, 1, and 1 in any order, got <stats>` | A stat is missing, or the values aren't 3, 2, 2, 1, 1. |
+| `Error: unknown stat '<word>'; the stats are edge, heart, iron, shadow, and wits` | A name in `--stats` isn't one of the five stats. |
+| `Error: write each stat as <stat>=<n>, such as <stat>=2` | A stat value is missing or isn't a whole number. |
 | `Error: pick 3 assets, got <n>` | `--assets` doesn't list three assets. |
 | `Error: pick 3 different assets, got <ids>` | `--assets` lists the same asset twice. |
 | `Error: a character starts with up to 3 bonds` | `--bond` is given more than three times. |
-| `Error: unknown asset id: <id>` | An asset id doesn't exist. Ids are lowercase, and a space after a comma causes this. |
+| `Error: there's no asset '<id>'. Did you mean <id>?` | An asset id is misspelled. Without a close match, the message lists every asset id by category instead. |
 | `Error: <Asset> starts with no ability marked; pick one from 1 to 3` | A companion or similar asset has no `:<ability>`. |
 | `Error: <Asset> already starts with an ability marked` | An asset that starts with an ability marked has `:<ability>`. |
 | `Error: write a pick as an ability number, such as <id>:1` | The text after the colon isn't a number. |
@@ -89,7 +90,7 @@ See also: [`ironsworn-tui play`](#ironsworn-tui-play).
 ironsworn-tui play <name> [--no-model]
 ```
 
-Opens the campaign saved as `<name>.json` in the campaigns folder in the [play screen](#play-screen). The app saves the campaign file after every change, so there's no save command. To quit, press Ctrl+Q.
+Opens the campaign saved as `<name>.json` in the campaigns folder in the [play screen](#play-screen). The app saves the campaign file after every change, so there's no save command. To quit, type `/quit` or press Ctrl+Q.
 
 Without `--no-model`, the app prints `Starting jevtester for <target>…` to standard error and starts jevtester. It then asks the decision model about each message you type, which can cost money. It saves a [case](#case-files) for each answered message you make a move for. If jevtester doesn't start, the app opens anyway, and the log shows `Playing without move suggestions:` and the reason.
 
@@ -180,10 +181,10 @@ suites/recognizer-fight-guide-acts.yaml
 
 The play screen has four parts:
 
-- **Character panel**, on the left: stats, health, spirit, supply, momentum, debilities, harm, experience, the add for the next move, assets, vows, bonds, and, when they're active, the journey and the fight. In a fight, `>` marks the foe an attack targets. Each progress track shows 10 boxes.
-- **Log**, on the right: the campaign log. On opening, it shows the last 200 entries. A blank line separates each message and each command you type.
+- **Character panel**, on the left: stats, health, spirit, supply, momentum, debilities, harm, experience, and the add for the next move; then, when they're active, the fight and the journey; then vows, bonds, and assets. In a fight, `>` marks the foe an attack targets. Each progress track shows 10 boxes: `■` is full, `▣` has some ticks, and `□` is empty. When the panel doesn't fit the screen, it scrolls.
+- **Log**, on the right: the campaign log. On opening, it shows the last 200 entries. A new campaign's log shows a welcome note that says how to start. A blank line separates each message and each command you type.
 - **Suggestion bar**, below them: suggested moves, the roll card, and owed moves. Its keys depend on its [mode](#suggestion-bar).
-- **Input line**, at the bottom: where you type a message or a `/` command.
+- **Input line**, at the bottom: where you type a message or a `/` command. When empty, it reads `Type what your character does, or / for a command`.
 
 ![The play screen in suggest mode. The character panel is on the left, the log on the right, the suggestion bar below them with Face Danger suggested, and the input line at the bottom.](images/suggestion.svg)
 
@@ -210,7 +211,7 @@ Changes made before the roll, such as a new vow or Endure Harm's damage, appear 
 | Key | Action |
 |---|---|
 | Ctrl+Q | Quit. The campaign is already saved. |
-| Tab, Shift+Tab | Move focus between the log, the suggestion bar, and the input line. On the input line after a `/`, Tab completes instead. |
+| Tab, Shift+Tab | Move focus between the character panel, the log, the suggestion bar, and the input line. The panel and the log scroll with the arrow keys while they have focus. On the input line after a `/`, Tab completes instead. |
 | Ctrl+P | Open the command palette of Textual, the framework the app is built on. |
 
 ### Input line
@@ -228,13 +229,13 @@ When the text starts with `/` and the cursor is at the end, the input line shows
 
 What Enter does with the text:
 
-- **Text starting with `/`** runs a [`/` command](#commands). You can run commands while a follow-up is owed, but not while a roll card is waiting.
+- **Text starting with `/`** runs a [`/` command](#commands). You can run commands while a follow-up is owed. While a roll card is waiting, only help and `/quit` run.
 - **Other text** is a message. The app saves it to the campaign log, and the bar shows `Thinking…` while the decision model answers. The input line is disabled until the answer arrives. With `--no-model`, the answer is immediate. The bar then shows the suggestions.
-- **While a roll card is waiting, or before an owed follow-up**, the app doesn't send a message. The log shows `Finish the roll first`, and the bar shows the card or the follow-up again.
+- **While a roll card is waiting, or before an owed follow-up**, the app doesn't send a message. The text stays on the input line, the log shows `Finish the roll in the bar below first: press Enter to apply it` or `Finish <move> in the bar below first`, and the bar shows the card or the follow-up again.
 
 ### Suggestion bar
 
-The bar takes keys only while it has focus. It shows the keys it takes on its last line. It has these modes:
+The bar takes keys only while it has focus. It shows the keys it takes on its last line. A key the bar doesn't use, such as `/` or a space, moves focus to the input line and starts the text there, so typing isn't lost. Letters the bar took just before it, such as the `I` that selects a move at the start of `I run`, start the text too. The bar has these modes:
 
 | Mode | When | Bar shows |
 |---|---|---|
@@ -256,7 +257,7 @@ Which moves appear depends on the model's confidence in its top move:
 
 The `act` and `confirm` thresholds in `suites/policies/moves.yaml` set the confidence bands.
 
-Each move shows its key and, when the model answered, its probability. The selected move is highlighted. Below the moves, `Stat <stat>` shows the stat the roll will use, for a move where you choose one. The model's suggested stat is set when you select the move, and `not set` means you must pick one. `Add +<n>` shows your add. The hints name the keys for the moves shown, such as `1-9 A-F or arrows move`.
+Each move shows its key and, when the model answered, its probability. The selected move is highlighted. Below the moves, `Stat <stat>` shows the stat the roll will use, for a move where you choose one. The model's suggested stat is set when you select the move. Until a stat the move takes is set, the bar shows its keys instead, such as `Stat: press h heart, s shadow, or w wits`, and Enter asks for one. Attack shows the move it makes, such as `Attack (Strike)`: Strike with initiative, Clash without. `Add +<n>` shows your add. The hints name the keys for the moves shown, such as `1-9 A-F or arrows move`.
 
 | Key | Action |
 |---|---|
@@ -266,7 +267,7 @@ Each move shows its key and, when the model answered, its probability. The selec
 | `e`, `h`, `i`, `s`, `w` | Set the stat to edge, heart, iron, shadow, or wits. |
 | `+`, `-` | Raise or lower the add by 1. |
 | `a` | Open the [abilities picker](#pickers) for the selected move. Shown as `a abilities (<n>)` only when an asset ability applies. |
-| Enter | Roll the selected move. If the move needs details first, the [details form](#details-form) opens. The bar then shows the roll card. |
+| Enter | Roll the selected move. If it needs a stat and none is set, the log says which keys pick one. If the move needs details, the [details form](#details-form) opens. The bar then shows the roll card. |
 | `n` | Make no move. The log shows `No move` and a `Next:` line. If the model answered the message, the app saves this as a case. |
 | Escape | Leave the message without a move, and return to the input line. The app saves no case. |
 
@@ -277,12 +278,12 @@ The card shows `<Move> +<stat>: <result>`, the abilities used, and the outcome t
 | Key | Action |
 |---|---|
 | 1 to 9 | Turn an option of the current choice on or off. In a choose-one, it replaces the picked option. |
-| Enter | Confirm the current choice, then the next. After the last choice, or when there's none, apply the outcome and save. |
+| Enter | Confirm the current choice, then the next. After the last choice, or when there's none, apply the outcome and save. Without enough picks, the log says which keys to press, such as `Choose one: press 1 to 2, then Enter`. |
 | `r` | Open the dice picker to reroll dice. Shown only when an asset ability allows a reroll. |
 | `+` | Take an asset's add after rolling, and its cost. Shown only when an ability allows it. |
 | `b` | Burn momentum. Shown only when burning would improve the result. |
 
-Rerolling, adding after rolling, and burning momentum clear the choices you've picked on the card. Escape does nothing on a card. A waiting roll card isn't saved in the campaign file, so quitting before you apply it discards it.
+Rerolling, adding after rolling, and burning momentum clear the choices you've picked on the card. Escape does nothing on a card. A waiting roll card is saved in the campaign file, so it's there again when you play after quitting.
 
 #### Follow-up mode
 
@@ -336,6 +337,8 @@ Some moves ask for details before they roll. The form shows one field for each d
 | Enter | Move to the next field. In the last field, submit the form. An invalid value shows an error in the form. |
 | Escape | Close the form without rolling. |
 
+The form shows these keys on its last line. An error wraps to fit the form.
+
 ## Commands
 
 Type a command in the input line and press Enter. Command and option names don't depend on case. An error appears as a yellow note in the log, and it changes nothing. A mistyped command suggests the closest name. A bad argument shows the command's usage and points to its help. Every command that changes the campaign writes a log entry and saves the campaign file. Lines a command only shows, such as a list or help, aren't saved to the campaign log.
@@ -364,6 +367,7 @@ Names you type:
 | [`/endure`](#endure) | Owes Endure Harm or Endure Stress. |
 | [`/asset`](#asset) | Lists, shows, buys, and changes assets. |
 | [`/effects`](#effects) | Lists or ends lasting effects. |
+| [`/quit`](#quit) | Leaves the app. |
 
 Errors every command can show:
 
@@ -371,7 +375,7 @@ Errors every command can show:
 |---|---|
 | `There's no /<name> command. Did you mean /<command>? Type /help to see the commands.` | The command name isn't known. The suggestion appears when a name is close. |
 | `/<command> has no '<word>' option. It has: <options>` | The word after the command isn't one of its subcommands. |
-| `It needs a value for <argument>` | A required argument is missing. The usage follows. |
+| `It needs a value for <argument>, one of: <options>` | A required argument is missing. A long list shows two options, such as `such as action or theme`, and an argument with no fixed options shows no list. The usage follows. |
 | `<argument> must be one of: <options>, not '<text>'` | The argument isn't one of a short list of options. The usage follows. |
 | `No <argument> named '<text>'` | The argument isn't one of a long list, such as the oracle tables or the assets. The usage follows. |
 | `'<text>' isn't a number` | A number argument isn't a whole number. The usage follows. |
@@ -383,7 +387,7 @@ Errors every command can show:
 /help [<command>]
 ```
 
-`/help` lists every command with its summary. `/help <command>` shows the same help as `/<command> help`. Changes nothing.
+`/help` says how to play in a few lines, then lists every command with its summary. `/help <command>` shows the same help as `/<command> help`. Changes nothing.
 
 ### /oracle
 
@@ -445,7 +449,7 @@ Writes a note in the log, in bold italic, and saves it with the campaign. Use it
 
 | Form | What it does |
 |---|---|
-| `/vow` | Shows each active vow as `<vow> (<rank>): <boxes>/10`, or `No vows`. Changes nothing. |
+| `/vow` | Shows each active vow as `<vow> (<rank>): <boxes>/10 boxes`, with the ticks of a part-filled box after a comma, such as `0/10 boxes, 1 tick`, or `No vows`. Changes nothing. |
 | `/vow swear <rank> <vow>` | Makes Swear an Iron Vow for a new vow, and shows the roll card. The vow appears in the panel with the card, and it's saved when you apply the card. |
 | `/vow mark [<vow>]` | Reaches a Milestone: marks progress on the vow for its rank, and saves. |
 | `/vow fulfill [<vow>]` | Makes Fulfill Your Vow, a progress roll, and shows the roll card. |
@@ -463,7 +467,7 @@ Writes a note in the log, in bold italic, and saves it with the campaign. Use it
 /vow swear dangerous Find my brother
 Swear an Iron Vow +heart: 1 + 2 + 0 = 3 vs 9, 2, weak hit
 /vow mark Find my brother
-Reach a Milestone: Find my brother is at 2/10
+Reach a Milestone: Find my brother, progress +2 boxes (now 2 boxes)
 ```
 
 ### /scene
@@ -665,6 +669,14 @@ Cave Lion: 1, health 4/4
 ```
 
 Shows every move in the context, then Aid Your Ally and the moves your assets add, in the suggestion bar in [suggest mode](#suggest-mode), with none selected. Changes nothing until you roll.
+
+### /quit
+
+```text
+/quit
+```
+
+Leaves the app, as Ctrl+Q does. The campaign is already saved, because the app saves after every change. It runs while a roll card waits too, and the card is there when you play again.
 
 ## Settings
 
