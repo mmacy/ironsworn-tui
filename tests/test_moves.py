@@ -193,6 +193,11 @@ def test_moves_without_a_stat_question_have_no_choices(move_id: str):
     assert stat_choices(datasworn(), move_id) == ()
 
 
+@pytest.mark.parametrize("move_id", ["commune", "create_elixir"])
+def test_asset_moves_have_no_stat_question(move_id: str):
+    assert stat_choices(datasworn(), move_id) == ()
+
+
 def test_move_group_rejects_unknown_ids():
     with pytest.raises(UnknownIdError):
         move_group(datasworn(), "strik")

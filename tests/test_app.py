@@ -553,7 +553,8 @@ def test_heal_a_companion_from_the_form(tmp_path: Path):
 
 
 def test_asset_moves_show_on_the_full_list(tmp_path: Path):
-    turn, _, _ = engine(tmp_path)
+    turn, dice, _ = engine(tmp_path)
+    dice.load(6, 1, 1)
     character = turn.campaign.character
     character.experience = 3
     buy(character, datasworn(), "augur")
@@ -564,5 +565,12 @@ def test_asset_moves_show_on_the_full_list(tmp_path: Path):
             await pilot.press(*"/moves", "enter")
             await pilot.pause()
             assert "Augur" in app.render_bar()
+            while app.bar_state.options[app.bar_state.selected or 0] != "augur":
+                await pilot.press("down")
+            await pilot.pause()
+            assert "[reverse]" in app.render_bar()
+            await pilot.press("enter")
+            await pilot.pause()
+            assert turn.card is not None and turn.card.move == "augur"
 
     asyncio.run(play())

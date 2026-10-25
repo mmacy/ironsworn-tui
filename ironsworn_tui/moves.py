@@ -203,13 +203,15 @@ def stat_choices(data: Datasworn, option: str) -> tuple[StatChoice, ...]:
 
     Returns:
         The approaches, in the order the move data lists them, or an empty tuple for an option
-        with no stat question. Each approach's stat is the option id in the stat question.
+        with no stat question. Asset moves have none: the decision model never suggests them,
+        and a choice such as an elixir's is an option, not a stat. Each approach's stat is the
+        option id in the stat question.
 
     Raises:
         UnknownIdError: If the option isn't a move id or a special option.
         ValueError: If an approach with text rolls something other than one stat.
     """
-    if option in (NO_MOVE, CANNOT_TELL):
+    if option in (NO_MOVE, CANNOT_TELL) or option in data.asset_moves:
         return ()
     move = data.move("strike" if option == ATTACK else option)
     choices: list[StatChoice] = []
