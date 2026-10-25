@@ -3,6 +3,7 @@
 import asyncio
 from pathlib import Path
 
+from rich.text import Text
 from textual.pilot import Pilot
 from textual.widgets import Input, Label, RichLog
 
@@ -22,7 +23,7 @@ from ironsworn_tui.campaign import Campaign, OwedMove
 from ironsworn_tui.decide import DecideError, Decision, JsonObject, OracleDecision
 from ironsworn_tui.rules.datasworn import datasworn
 from ironsworn_tui.rules.progress import Rank
-from ironsworn_tui.turn import MoveInputs, TurnEngine
+from ironsworn_tui.turn import MoveInputs, TurnEngine, move_purpose
 from tests.support import engine
 
 
@@ -1188,3 +1189,55 @@ def test_an_oracle_question_returns_to_the_move_suggestion(tmp_path: Path):
 
     asyncio.run(play())
     assert turn.campaign.log[-1].text == "Ask (likely): Is the far side solid? 50: yes"
+
+
+def test_the_bar_says_what_the_selected_move_is_for(tmp_path: Path):
+    turn, _, decider = engine(tmp_path)
+    decider.answers.append(("face_danger", "edge", 0.95))
+
+    async def play() -> None:
+        app = IronswornApp(turn)
+        async with app.run_test(size=(120, 36)) as pilot:
+            await pilot.press(*"I leap the gap", "enter")
+            await settle(app, pilot)
+            purpose = move_purpose(turn.data, "face_danger")
+            assert f"[dim]{purpose}[/dim]" in app.render_bar().splitlines()
+
+    asyncio.run(play())
+
+
+def test_the_move_purpose_fits_on_one_line_at_80_columns(tmp_path: Path):
+    turn, _, decider = engine(tmp_path)
+    decider.answers.append(("gather_information", None, 0.95))
+
+    async def play() -> None:
+        app = IronswornApp(turn)
+        async with app.run_test(size=(80, 24)) as pilot:
+            await pilot.press(*"I search the camp", "enter")
+            await settle(app, pilot)
+            purpose = move_purpose(turn.data, "gather_information")
+            width = app.bar.content_size.width
+            lines = [Text.from_markup(line).plain for line in app.render_bar().splitlines()]
+            line = next(line for line in lines if line.startswith(purpose[:20]))
+            assert len(line) <= width
+            assert line.endswith("…")
+
+    asyncio.run(play())
+
+
+def test_no_purpose_shows_until_a_move_is_selected(tmp_path: Path):
+    turn = full_list_engine(tmp_path)
+
+    async def play() -> None:
+        app = IronswornApp(turn)
+        async with app.run_test(size=(120, 36)) as pilot:
+            await pilot.press(*"I wait", "enter")
+            await settle(app, pilot)
+            assert app.bar_state.selected is None
+            assert "is the move for" not in app.render_bar()
+            await pilot.press("down")
+            assert app.bar_state.selected == 0
+            first = app.bar_state.options[0]
+            assert move_purpose(turn.data, first) in app.render_bar()
+
+    asyncio.run(play())

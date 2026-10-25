@@ -2,7 +2,7 @@
 
 import re
 import warnings
-from collections.abc import Mapping
+from collections.abc import Collection, Mapping
 from dataclasses import dataclass
 from functools import cache
 from pathlib import Path
@@ -375,6 +375,59 @@ def plain_text(text: str) -> str:
     """Reduce Datasworn's `[label](datasworn:...)` links to their labels, and drop its
     `__bold__` markers and its `{{table>...}}` templates, which embed a table in the text."""
     return _BOLD.sub(r"\1", _LINK.sub(r"\1", _TEMPLATE.sub("", text))).strip()
+
+
+_BLOCK_BREAK = re.compile(r"\n[ \t]*\n")
+_HEADING = re.compile(r"__[^_\n]+__")
+
+
+def _bullets(block: str) -> int | None:
+    """Count the items in a block of `* item` lines, or return None for any other block."""
+    lines = [line.strip() for line in block.splitlines() if line.strip()]
+    if lines and all(line.startswith("* ") for line in lines):
+        return len(lines)
+    return None
+
+
+def without_lists(text: str, sizes: Collection[int]) -> str:
+    """Drop each bulleted list whose item count is in `sizes` from Datasworn text.
+
+    A list is a run of `* item` blocks, with any `__heading__` blocks between them, so
+    Sojourn's three headed lists count as one list of eight items. The roll card uses this to
+    leave out a list that it shows as numbered choices.
+
+    Args:
+        text: Datasworn text, before [`plain_text`][ironsworn_tui.rules.datasworn.plain_text].
+        sizes: The item counts of the lists to drop.
+
+    Returns:
+        The text without those lists, or the text unchanged when no list matches.
+    """
+    blocks = _BLOCK_BREAK.split(text)
+    kept: list[str] = []
+    run: list[str] = []
+    items = 0
+    dropped = False
+
+    def end_run() -> None:
+        nonlocal items, dropped
+        if items and items in sizes:
+            dropped = True
+        else:
+            kept.extend(run)
+        run.clear()
+        items = 0
+
+    for block in blocks:
+        count = _bullets(block)
+        if count is not None or _HEADING.fullmatch(block.strip()):
+            run.append(block)
+            items += count or 0
+            continue
+        end_run()
+        kept.append(block)
+    end_run()
+    return "\n\n".join(kept) if dropped else text
 
 
 def _leaf(move_ref: str) -> str:

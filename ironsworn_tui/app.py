@@ -32,7 +32,14 @@ from ironsworn_tui.policy import OracleSuggestion, Suggestion
 from ironsworn_tui.registry import CommandError, Completion, ghost_pieces
 from ironsworn_tui.rules.datasworn import Datasworn, Stat
 from ironsworn_tui.rules.progress import TICKS_PER_BOX, Rank
-from ironsworn_tui.turn import ROLLED_FOLLOW_UPS, MoveInputs, RollCard, TurnEngine, TurnError
+from ironsworn_tui.turn import (
+    ROLLED_FOLLOW_UPS,
+    MoveInputs,
+    RollCard,
+    TurnEngine,
+    TurnError,
+    move_purpose,
+)
 
 STAT_KEYS: dict[str, Stat] = {"e": "edge", "h": "heart", "i": "iron", "s": "shadow", "w": "wits"}
 STATS: dict[str, Stat] = {stat: stat for stat in STAT_KEYS.values()}
@@ -766,8 +773,11 @@ class IronswornApp(App[None]):
             parts.append((label, index == state.selected))
         lines = [state.message] if state.message else []
         lines += self._rows(parts)
-        details = [f"Add {state.adds:+d}"]
         option = state.options[state.selected] if state.selected is not None else None
+        if option is not None and option not in (NO_MOVE, CANNOT_TELL):
+            purpose = move_purpose(engine.data, engine.move_for(option))
+            lines.append(f"[dim]{escape(self._one_line(purpose))}[/dim]")
+        details = [f"Add {state.adds:+d}"]
         stats = self._stats_for(option) if option is not None else ()
         if stats:
             details.insert(
@@ -784,6 +794,20 @@ class IronswornApp(App[None]):
             hints += self._abilities_hint(option)
         lines.append(f"[dim]{hints}[/dim]")
         return "\n".join(lines)
+
+    def _one_line(self, text: str) -> str:
+        """Cut text to the suggestion bar's width, with an ellipsis, so it takes one line."""
+        line = Text(text)
+        line.truncate(self._bar_width(), overflow="ellipsis")
+        return line.plain
+
+    def _bar_width(self) -> int:
+        """The suggestion bar's text width, or a fallback before the bar is laid out."""
+        return (self.bar.content_size.width if self.is_running else 0) or SIZE_FALLBACK
+
+    def on_resize(self) -> None:
+        """Redraw the suggestion bar, whose rows and one-line texts fit its width."""
+        self.bar.update(self.render_bar())
 
     def _stats_for(self, option: str) -> tuple[Stat, ...]:
         """The stats a move can roll with, or none when it doesn't ask."""
@@ -828,7 +852,7 @@ class IronswornApp(App[None]):
         Returns:
             The rows, as markup, with the selected label reversed.
         """
-        width = (self.bar.content_size.width if self.is_running else 0) or SIZE_FALLBACK
+        width = self._bar_width()
         rows: list[list[str]] = [[]]
         used = 0
         for text, selected in labels:

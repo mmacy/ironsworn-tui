@@ -153,7 +153,13 @@ from ironsworn_tui.policy import (
     suggest_oracle,
 )
 from ironsworn_tui.rules.action import ActionRoll, burn_momentum, evaluate_action
-from ironsworn_tui.rules.datasworn import Datasworn, Stat, StatOption, plain_text
+from ironsworn_tui.rules.datasworn import (
+    Datasworn,
+    Stat,
+    StatOption,
+    plain_text,
+    without_lists,
+)
 from ironsworn_tui.rules.dice import Hit, roll_challenge_dice
 from ironsworn_tui.rules.oracles import (
     Likelihood,
@@ -309,7 +315,8 @@ class RollCard:
         progress: The progress roll, for a progress move.
         effects: The effects [`resolve`][ironsworn_tui.turn.TurnEngine.resolve] applies.
             Options a marked condition blocks are left out.
-        outcome_text: The result's text from the move data, with links shown as move names.
+        outcome_text: The result's text from the move data, with links shown as move names,
+            and without any bulleted list the card shows as numbered choices.
         hit: The result, after any boost that counts one result as another.
         tide: True when Turn the Tide was armed for this move.
         boosts: The labels of the boosts the player turned on.
@@ -1325,6 +1332,9 @@ class TurnEngine:
         for boost in boosts:
             for_ally = move == AID_YOUR_ALLY and boost.moves is not None and move not in boost.moves
             effects += boost_effects(boost, facts, for_ally=for_ally)
+        # The card shows each choice as numbered options, so the text leaves out their list,
+        # matched by its size before a marked condition leaves any option out.
+        choice_sizes = {len(e.options) for e in effects if isinstance(e, Choose)}
         effects = self._allowed(effects)
         endurance = pending.endurance
         if endurance is not None and hit is Hit.MISS and endurance.meter_after == 0:
@@ -1339,7 +1349,7 @@ class TurnEngine:
             action=action,
             progress=progress,
             effects=effects,
-            outcome_text=plain_text(text),
+            outcome_text=plain_text(without_lists(text, choice_sizes)),
             hit=hit,
             tide=pending.tide,
             boosts=tuple(a.label for a in pending.boosts),
