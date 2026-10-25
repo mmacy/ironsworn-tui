@@ -24,7 +24,7 @@ ironsworn-tui is a terminal app for solo Ironsworn. A decision model reads what 
 - The port fixes two `iron.py` bugs. Burning momentum now cancels only the challenge dice below the momentum, so it can't make a result worse. Sub-rolls now follow the `oracle_rollable:` ids that `iron.py` couldn't resolve. Momentum also stops at -6 now, and any loss past that is reported as `setback` for Face a Setback.
 - Build step 2 is done: typed pydantic move models in `ironsworn_tui/rules/datasworn.py`, and the move groups, contexts, and stat questions in `ironsworn_tui/moves.py`.
 - Build step 3 is done: `ironsworn_tui/decide.py` builds the request, starts one `jevtester serve`, and parses the answers. `ironsworn_tui/criteria.py` has the two criteria styles. Read [`decision-model-guidance.md`](decision-model-guidance.md) before changing a question, the criteria, or the state.
-- Build step 4 is done. The user approved the 120 cases on 2026-10-24. Both targets clear the 80 percent bar on `exploring`: `decision-1@foundry` at 95 percent and `clef-flash@workers-ai` at 87.5 percent. Play uses the guide criteria, stat questions without a `cannot_tell` option, and the `move` question's `cannot_tell` option. [`experiments/results.md`](../experiments/results.md) has the numbers and what's unmeasured.
+- Build step 4 is done. The user approved the 120 cases on 2026-10-24. Both targets clear the 80 percent bar on `exploring`: `decision-1@foundry` at 95 percent and `clef-flash@workers-ai` at 87.5 percent. Play uses the guide criteria, stat questions without a `cannot_tell` option, and the `move` question's `cannot_tell` option. [`experiments/results.md`](https://github.com/mmacy/ironsworn-tui/blob/main/experiments/results.md) has the numbers and what's unmeasured.
 - Clef-flash's confidence is less calibrated than Decision-1's, so the policy needs per-target thresholds before play relies on it.
 - Build step 5 is done: `campaign.py` (the saved campaign), `outcomes.py` (each move's effects per result), `policy.py` (thresholds to a suggestion), and `turn.py` (the game loop, with no UI). The module docstring of `turn.py` gives the order the TUI calls it in.
 - Known gaps in step 5, each a Note or an `/adjust` for now:
@@ -65,6 +65,26 @@ uv run pytest
 ```
 
 Fix a finding in the code. Don't add `noqa`, `type: ignore`, or ignore lists.
+
+## Documentation site
+
+The docs in `docs/` are published as a site built with [Zensical](https://zensical.org/). `zensical.toml` holds the site's settings and navigation. Add a new page to `nav` there, or it won't appear in the site's navigation. The dev diary in `diary/` isn't part of the site.
+
+- Build the site with `uv run zensical build --clean`. It writes to `site/`, which git ignores. The build must finish with "No issues found", so fix any broken link or anchor it reports.
+- Preview the site with `uv run zensical serve`.
+- `.github/workflows/docs.yml` builds the site and deploys it to GitHub Pages on every push to `main`. It needs the repository's Pages source set to GitHub Actions.
+
+## Screenshots
+
+`scripts/screenshots.py` draws the SVG screenshots in `docs/images/`. It runs the real app headlessly at 120 by 36 with Textual's pilot, and uses the loaded dice and `FixtureDecider` from `tests/support.py`, so it calls no model and needs no network. Each run draws the same screens.
+
+Run it from the repository root after any change to what the screen shows:
+
+```sh
+uv run python -m scripts.screenshots
+```
+
+To add a screenshot, add a drive function to `SCREENS` in the script, run it, and embed the new file with alt text that describes what it shows.
 
 ## Decision model targets
 

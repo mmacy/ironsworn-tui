@@ -185,6 +185,8 @@ The play screen has four parts:
 - **Suggestion bar**, below them: suggested moves, the roll card, and owed moves. Its keys depend on its [mode](#suggestion-bar).
 - **Input line**, at the bottom: where you type a message or a `/` command.
 
+![The play screen in suggest mode. The character panel is on the left, the log on the right, the suggestion bar below them with Face Danger suggested, and the input line at the bottom.](images/suggestion.svg)
+
 Log colors:
 
 | Color | Entry |
@@ -291,6 +293,8 @@ The bar shows the owed move and, for an endure move, the amount.
 ### Pickers
 
 The abilities picker (`a`) lists the asset abilities that apply to a move. The dice picker (`r`) lists `Action die`, `First challenge die`, and `Second challenge die`. A progress roll has no action die, so it lists only the challenge dice. `[x]` marks a picked item.
+
+![The abilities picker, titled "Abilities for Secure an Advantage", with two Archer abilities and their number keys.](images/abilities.svg)
 
 | Key | Action |
 |---|---|
