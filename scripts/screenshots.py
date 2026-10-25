@@ -138,6 +138,20 @@ async def pay_the_price(
     await press(pilot, "enter")
 
 
+async def turn_record(
+    app: IronswornApp, pilot: Pilot[None], dice: Dice, decider: FixtureDecider
+) -> None:
+    """The log's record of a resolved move: Gather Information on a strong hit."""
+    await swear(app, pilot, dice, decider)
+    decider.answers.append(("gather_information", None, 0.95))
+    await type_line(pilot, "I look around to gain an idea of my surroundings")
+    await settle(app, pilot)
+    # Wits 3 + 6 = 9 against 3 and 4: a strong hit.
+    dice.load(6, 3, 4)
+    await press(pilot, "enter")
+    await press(pilot, "enter")
+
+
 async def abilities(
     app: IronswornApp, pilot: Pilot[None], dice: Dice, decider: FixtureDecider
 ) -> None:
@@ -195,6 +209,7 @@ SCREENS: dict[str, Drive] = {
     "move-list": move_list,
     "weak-hit": weak_hit,
     "pay-the-price": pay_the_price,
+    "turn-record": turn_record,
     "abilities": abilities,
     "oracle": oracle,
     "fight": fight,

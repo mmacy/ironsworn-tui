@@ -363,7 +363,7 @@ To change a companion's health directly, type `/asset meter hawk health 1` to ad
 
 Use this when an asset leaves an effect that lasts beyond one roll, like a talisman or a ritual's power.
 
-1. Create the effect. Most effects come from asset moves, such as a ritual's, which you make from the `/moves` list. Slayer's trophy comes from `/asset use slayer ritual` or `/asset use slayer sojourn`. The log shows "Lasting:" and the effect's name.
+1. Create the effect. Most effects come from asset moves, such as a ritual's, which you make from the `/moves` list. Slayer's trophy comes from `/asset use slayer ritual` or `/asset use slayer sojourn`. The log shows "Lasting effect:" and the effect's name.
 2. Type `/effects` to list your lasting effects. Each line has a number and a name, such as "1 Talisman".
 3. When an effect helps a roll, it appears in the abilities window with your assets' abilities. Turn it on there, as in [How to use an asset ability on a roll](#how-to-use-an-asset-ability-on-a-roll).
 
@@ -450,7 +450,7 @@ To resume:
    uv run ironsworn-tui play Blarg
    ```
 
-The app opens with the panel as you left it and the last 50 lines of the log. If a move was owed, the bar shows it. If the name is wrong, the command prints "Error: no campaign at" and the path it looked for.
+The app opens with the panel as you left it and the last 200 lines of the log. If a move was owed, the bar shows it. If the name is wrong, the command prints "Error: no campaign at" and the path it looked for.
 
 To find the campaign file:
 

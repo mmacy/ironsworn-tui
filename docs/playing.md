@@ -32,6 +32,8 @@ In the app, a turn goes like this:
 5. You make the choices, and the app applies the result.
 6. If the result calls for another move, like Endure Harm, the app asks you to make it next.
 
+The log keeps a record of each turn, so you can learn the rules as you play. The first time you make a move, the log says what the move is for. Then it shows the roll, the result's text from the rulebook, the options you picked, and each change with its new value, such as "Momentum +2 (now 4)." When the result asks something of you that the app can't do, a line that starts with "Next:" says what it is. For example, Gather Information's strong hit says to envision what you learn, so the log says "Next: imagine what you learn and type it, or ask the oracle." "Envision" is the rulebook's word for imagining what happens in the story.
+
 How much the suggestion bar offers depends on the model's confidence:
 
 - **Confident:** The bar selects one move. Press Enter to roll it.
@@ -239,7 +241,7 @@ Some results call for another move right away. The app keeps a list of these *fo
 
 The follow-ups are:
 
-- **Pay the Price:** after most misses (rulebook page 105). You choose how: the most obvious bad outcome (`o`), ask the oracle whether your likelier outcome happens (`a`), or roll on the table (`t`). The app logs the answer. You decide what it means and apply any cost.
+- **Pay the Price:** after most misses (rulebook page 105). You choose how: the most obvious bad outcome (`o`), ask the oracle whether your likelier outcome happens (`a`), or roll on the table (`t`). The app logs the answer. You decide what it means and apply any cost. The log's "Next:" line reminds you to do both.
 - **Endure Harm:** when you're hurt (rulebook page 91). The app takes the harm off your health first, then rolls the higher of your health or iron. If your health is already 0, the rest of the harm comes off momentum.
 - **Endure Stress:** when you face shock or despair (rulebook page 95). It works like Endure Harm, with spirit and heart.
 - **Face Death** and **Face Desolation:** when an Endure Harm or Endure Stress result says "The harm is mortal" or "You are overwhelmed." They roll heart.
@@ -248,7 +250,7 @@ The follow-ups are:
 
 On an Endure Harm miss with 0 health, the app asks you to mark wounded or maimed, or to roll on the move's table. Endure Stress does the same with shaken or corrupted. If a table result is fatal, the app adds Face Death or Face Desolation to the list.
 
-The rules resolve these moves before anything else happens, so the app blocks other moves until you make them.
+The rules resolve these moves before anything else happens, so the app blocks other moves until you make them. When a result adds one, the log shows "Owed:" and the move, then a "Next:" line that says what the move does and which key makes it.
 
 ### When the fiction means harm
 

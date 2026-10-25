@@ -5,7 +5,7 @@ from collections.abc import Sequence
 from pathlib import Path
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field
 
 from ironsworn_tui.moves import Context, Initiative
 from ironsworn_tui.rules.action import ActionRoll
@@ -14,7 +14,7 @@ from ironsworn_tui.rules.momentum import MomentumBounds, adjust_momentum, moment
 from ironsworn_tui.rules.progress import TICKS_PER_BOX, TRACK_TICKS, ProgressRoll, Rank
 from ironsworn_tui.rules.suffer import Endurance
 
-SCHEMA_VERSION = 3
+SCHEMA_VERSION = 4
 METER_MAX = 5
 STARTING_STATS = (3, 2, 2, 1, 1)
 STARTING_ASSETS = 3
@@ -400,11 +400,24 @@ class SavedCard(_Model):
     burn_initiative: bool = False
 
 
-type LogKind = Literal["message", "roll", "outcome", "note", "command"]
+type LogKind = Literal[
+    "message", "explain", "roll", "outcome", "choice", "change", "next", "note", "command"
+]
 
 
 class LogEntry(_Model):
-    """One line of the log."""
+    """One line of the log.
+
+    Attributes:
+        kind: What the line records. `message` is what the player typed. A resolved move adds,
+            in order: `explain`, what the move is for, the first time the campaign makes it;
+            `roll`, the dice; `outcome`, the result's text; `choice`, each option the player
+            picked; `change`, each change with its new value; and `next`, what the player
+            does next when the result calls for something the app doesn't do. `outcome` also
+            records oracle answers. `note` is something the player applies by hand, and
+            `command` a `/` command's change.
+        text: The line.
+    """
 
     kind: LogKind
     text: str
@@ -436,10 +449,11 @@ class Campaign(_Model):
         pending_card: The roll card waiting for the player's choices, if any.
         background_vow: The name of the background vow, which Fated counts.
         lasting: The lasting effects, such as a talisman, in the order they started.
+        explained: The moves whose purpose the log has explained, so each is explained once.
         log: The turn log.
     """
 
-    schema_version: Literal[3] = SCHEMA_VERSION
+    schema_version: Literal[4] = SCHEMA_VERSION
     character: Character
     vows: list[ProgressTrack] = Field(default_factory=list[ProgressTrack])
     bonds: int = Field(default=0, ge=0, le=TRACK_TICKS)
@@ -459,14 +473,8 @@ class Campaign(_Model):
     pending_card: SavedCard | None = None
     background_vow: str | None = None
     lasting: list[Lasting] = Field(default_factory=list[Lasting])
+    explained: list[str] = Field(default_factory=list[str])
     log: list[LogEntry] = Field(default_factory=list[LogEntry])
-
-    @model_validator(mode="after")
-    def _background_vow_from_first_vow(self) -> Campaign:
-        # Campaigns saved before `background_vow` existed started with the background vow.
-        if self.background_vow is None and self.vows:
-            self.background_vow = self.vows[0].name
-        return self
 
     @property
     def context(self) -> Context:

@@ -102,7 +102,6 @@ These imports break the layering. They're still in the code:
 
 - `outcomes.py` imports the `Meter` and `Debility` types from `campaign.py`. So layer 3 depends on layer 4, though only for two type aliases. There's no import cycle, because `campaign.py` imports neither `outcomes.py` nor `abilities.py`. Moving the two aliases below both modules would fix it.
 - `scripts/screenshots.py` imports `STATS`, `Dice`, `FixtureDecider`, and `engine` from `tests/support.py`. A change to the test helpers can break the script.
-- `app.py` writes to the campaign log itself when a decision fails: it calls `engine.campaign.add_log`, then `engine.save()`. Every other change goes through an engine method or a command.
 
 ## One turn, end to end
 
@@ -114,7 +113,7 @@ The module docstring of `turn.py` gives the order the app calls the engine in. T
 4. **The player confirms.** The bar is in its `suggest` mode. The player picks a move, a stat, an add, and any boosts, then presses Enter. If the move needs inputs, like a vow's name and rank, `InputsScreen` asks for them first.
 5. **The engine rolls.** `TurnEngine.make_move` runs every check first. Then it changes the campaign, rolls, and returns a `RollCard`. The card contains the roll, the result, and the effects from `outcomes.outcome`, changed by the boosts the player turned on. `burn`, `reroll`, and `late_add` can change the card before it resolves.
 6. **The player picks choices.** In `card` mode, the player picks options for each `Choose` effect on the card.
-7. **The engine resolves the card.** `TurnEngine.resolve` checks the choices against the card and applies each effect. In a fight, it updates initiative. It saves the campaign and returns the follow-ups still owed.
+7. **The engine resolves the card.** `TurnEngine.resolve` checks the choices against the card and applies each effect. In a fight, it updates initiative. It logs the result's text, the picks, each change, and a `next` line, then saves the campaign and returns the follow-ups still owed. The changes come from comparing a snapshot of the campaign, `TurnEngine._state`, before and after, so a new effect kind is logged without its own log code.
 8. **Follow-ups are owed.** A `FollowUp` effect adds an `OwedMove` to `Campaign.follow_ups`. In `follow_up` mode, the player makes each one in order. Pay the Price goes to `pay_the_price` and Forsake Your Vow to `forsake`. The rolled follow-ups go to `roll_follow_up`: Endure Harm, Endure Stress, Companion Endure Harm, Face Death, Face Desolation, and Scrape By.
 9. **The engine saves the campaign.** `TurnEngine.save` calls `Campaign.save`. It writes the JSON to a temporary file, then replaces the real file, so a crash can't leave half a file. The engine saves after each change.
 10. **The engine logs the case.** The player's move, or `n` for no move, calls `TurnEngine._record`. It builds a case with `cases.build_case` and sends it to the server, which adds it to `suites/play-<context>.yaml`. If the player didn't take the model's top answer, the case is tagged. The tag is `abstained` when that answer was `cannot_tell`, and `corrected` otherwise. Escape calls `TurnEngine.skip`, which saves nothing.
@@ -175,7 +174,7 @@ The rulebook says to make a move that a result calls for, like Pay the Price aft
 
 The Datasworn models in `rules/datasworn.py` are frozen, so no code can change the one cached copy. The move and asset models also reject unknown keys, so a renamed Datasworn key fails at load instead of being dropped. The campaign models reject unknown keys and check each value when it's assigned, so a bad value fails where it's set, not at the next save. They aren't frozen, because the engine changes the campaign in place. `Campaign.load` also runs `Campaign.check`, which raises an error if parts disagree, like a target that isn't one of the foes.
 
-`Campaign.schema_version` is `Literal[3]`, so a file with any other version doesn't load. Raise `SCHEMA_VERSION` when the campaign format changes. There's no code to migrate old files.
+`Campaign.schema_version` is `Literal[4]`, so a file with any other version doesn't load. Raise `SCHEMA_VERSION` when the campaign format changes. There's no code to migrate old files.
 
 ### No credentials are stored
 

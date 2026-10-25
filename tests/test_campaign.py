@@ -148,7 +148,7 @@ def test_save_and_load_round_trip(tmp_path: Path):
     path = tmp_path / "campaigns" / "kira.json"
     campaign.save(path)
     assert Campaign.load(path) == campaign
-    assert '"schema_version": 3' in path.read_text()
+    assert '"schema_version": 4' in path.read_text()
     assert not path.with_suffix(".json.tmp").exists()
 
 

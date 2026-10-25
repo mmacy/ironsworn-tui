@@ -122,7 +122,7 @@ def test_a_miss_leads_to_pay_the_price(tmp_path: Path):
 
     asyncio.run(play())
     assert turn.follow_ups == ()
-    assert "A new danger or foe is revealed." in turn.campaign.log[-1].text
+    assert "A new danger or foe is revealed." in turn.campaign.log[-2].text
 
 
 def test_a_move_that_needs_inputs_asks_for_them(tmp_path: Path):

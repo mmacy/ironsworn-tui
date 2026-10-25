@@ -155,3 +155,8 @@ def test_plain_text_drops_links_and_bold_markers():
         "On a __weak hit__, make the [Endure Harm](datasworn:move:classic/suffer/endure_harm) move."
     )
     assert plain_text(text) == "On a weak hit, make the Endure Harm move."
+
+
+def test_plain_text_drops_table_templates():
+    text = "Roll on the following table.\n\n{{table>move.oracle_rollable:classic/suffer/x.x}}"
+    assert plain_text(text) == "Roll on the following table."
