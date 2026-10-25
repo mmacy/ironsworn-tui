@@ -18,7 +18,7 @@ If you don't have jevtester or a sign-in, you can still play. Start the game wit
 Clone the repository, sign in, create a character, and start playing:
 
 ```sh
-git clone git@github.com:mmacy/ironsworn-tui.git
+git clone https://github.com/mmacy/ironsworn-tui.git
 cd ironsworn-tui
 az login
 uv run ironsworn-tui new Kira --description "a hunter" --stats edge=2,heart=2,iron=1,shadow=1,wits=3 --assets archer,hawk:2,wright --vow "Avenge my village"
@@ -41,4 +41,4 @@ The full rules are in the *Ironsworn* rulebook, a free download from the publish
 
 ## License
 
-The repository is licensed under [CC BY-NC-SA 4.0](https://github.com/mmacy/ironsworn-tui/blob/main/LICENSE). *Ironsworn* is by Shawn Tomkin.
+The repository is licensed under [CC BY-NC-SA 4.0](https://github.com/mmacy/ironsworn-tui/blob/main/LICENSE). *Ironsworn* is by Shawn Tomkin. Ironsworn is a trademark of Shawn Tomkin. This is not an official Ironsworn product.

@@ -52,7 +52,7 @@ Because some files in this directory are licensed under CC BY-NC-SA 4.0, the **d
 2. Not use this data for commercial purposes.
 3. Distribute derivative works under the same license.
 
-The Python scripts and skill prompts elsewhere in this plugin are original work and are not subject to this license — see the plugin root for their licensing.
+The code elsewhere in this repository is original work and isn't subject to this file's licenses. The repository's [`LICENSE`](../../../LICENSE) covers it.
 
 ## How to re-vendor
 
