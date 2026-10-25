@@ -212,11 +212,7 @@ def _vow(engine: TurnEngine, rest: str) -> CommandResult:
             inputs = MoveInputs(vow=vow, rank=parse_rank(rank_word))
             return CommandResult(card=engine.make_move("swear_an_iron_vow", inputs=inputs))
         case "mark":
-            vow = _named_vow(engine, args)
-            vow.mark()
-            line = f"Reach a Milestone: {vow.name} is at {vow.boxes}/10"
-            campaign.add_log("outcome", line)
-            engine.save()
+            engine.mark_vow(_named_vow(engine, args).name)
             return CommandResult()
         case "fulfill":
             inputs = MoveInputs(vow=_named_vow(engine, args).name)

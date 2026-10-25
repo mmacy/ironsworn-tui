@@ -107,6 +107,7 @@ class OwnedAsset(_Model):
         fields: Each text or select field the player has filled in, such as a companion's
             name or a Devotant's god's stat. A select field holds the choice id.
         debility: True when the asset counts as a debility, as Oathbreaker does.
+        spent: The abilities, from 1 to 3, whose one-time-only boost was used.
     """
 
     id: str
@@ -114,6 +115,7 @@ class OwnedAsset(_Model):
     meters: dict[str, int] = Field(default_factory=dict[str, int])
     fields: dict[str, str] = Field(default_factory=dict[str, str])
     debility: bool = False
+    spent: list[int] = Field(default_factory=list[int])
 
     def counts_as_debility(self) -> bool:
         """True when the asset counts as a debility now, as Commander does at 0 strength."""
@@ -181,6 +183,7 @@ class Character(_Model):
     spirit: int = Field(default=METER_MAX, ge=0, le=METER_MAX)
     supply: int = Field(default=METER_MAX, ge=0, le=METER_MAX)
     momentum: int = Field(default=STARTING_MOMENTUM, ge=-6, le=10)
+    spirit_max: int = Field(default=METER_MAX, ge=0, le=METER_MAX)
     debilities: list[Debility] = Field(default_factory=list[Debility])
     assets: list[OwnedAsset] = Field(default_factory=list[OwnedAsset])
     experience: int = Field(default=0, ge=0)
@@ -224,7 +227,7 @@ class Character(_Model):
 
     def meter_max(self, meter: Meter) -> int:
         """Return a meter's highest value."""
-        return self.health_max if meter == "health" else METER_MAX
+        return {"health": self.health_max, "spirit": self.spirit_max, "supply": METER_MAX}[meter]
 
     def meter(self, meter: Meter) -> int:
         """Return a meter's value."""
@@ -313,6 +316,8 @@ class Campaign(_Model):
         next_add: The add for the next action roll, from a result such as "Take control".
         tide_armed: True when Turn the Tide is armed for the next move.
         end_fight_offered: True when the last result allows End the Fight.
+        fight_uses: The once-per-fight boosts used in this fight, as `asset:ability`.
+        background_vow: The name of the background vow, which Fated counts.
         log: The turn log.
     """
 
@@ -330,6 +335,8 @@ class Campaign(_Model):
     next_add: int = 0
     tide_armed: bool = False
     end_fight_offered: bool = False
+    fight_uses: list[str] = Field(default_factory=list[str])
+    background_vow: str | None = None
     log: list[LogEntry] = Field(default_factory=list[LogEntry])
 
     @property
@@ -375,6 +382,7 @@ class Campaign(_Model):
         self.tide_used = False
         self.tide_armed = False
         self.end_fight_offered = False
+        self.fight_uses = []
 
     def add_log(self, kind: LogKind, text: str) -> None:
         """Add a line to the log."""
@@ -419,6 +427,8 @@ class Campaign(_Model):
             problems.append(f"momentum {character.momentum} is over {character.bounds.max}")
         if character.health > character.health_max:
             problems.append(f"health {character.health} is over {character.health_max}")
+        if character.spirit > character.spirit_max:
+            problems.append(f"spirit {character.spirit} is over {character.spirit_max}")
         problems += _asset_problems(character)
         foe_names = [foe.name for foe in self.foes]
         if self.target is not None and self.target not in foe_names:
@@ -535,4 +545,8 @@ def _check_no_stat_change(data: Datasworn, asset_id: str, ability: int) -> None:
 
 def new_campaign(character: Character, background_vow: str, rank: Rank) -> Campaign:
     """Start a campaign with a character and their background vow."""
-    return Campaign(character=character, vows=[ProgressTrack(name=background_vow, rank=rank)])
+    return Campaign(
+        character=character,
+        vows=[ProgressTrack(name=background_vow, rank=rank)],
+        background_vow=background_vow,
+    )

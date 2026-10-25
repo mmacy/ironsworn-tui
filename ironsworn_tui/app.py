@@ -10,6 +10,7 @@ from textual.containers import Horizontal, Vertical
 from textual.screen import ModalScreen
 from textual.widgets import Input, Label, RichLog, Static
 
+from ironsworn_tui.abilities import AvailableBoost, BoostRef
 from ironsworn_tui.campaign import Campaign, ProgressTrack
 from ironsworn_tui.commands import CommandError, asset_summary, parse_foes, parse_rank, run_command
 from ironsworn_tui.moves import ATTACK, CANNOT_TELL, NO_MOVE, stat_choices
@@ -36,7 +37,9 @@ FIELD_HINTS = {
     "foes": "Name rank, name rank",
     "destination": "The destination",
     "treat": "yourself or someone else",
+    "amount": "How much to spend",
 }
+DICE_LABELS = ("Action die", "First challenge die", "Second challenge die")
 
 type Mode = Literal["idle", "thinking", "suggest", "card", "follow_up", "offer"]
 
@@ -48,6 +51,10 @@ def option_name(engine: TurnEngine, option: str) -> str:
     if option in (NO_MOVE, CANNOT_TELL):
         return option.replace("_", " ").capitalize()
     return engine.data.move(option).name
+
+
+def _boost_line(boosts: list[AvailableBoost]) -> str:
+    return escape("Abilities: " + ", ".join(available.label for available in boosts))
 
 
 def _boxes(track: ProgressTrack) -> str:
@@ -127,6 +134,7 @@ class BarState:
         picks: The options picked for each of the card's choices so far.
         pending: The options picked for the current choice, not yet confirmed.
         message: A line shown above the options, such as "No move".
+        boosts: The asset boosts turned on for the selected move or the owed endure roll.
     """
 
     mode: Mode = "idle"
@@ -139,6 +147,7 @@ class BarState:
     picks: list[list[int]] = field(default_factory=list[list[int]])
     pending: list[int] = field(default_factory=list[int])
     message: str = ""
+    boosts: list[AvailableBoost] = field(default_factory=list[AvailableBoost])
 
 
 class SuggestionBar(Static, can_focus=True):
@@ -197,17 +206,79 @@ class InputsScreen(ModalScreen[MoveInputs | None]):
             self.query_one("#error", Label).update(_sentence(str(error)))
 
 
+class PickScreen(ModalScreen[list[int] | None]):
+    """Picks any of a short list of items with the digit keys, then Enter."""
+
+    DEFAULT_CSS = """
+    PickScreen { align: center middle; }
+    PickScreen > Vertical {
+        width: 80; height: auto; border: round $accent; padding: 1 2; background: $surface;
+    }
+    """
+
+    def __init__(self, title: str, items: list[str], picked: list[int]) -> None:
+        """Create the picker, with a title, the items, and the ones already picked."""
+        super().__init__()
+        self.title_text = title
+        self.items = items
+        self.picked = list(picked)
+
+    def compose(self) -> ComposeResult:
+        """Lay out the title, the items, and the keys."""
+        with Vertical():
+            yield Label(f"[b]{escape(self.title_text)}[/b]")
+            yield Label(self._items_text(), id="items")
+            yield Label("[dim]1-9 turn on or off · Enter done · Esc cancel[/dim]")
+
+    def _items_text(self) -> str:
+        lines: list[str] = []
+        for index, item in enumerate(self.items):
+            mark = "[x]" if index in self.picked else "[ ]"
+            lines.append(f"{index + 1} {mark} {escape(item)}")
+        return "\n".join(lines)
+
+    def on_key(self, event: events.Key) -> None:
+        """Toggle an item, finish, or cancel."""
+        character = event.character or ""
+        if event.key == "escape":
+            self.dismiss(None)
+        elif event.key == "enter":
+            self.dismiss(sorted(self.picked))
+        elif character in DIGITS and int(character) <= len(self.items):
+            index = int(character) - 1
+            if index in self.picked:
+                self.picked.remove(index)
+            else:
+                self.picked.append(index)
+            self.query_one("#items", Label).update(self._items_text())
+        else:
+            return
+        event.stop()
+
+
+class AbilitiesScreen(PickScreen):
+    """Picks the asset boosts to turn on for a move."""
+
+
+class DiceScreen(PickScreen):
+    """Picks the dice to reroll."""
+
+
 def _inputs(values: dict[str, str]) -> MoveInputs:
     rank: Rank | None = parse_rank(values["rank"]) if "rank" in values else None
     treat = (values.get("treat") or "yourself").lower()
     if treat not in ("yourself", "someone else", "self", "other"):
         raise CommandError("treat must be yourself or someone else")
+    amount = values.get("amount")
+    if amount is not None and not amount.isdigit():
+        raise CommandError("amount must be a number")
     return MoveInputs(
         vow=values.get("vow") or None,
         rank=rank,
         foes=parse_foes(values["foes"]) if "foes" in values else (),
         destination=values.get("destination") or None,
         heal_self=treat in ("yourself", "self"),
+        amount=int(amount) if amount is not None else None,
     )
 
 
@@ -361,6 +432,7 @@ class IronswornApp(App[None]):
             return
         state.selected = index
         state.stat = None
+        state.boosts = []
         if index is None or state.suggestion is None:
             return
         decision = state.suggestion.decision
@@ -390,8 +462,11 @@ class IronswornApp(App[None]):
                 elif owed.move == "forsake_your_vow":
                     hint = "Enter forsake"
                 else:
-                    hint = f"Enter roll ({owed.amount})"
-                return f"[b]{name}[/b]\n[dim]{hint}[/dim]"
+                    hint = f"Enter roll ({owed.amount})" + self._abilities_hint(owed.move)
+                lines = [f"[b]{name}[/b]"]
+                if self.bar_state.boosts:
+                    lines.append(_boost_line(self.bar_state.boosts))
+                return "\n".join([*lines, f"[dim]{hint}[/dim]"])
             case "offer":
                 return "[b]End the Fight[/b]\n[dim]f end the fight · Esc continue[/dim]"
 
@@ -413,9 +488,43 @@ class IronswornApp(App[None]):
         if option is not None and stat_choices(engine.data, option):
             details.insert(0, f"Stat {state.stat or 'not set'}")
         lines.append("  ".join(details))
+        if state.boosts:
+            lines.append(_boost_line(state.boosts))
         hints = "Enter roll · 1-9 or arrows move · e h i s w stat · + - add · n no move · Esc back"
+        if option is not None:
+            hints += self._abilities_hint(option)
         lines.append(f"[dim]{hints}[/dim]")
         return "\n".join(lines)
+
+    def _abilities_hint(self, option: str) -> str:
+        count = len(self._available(option))
+        return f" · a abilities ({count})" if count else ""
+
+    def _available(self, option: str) -> tuple[AvailableBoost, ...]:
+        if option in (NO_MOVE, CANNOT_TELL):
+            return ()
+        return self.engine.boosts_for(option)
+
+    def _pick_boosts(self, option: str) -> None:
+        """Open the abilities picker for a move, and keep what the player turns on."""
+        available = list(self._available(option))
+        if not available:
+            self.note("No abilities apply to this move")
+            return
+        state = self.bar_state
+        picked = [index for index, a in enumerate(available) if a in state.boosts]
+
+        def done(indices: list[int] | None) -> None:
+            if indices is not None and self.bar_state is state:
+                state.boosts = [available[index] for index in indices]
+            self.refresh_all()
+            self.bar.focus()
+
+        title = f"Abilities for {option_name(self.engine, option)}"
+        self.push_screen(AbilitiesScreen(title, [a.label for a in available], picked), done)
+
+    def _refs(self) -> list[BoostRef]:
+        return [available.ref for available in self.bar_state.boosts]
 
     def _chooses(self) -> list[Choose]:
         card = self.bar_state.card
@@ -426,10 +535,10 @@ class IronswornApp(App[None]):
         card = state.card
         if card is None:
             return ""
-        lines = [
-            f"[b]{card.name}[/b] +{card.rolled_with}: {card.hit.label}",
-            escape(card.outcome_text),
-        ]
+        lines = [f"[b]{card.name}[/b] +{card.rolled_with}: {card.hit.label}"]
+        if card.boosts:
+            lines.append(escape("With " + ", ".join(card.boosts)))
+        lines.append(escape(card.outcome_text))
         chooses = self._chooses()
         keys = ["Enter apply"]
         if len(state.picks) < len(chooses):
@@ -441,6 +550,10 @@ class IronswornApp(App[None]):
                     f"  [reverse]{label}[/reverse]" if index in state.pending else f"  {label}"
                 )
             keys.insert(0, f"1-{len(choose.options)} choose")
+        if card.can_reroll:
+            keys.append("r reroll")
+        if card.can_late_add:
+            keys.append("+ add after rolling")
         if card.burn_available:
             keys.append("b burn momentum")
         lines.append("[dim]" + " · ".join(keys) + "[/dim]")
@@ -527,6 +640,9 @@ class IronswornApp(App[None]):
             self.select(min(last, (state.selected if state.selected is not None else -1) + 1))
         elif character in STAT_KEYS:
             state.stat = STAT_KEYS[character]
+        elif character == "a" and state.selected is not None:
+            self._pick_boosts(state.options[state.selected])
+            return True
         elif character == "n":
             before = len(self.engine.campaign.log)
             self.engine.no_move()
@@ -554,25 +670,37 @@ class IronswornApp(App[None]):
         option = state.options[state.selected]
         stat = state.stat if stat_choices(self.engine.data, option) else None
         fields = self.engine.inputs_needed(option)
+        if any(available.boost.unleash for available in state.boosts):
+            fields = (*fields, "amount")
         adds = state.adds
+        boosts = self._refs()
         if not fields:
-            self._make(option, stat, adds, MoveInputs())
+            self._make(option, stat, adds, MoveInputs(), boosts)
             return
 
         def done(inputs: MoveInputs | None) -> None:
             if inputs is None:
                 return
             try:
-                self._make(option, stat, adds, inputs)
+                self._make(option, stat, adds, inputs, boosts)
             except TurnError as error:
                 self.note(str(error))
                 self.refresh_all()
 
         self.push_screen(InputsScreen(option_name(self.engine, option), fields), done)
 
-    def _make(self, option: str, stat: Stat | None, adds: int, inputs: MoveInputs) -> None:
+    def _make(
+        self,
+        option: str,
+        stat: Stat | None,
+        adds: int,
+        inputs: MoveInputs,
+        boosts: list[BoostRef] | None = None,
+    ) -> None:
         before = len(self.engine.campaign.log)
-        card = self.engine.make_move(option, stat=stat, adds=adds, inputs=inputs)
+        card = self.engine.make_move(
+            option, stat=stat, adds=adds, inputs=inputs, boosts=boosts or []
+        )
         self.log_new(before)
         if card is None:
             self.after_turn()
@@ -594,6 +722,15 @@ class IronswornApp(App[None]):
                 state.pending = [index]
             elif len(state.pending) < choose.count:
                 state.pending.append(index)
+        elif character == "r" and state.card is not None and state.card.can_reroll:
+            self._pick_dice(state.card)
+            return True
+        elif character == "+" and state.card is not None and state.card.can_late_add:
+            before = len(self.engine.campaign.log)
+            state.card = self.engine.late_add()
+            state.picks = []
+            state.pending = []
+            self.log_new(before)
         elif character == "b" and state.card is not None and state.card.burn_available:
             before = len(self.engine.campaign.log)
             state.card = self.engine.burn()
@@ -625,6 +762,27 @@ class IronswornApp(App[None]):
         self.refresh_all()
         return True
 
+    def _pick_dice(self, card: RollCard) -> None:
+        """Open the dice picker, and reroll the dice the player picks."""
+        labels: list[str] = list(DICE_LABELS[0 if card.action is not None else 1 :])
+        offset = 0 if card.action is not None else 1
+        state = self.bar_state
+
+        def done(indices: list[int] | None) -> None:
+            if indices and self.bar_state is state:
+                before = len(self.engine.campaign.log)
+                try:
+                    state.card = self.engine.reroll([index + offset for index in indices])
+                except TurnError as error:
+                    self.note(str(error))
+                state.picks = []
+                state.pending = []
+                self.log_new(before)
+            self.refresh_all()
+            self.bar.focus()
+
+        self.push_screen(DiceScreen("Reroll which dice?", labels, []), done)
+
     def _follow_up_key(self, key: str, character: str) -> bool:
         engine = self.engine
         owed = engine.follow_ups[0]
@@ -633,10 +791,16 @@ class IronswornApp(App[None]):
             engine.pay_the_price(PAY_KEYS[character])
         elif key == "enter" and owed.move == "forsake_your_vow":
             engine.forsake()
+        elif character == "a" and owed.move in ("endure_harm", "endure_stress"):
+            self._pick_boosts(owed.move)
+            return True
         elif key == "enter" and owed.move in ("endure_harm", "endure_stress"):
-            card = engine.endure()
+            card = engine.endure(self._refs())
             self.log_new(before)
-            self.show_card(card)
+            if card is None:
+                self.after_turn()
+            else:
+                self.show_card(card)
             return True
         else:
             return False

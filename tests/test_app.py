@@ -6,9 +6,19 @@ from pathlib import Path
 from textual.pilot import Pilot
 from textual.widgets import Input
 
-from ironsworn_tui.app import CharacterPanel, InputsScreen, IronswornApp, SuggestionBar
-from ironsworn_tui.campaign import Campaign
+from ironsworn_tui.abilities import BoostRef
+from ironsworn_tui.app import (
+    AbilitiesScreen,
+    CharacterPanel,
+    DiceScreen,
+    InputsScreen,
+    IronswornApp,
+    SuggestionBar,
+)
+from ironsworn_tui.assets import buy, upgrade
+from ironsworn_tui.campaign import Campaign, OwedMove
 from ironsworn_tui.decide import DecideError, Decision, JsonObject
+from ironsworn_tui.rules.datasworn import datasworn
 from ironsworn_tui.rules.progress import Rank
 from ironsworn_tui.turn import MoveInputs
 from tests.support import engine
@@ -345,3 +355,116 @@ def test_n_saves_no_move_and_escape_saves_nothing(tmp_path: Path):
 
     asyncio.run(play())
     assert saved == ["no_move"]
+
+
+def test_abilities_from_the_suggestion_bar(tmp_path: Path):
+    turn, dice, decider = engine(tmp_path)
+    decider.answers.append(("secure_an_advantage", "edge", 0.95))
+
+    async def play() -> None:
+        app = IronswornApp(turn)
+        async with app.run_test(size=(120, 40)) as pilot:
+            await pilot.press(*"I take aim", "enter")
+            await settle(app, pilot)
+            assert "a abilities (4)" in app.render_bar()
+            await pilot.press("a")
+            await pilot.pause()
+            assert isinstance(app.screen, AbilitiesScreen)
+            await pilot.press("1", "enter")
+            await pilot.pause()
+            assert "Archer 1: Trust your instincts" in app.render_bar()
+            # Wits 3 + 1 + 4 = 8 against 7 and 9: a weak hit.
+            dice.load(4, 7, 9)
+            await pilot.press("enter")
+            await pilot.pause()
+            assert app.bar_state.card is not None
+            assert app.bar_state.card.rolled_with == "wits"
+            assert app.bar_state.card.boosts == ("Archer 1: Trust your instincts",)
+
+    asyncio.run(play())
+
+
+def test_reroll_and_late_add_on_the_card(tmp_path: Path):
+    turn, dice, _ = engine(tmp_path)
+    character = turn.campaign.character
+    character.experience = 4
+    upgrade(character, datasworn(), "wright", 2)
+    upgrade(character, datasworn(), "archer", 2)
+
+    async def play() -> None:
+        app = IronswornApp(turn)
+        async with app.run_test(size=(120, 40)) as pilot:
+            await pilot.press(*"/moves", "enter")
+            await pilot.pause()
+            await pilot.press("1", "a")
+            await pilot.pause()
+            await pilot.press("2", "enter")
+            await pilot.pause()
+            # Edge 2 + 3 = 5 against 5 and 9: a miss, which the late add makes a weak hit.
+            dice.load(3, 5, 9)
+            await pilot.press("e", "enter")
+            await pilot.pause()
+            assert "+ add after rolling" in app.render_bar()
+            await pilot.press("+")
+            await pilot.pause()
+            card = app.bar_state.card
+            assert card is not None
+            assert card.action is not None
+            assert card.action.adds == 1
+
+    asyncio.run(play())
+
+
+def test_reroll_dice_from_the_card(tmp_path: Path):
+    turn, dice, _ = engine(tmp_path)
+    character = turn.campaign.character
+    character.experience = 2
+    upgrade(character, datasworn(), "archer", 2)
+    dice.load(6, 1, 1)
+    turn.make_move(
+        "enter_the_fray", stat="heart", inputs=MoveInputs(foes=(("Raider", Rank.DANGEROUS),))
+    )
+    turn.resolve()
+    dice.load(1, 9, 10)
+    turn.make_move("attack", stat="iron", boosts=[BoostRef("archer", 2)])
+
+    async def play() -> None:
+        app = IronswornApp(turn)
+        async with app.run_test(size=(120, 40)) as pilot:
+            assert "r reroll" in app.render_bar()
+            await pilot.press("r")
+            await pilot.pause()
+            assert isinstance(app.screen, DiceScreen)
+            dice.load(6, 1)
+            await pilot.press("1", "2", "enter")
+            await pilot.pause()
+            card = app.bar_state.card
+            assert card is not None
+            assert card.action is not None
+            assert card.action.challenge_dice == (1, 10)
+
+    asyncio.run(play())
+
+
+def test_sacrificed_shield_skips_the_follow_up(tmp_path: Path):
+    turn, _, _ = engine(tmp_path)
+    character = turn.campaign.character
+    character.experience = 5
+    buy(character, datasworn(), "shield_bearer")
+    upgrade(character, datasworn(), "shield_bearer", 3)
+    turn.campaign.follow_ups.append(OwedMove(move="endure_harm", amount=3))
+
+    async def play() -> None:
+        app = IronswornApp(turn)
+        async with app.run_test(size=(120, 40)) as pilot:
+            assert app.bar_state.mode == "follow_up"
+            await pilot.press("a")
+            await pilot.pause()
+            await pilot.press("1", "enter")
+            await pilot.pause()
+            await pilot.press("enter")
+            await pilot.pause()
+            assert app.bar_state.mode == "idle"
+
+    asyncio.run(play())
+    assert turn.campaign.character.health == 5
