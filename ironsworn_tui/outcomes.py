@@ -281,7 +281,7 @@ _CAMP = (
 def _make_camp(hit: Hit, details: MoveDetails) -> tuple[Effect, ...]:
     match hit:
         case Hit.STRONG:
-            return (Choose(_CAMP, count=2),)
+            return (Choose(_CAMP, count=2, minimum=2),)
         case Hit.WEAK:
             return (Choose(_CAMP),)
         case Hit.MISS:
@@ -370,7 +370,7 @@ _SOJOURN_FOCUS = Note(
 def _sojourn(hit: Hit, details: MoveDetails) -> tuple[Effect, ...]:
     match hit:
         case Hit.STRONG:
-            return (Choose(_SOJOURN, count=2), _SOJOURN_FOCUS)
+            return (Choose(_SOJOURN, count=2, minimum=2), _SOJOURN_FOCUS)
         case Hit.WEAK:
             return (Choose(_SOJOURN), _SOJOURN_FOCUS)
         case Hit.MISS:

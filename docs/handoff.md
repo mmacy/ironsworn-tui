@@ -34,7 +34,10 @@ ironsworn-tui is a terminal app for solo Ironsworn. A decision model reads what 
   - Bare yourself's +1 foe harm isn't applied.
   - A rolled card that isn't resolved is lost on restart.
 - Draw the Circle offers up to two boasts, as the vendored Datasworn says. The rulebook says up to three.
-- Start with build step 6, the TUI.
+- Build step 6 is done: `app.py` (the Textual app), `commands.py` (the `/` commands, with no UI), and the `ironsworn-tui new` and `ironsworn-tui play` commands. The README shows how to play.
+- `tests/test_style.py` fails on any `noqa`, `type: ignore`, or `pyright: ignore` in the package or tests.
+- Never use the phrase "What do you do?" in UI text or prose; the user asked for that explicitly.
+- Start with build step 7, case logging.
 - The user said to use `decision-1@foundry` for live calls. The Ollama models aren't downloaded, and won't be while the user is on a hotspot. The user approved `clef-flash@workers-ai` as the second target for the recognizer suites.
 - The user allowed changing `~/repos/jevtester` if it makes sense, for example to send structured criteria.
 - `diary/` holds the dev diary. Add an entry when a step or decision lands.
