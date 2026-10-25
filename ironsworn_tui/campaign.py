@@ -1,0 +1,370 @@
+"""The campaign: the character, vows, bonds, foes, journey, and log, saved as JSON."""
+
+import os
+from pathlib import Path
+from typing import Literal
+
+from pydantic import BaseModel, ConfigDict, Field
+
+from ironsworn_tui.moves import Context, Initiative
+from ironsworn_tui.rules.datasworn import Datasworn, Stat
+from ironsworn_tui.rules.momentum import MomentumBounds, adjust_momentum, momentum_bounds
+from ironsworn_tui.rules.progress import TICKS_PER_BOX, TRACK_TICKS, Rank
+
+SCHEMA_VERSION = 1
+METER_MAX = 5
+STARTING_STATS = (3, 2, 2, 1, 1)
+STARTING_ASSETS = 3
+STARTING_MOMENTUM = 2
+
+type Meter = Literal["health", "spirit", "supply"]
+type Debility = Literal[
+    "wounded",
+    "shaken",
+    "unprepared",
+    "encumbered",
+    "maimed",
+    "corrupted",
+    "cursed",
+    "tormented",
+]
+
+# A marked condition stops its meter from increasing (rulebook page 37).
+CONDITION_FOR: dict[Meter, Debility] = {
+    "health": "wounded",
+    "spirit": "shaken",
+    "supply": "unprepared",
+}
+
+
+class _Model(BaseModel):
+    model_config = ConfigDict(extra="forbid", validate_assignment=True)
+
+
+class Stats(_Model):
+    """The five stats."""
+
+    edge: int = Field(ge=0, le=5)
+    heart: int = Field(ge=0, le=5)
+    iron: int = Field(ge=0, le=5)
+    shadow: int = Field(ge=0, le=5)
+    wits: int = Field(ge=0, le=5)
+
+    def value(self, stat: Stat) -> int:
+        """Return a stat's value."""
+        return {
+            "edge": self.edge,
+            "heart": self.heart,
+            "iron": self.iron,
+            "shadow": self.shadow,
+            "wits": self.wits,
+        }[stat]
+
+
+class ProgressTrack(_Model):
+    """A vow, journey, or foe: a name, a rank, and up to 40 ticks of progress."""
+
+    name: str
+    rank: Rank
+    ticks: int = Field(default=0, ge=0, le=TRACK_TICKS)
+
+    @property
+    def boxes(self) -> int:
+        """The number of fully filled boxes, which a progress roll uses."""
+        return self.ticks // TICKS_PER_BOX
+
+    def mark(self, times: int = 1) -> None:
+        """Mark progress for the rank, `times` times, up to a full track."""
+        self.ticks = min(TRACK_TICKS, self.ticks + self.rank.ticks * times)
+
+    def recommit(self) -> None:
+        """Clear all but one filled box and raise the rank by one, unless it's epic."""
+        self.ticks = TICKS_PER_BOX if self.ticks >= TICKS_PER_BOX else 0
+        if self.rank < Rank.EPIC:
+            self.rank = Rank(self.rank + 1)
+
+
+class Foe(ProgressTrack):
+    """A foe in the current fight. Its track fills as the character harms it."""
+
+    @property
+    def harm(self) -> int:
+        """The harm this foe inflicts."""
+        return self.rank.harm
+
+
+class Character(_Model):
+    """The player's character.
+
+    Attributes:
+        harm: The harm the character inflicts: 2 when armed with a deadly weapon such as a
+            sword, axe, spear, or bow, and 1 when unarmed or using a simple weapon.
+    """
+
+    name: str
+    description: str
+    stats: Stats
+    health: int = Field(default=METER_MAX, ge=0, le=METER_MAX)
+    spirit: int = Field(default=METER_MAX, ge=0, le=METER_MAX)
+    supply: int = Field(default=METER_MAX, ge=0, le=METER_MAX)
+    momentum: int = Field(default=STARTING_MOMENTUM, ge=-6, le=10)
+    debilities: list[Debility] = Field(default_factory=list[Debility])
+    assets: list[str] = Field(default_factory=list[str])
+    experience: int = Field(default=0, ge=0)
+    harm: int = Field(default=2, ge=1, le=2)
+
+    @property
+    def bounds(self) -> MomentumBounds:
+        """The momentum range and reset for the marked debilities."""
+        return momentum_bounds(len(self.debilities))
+
+    def meter(self, meter: Meter) -> int:
+        """Return a meter's value."""
+        return {"health": self.health, "spirit": self.spirit, "supply": self.supply}[meter]
+
+    def change_meter(self, meter: Meter, amount: int) -> int:
+        """Add to or take from a meter, within 0 to 5.
+
+        A marked condition stops its meter from increasing.
+
+        Returns:
+            The change actually made.
+        """
+        if amount > 0 and CONDITION_FOR[meter] in self.debilities:
+            return 0
+        before = self.meter(meter)
+        after = max(0, min(METER_MAX, before + amount))
+        setattr(self, meter, after)
+        return after - before
+
+    def change_momentum(self, amount: int) -> int:
+        """Add to or take from momentum, within -6 and the maximum.
+
+        Returns:
+            The loss past -6, which the player takes with Face a Setback.
+        """
+        change = adjust_momentum(self.momentum, amount, self.bounds.max)
+        self.momentum = change.momentum
+        return change.setback
+
+    def reset_momentum(self) -> None:
+        """Set momentum to the reset value, as after burning it."""
+        self.momentum = self.bounds.reset
+
+    def mark_debility(self, debility: Debility) -> None:
+        """Mark a debility, and lower momentum if it's now over the maximum."""
+        if debility not in self.debilities:
+            self.debilities.append(debility)
+            self.momentum = min(self.momentum, self.bounds.max)
+
+    def clear_debility(self, debility: Debility) -> None:
+        """Clear a debility if it's marked."""
+        if debility in self.debilities:
+            self.debilities.remove(debility)
+
+
+class OwedMove(_Model):
+    """A follow-up move a result called for, still to be made.
+
+    Attributes:
+        move: The move id, such as `pay_the_price`.
+        amount: The harm or stress, for Endure Harm and Endure Stress.
+        vow: The vow, for Forsake Your Vow.
+    """
+
+    move: str
+    amount: int | None = None
+    vow: str | None = None
+
+
+type LogKind = Literal["message", "roll", "outcome", "note", "command"]
+
+
+class LogEntry(_Model):
+    """One line of the log."""
+
+    kind: LogKind
+    text: str
+
+
+class Campaign(_Model):
+    """Everything saved about one campaign.
+
+    Attributes:
+        schema_version: The file format's version.
+        character: The character.
+        vows: The active vows.
+        bonds: Ticks on the bonds track.
+        foes: The foes in the current fight. The fight ends when none are left.
+        target: The name of the foe an attack targets.
+        journey: The active journey, if any.
+        initiative: Who has initiative, or None outside a fight.
+        tide_used: True when Turn the Tide has been used in this fight.
+        situation: The scene line the player keeps up to date with `/scene`.
+        follow_ups: The follow-up moves still owed, in order.
+        next_add: The add for the next action roll, from a result such as "Take control".
+        tide_armed: True when Turn the Tide is armed for the next move.
+        end_fight_offered: True when the last result allows End the Fight.
+        log: The turn log.
+    """
+
+    schema_version: Literal[1] = SCHEMA_VERSION
+    character: Character
+    vows: list[ProgressTrack] = Field(default_factory=list[ProgressTrack])
+    bonds: int = Field(default=0, ge=0, le=TRACK_TICKS)
+    foes: list[Foe] = Field(default_factory=list[Foe])
+    target: str | None = None
+    journey: ProgressTrack | None = None
+    initiative: Initiative | None = None
+    tide_used: bool = False
+    situation: str = ""
+    follow_ups: list[OwedMove] = Field(default_factory=list[OwedMove])
+    next_add: int = 0
+    tide_armed: bool = False
+    end_fight_offered: bool = False
+    log: list[LogEntry] = Field(default_factory=list[LogEntry])
+
+    @property
+    def context(self) -> Context:
+        """The context: a fight when foes remain, a journey when one is active."""
+        if self.foes:
+            return Context.FIGHT
+        if self.journey is not None:
+            return Context.JOURNEY
+        return Context.EXPLORING
+
+    def vow(self, name: str) -> ProgressTrack:
+        """Return the active vow with a name.
+
+        Raises:
+            KeyError: If no active vow has the name.
+        """
+        for vow in self.vows:
+            if vow.name == name:
+                return vow
+        raise KeyError(f"no vow named {name!r}")
+
+    def target_foe(self) -> Foe | None:
+        """Return the foe an attack targets: the selected one, or the first."""
+        for foe in self.foes:
+            if foe.name == self.target:
+                return foe
+        return self.foes[0] if self.foes else None
+
+    def remove_foe(self, foe: Foe) -> None:
+        """Take a foe out of the fight, and end the fight when none remain."""
+        self.foes.remove(foe)
+        if self.target == foe.name:
+            self.target = self.foes[0].name if self.foes else None
+        if not self.foes:
+            self.end_fight()
+
+    def end_fight(self) -> None:
+        """End the fight, however it ended: clear the foes, initiative, and Turn the Tide."""
+        self.foes = []
+        self.target = None
+        self.initiative = None
+        self.tide_used = False
+        self.tide_armed = False
+        self.end_fight_offered = False
+
+    def add_log(self, kind: LogKind, text: str) -> None:
+        """Add a line to the log."""
+        self.log.append(LogEntry(kind=kind, text=text))
+
+    def save(self, path: Path) -> None:
+        """Write the campaign as JSON, replacing the file only once the write is on disk."""
+        path.parent.mkdir(parents=True, exist_ok=True)
+        temporary = path.with_suffix(path.suffix + ".tmp")
+        with temporary.open("w", encoding="utf-8") as file:
+            file.write(self.model_dump_json(indent=2) + "\n")
+            file.flush()
+            os.fsync(file.fileno())
+        os.replace(temporary, path)
+
+    @classmethod
+    def load(cls, path: Path) -> Campaign:
+        """Read a campaign from JSON, and check that its parts agree.
+
+        Raises:
+            OSError: If the file can't be read.
+            pydantic.ValidationError: If the file isn't a valid campaign.
+            ValueError: If its parts disagree, such as a target that names no foe.
+        """
+        campaign = cls.model_validate_json(path.read_text(encoding="utf-8"))
+        campaign.check()
+        return campaign
+
+    def check(self) -> None:
+        """Raise if the campaign's parts disagree.
+
+        Raises:
+            ValueError: If a debility is marked twice, momentum is over the maximum, the
+                target names no foe, initiative is set outside a fight or missing in one, or
+                two foes or two vows share a name.
+        """
+        character = self.character
+        problems: list[str] = []
+        if len(set(character.debilities)) != len(character.debilities):
+            problems.append("a debility is marked twice")
+        if character.momentum > character.bounds.max:
+            problems.append(f"momentum {character.momentum} is over {character.bounds.max}")
+        foe_names = [foe.name for foe in self.foes]
+        if self.target is not None and self.target not in foe_names:
+            problems.append(f"the target {self.target!r} isn't a foe")
+        if (self.initiative is None) != (not self.foes):
+            problems.append("initiative must be set exactly when there's a fight")
+        if len(set(foe_names)) != len(foe_names):
+            problems.append("two foes share a name")
+        vow_names = [vow.name for vow in self.vows]
+        if len(set(vow_names)) != len(vow_names):
+            problems.append("two vows share a name")
+        if problems:
+            raise ValueError("; ".join(problems))
+
+
+def create_character(
+    data: Datasworn,
+    name: str,
+    description: str,
+    stats: dict[Stat, int],
+    assets: list[str],
+    harm: int = 2,
+) -> Character:
+    """Create a character from the short creation form.
+
+    Args:
+        data: The Datasworn data, to check the asset ids.
+        name: The character's name.
+        description: A few words about them, such as "a hunter".
+        stats: The five stats, assigned from 3, 2, 2, 1, 1.
+        assets: Three asset ids.
+        harm: 2 when the character carries a deadly weapon, 1 when not.
+
+    Returns:
+        The character, with full meters and +2 momentum.
+
+    Raises:
+        ValueError: If the stats aren't 3, 2, 2, 1, 1, or there aren't three assets.
+        UnknownIdError: If an asset id isn't in the data.
+    """
+    if set(stats) != set(Stats.model_fields) or sorted(stats.values(), reverse=True) != list(
+        STARTING_STATS
+    ):
+        raise ValueError(f"stats must be assigned from {STARTING_STATS}, got {stats}")
+    if len(assets) != STARTING_ASSETS:
+        raise ValueError(f"pick {STARTING_ASSETS} assets, got {len(assets)}")
+    for asset in assets:
+        data.asset(asset)
+    return Character(
+        name=name,
+        description=description,
+        stats=Stats.model_validate(stats),
+        assets=list(assets),
+        harm=harm,
+    )
+
+
+def new_campaign(character: Character, background_vow: str, rank: Rank) -> Campaign:
+    """Start a campaign with a character and their background vow."""
+    return Campaign(character=character, vows=[ProgressTrack(name=background_vow, rank=rank)])
