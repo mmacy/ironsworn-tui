@@ -34,8 +34,8 @@ from ironsworn_tui.registry import (
 )
 from ironsworn_tui.rules.datasworn import Asset, Datasworn, Stat, plain_text
 from ironsworn_tui.rules.oracles import Likelihood, ask_yes_no, roll_oracle
-from ironsworn_tui.rules.progress import TRACK_TICKS, Rank
-from ironsworn_tui.turn import MoveInputs, TurnEngine, TurnError
+from ironsworn_tui.rules.progress import TICKS_PER_BOX, TRACK_TICKS, Rank
+from ironsworn_tui.turn import MoveInputs, TurnEngine, TurnError, progress_text
 
 LIKELIHOODS = {
     "almost certain": Likelihood.ALMOST_CERTAIN,
@@ -257,6 +257,20 @@ def run_command(engine: TurnEngine, text: str) -> CommandResult:
         raise CommandError(str(error)) from error
 
 
+def changes_nothing(engine: TurnEngine, text: str) -> bool:
+    """Return True when a command only shows help or quits, so it can run while a roll waits.
+
+    Args:
+        engine: The turn engine.
+        text: The command, starting with `/`.
+    """
+    try:
+        parsed = REGISTRY.parse(engine, text)
+    except CommandError:
+        return False
+    return parsed.help or parsed.path[0].name in ("help", "quit")
+
+
 # The options each argument offers.
 
 
@@ -400,8 +414,15 @@ def _note(engine: TurnEngine, values: Values) -> CommandResult:
 
 def _vows(engine: TurnEngine, _: Values) -> CommandResult:
     vows = engine.campaign.vows
-    lines = [f"{vow.name} ({vow.rank.name.lower()}): {vow.boxes}/10" for vow in vows]
+    lines = [f"{vow.name} ({vow.rank.name.lower()}): {_filled(vow)}" for vow in vows]
     return CommandResult(lines=tuple(lines) or ("No vows",))
+
+
+def _filled(track: ProgressTrack) -> str:
+    """Show a track's progress, such as `2/10 boxes, 1 tick`."""
+    ticks = track.ticks % TICKS_PER_BOX
+    extra = f", {progress_text(ticks)}" if ticks else ""
+    return f"{track.boxes}/10 boxes{extra}"
 
 
 def _vow_swear(engine: TurnEngine, values: Values) -> CommandResult:
@@ -726,6 +747,10 @@ def _effects_end(engine: TurnEngine, values: Values) -> CommandResult:
     return CommandResult()
 
 
+def _quit(_: TurnEngine, __: Values) -> CommandResult:
+    return CommandResult(quit=True)
+
+
 def _moves(_: TurnEngine, __: Values) -> CommandResult:
     return CommandResult(show_moves=True)
 
@@ -765,7 +790,8 @@ REGISTRY = Registry(
                 "Strike. Usually you describe what your character does, and the app suggests "
                 "the move. Use /moves when you already know the move you want, or the "
                 "suggestion isn't right. The moves appear in the bar below the log. Pick one "
-                "with its key or the arrows, then press Enter to roll.",
+                "with its key or the arrows. If the bar asks for a stat, press its key. Then "
+                "press Enter to roll.",
             ),
             examples=("/moves",),
         ),
@@ -1110,6 +1136,16 @@ REGISTRY = Registry(
                 "says it's over.",
             ),
             examples=("/effects", "/effects end 1"),
+        ),
+        Command(
+            "quit",
+            "Leave the app. Your campaign is already saved",
+            _quit,
+            help=(
+                "The app saves the campaign after every change, so nothing is lost. Play it "
+                "again with ironsworn-tui play and the character's name. Ctrl+Q quits too.",
+            ),
+            examples=("/quit",),
         ),
     )
 )

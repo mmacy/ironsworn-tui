@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import get_args
 
 from ironsworn_tui.app import IronswornApp
-from ironsworn_tui.campaign import Campaign, create_character, new_campaign
+from ironsworn_tui.campaign import Campaign, asset_catalog, create_character, new_campaign
 from ironsworn_tui.cases import play_suite_name
 from ironsworn_tui.commands import parse_rank
 from ironsworn_tui.criteria import CriteriaStyle
@@ -87,23 +87,35 @@ def _campaign_path(name: str) -> Path:
 
 def new(args: argparse.Namespace) -> int:
     """Create a character and a campaign with their background vow."""
+    if args.assets.strip().lower() == "help":
+        print("\n".join(asset_catalog(datasworn())))
+        return 0
     path = _campaign_path(args.name)
-    if path.exists():
-        print(f"Error: {path} already exists", file=sys.stderr)
+    if path.exists() and not args.overwrite:
+        print(
+            f"Error: a campaign named {args.name} already exists at {path}. Use --overwrite "
+            "to start over, or choose another name.",
+            file=sys.stderr,
+        )
         return 2
     try:
         stats: dict[Stat, int] = {}
         for pair in args.stats.split(","):
             stat, _, value = pair.partition("=")
+            stat = stat.strip().lower()
             if stat not in STATS:
-                raise ValueError(f"unknown stat {stat!r}")
+                raise ValueError(
+                    f"unknown stat {stat!r}; the stats are edge, heart, iron, shadow, and wits"
+                )
+            if not value.strip().isdigit():
+                raise ValueError(f"write each stat as <stat>=<n>, such as {stat}=2")
             stats[STATS[stat]] = int(value)
         character = create_character(
             datasworn(),
             args.name,
             args.description,
             stats,
-            args.assets.split(","),
+            [spec.strip().lower() for spec in args.assets.split(",")],
             harm=args.harm,
         )
         campaign = new_campaign(character, args.vow, parse_rank(args.rank), args.bond)
@@ -254,7 +266,7 @@ def make_parser() -> argparse.ArgumentParser:
             "<name>.json in the campaigns folder, and print the file's path. The character "
             "starts with full health, spirit, and supply, and +2 momentum. Play the campaign "
             "with `ironsworn-tui play <name>`. Exits with 2, and writes nothing, if the file "
-            "already exists or an option isn't valid."
+            "already exists and you didn't pass --overwrite, or an option isn't valid."
         ),
         epilog=(
             "example:\n"
@@ -288,7 +300,7 @@ def make_parser() -> argparse.ArgumentParser:
         help=(
             "Three asset ids, separated by commas with no spaces. An asset that starts with no "
             "ability marked, such as a companion, needs the ability to mark after a colon: "
-            "archer,hawk:2,wright."
+            "archer,hawk:2,wright. --assets help prints the asset ids and creates nothing."
         ),
     )
     n.add_argument("--vow", required=True, help="The background vow, in quotes.")
@@ -315,6 +327,11 @@ def make_parser() -> argparse.ArgumentParser:
         choices=[1, 2],
         default=2,
         help="The harm the character deals: 2 with a deadly weapon, 1 without (default: 2).",
+    )
+    n.add_argument(
+        "--overwrite",
+        action="store_true",
+        help="Replace an existing campaign with this name, to start the character over.",
     )
     n.set_defaults(func=new)
 

@@ -11,13 +11,20 @@ from textual import events, on, work
 from textual.actions import SkipAction
 from textual.app import App, ComposeResult
 from textual.binding import Binding, BindingType
-from textual.containers import Horizontal, Vertical
+from textual.containers import Horizontal, Vertical, VerticalScroll
 from textual.screen import ModalScreen
 from textual.widgets import Input, Label, RichLog, Static
 
 from ironsworn_tui.abilities import AvailableBoost, BoostRef
 from ironsworn_tui.campaign import Campaign, ProgressTrack
-from ironsworn_tui.commands import REGISTRY, asset_summary, parse_foes, parse_rank, run_command
+from ironsworn_tui.commands import (
+    REGISTRY,
+    asset_summary,
+    changes_nothing,
+    parse_foes,
+    parse_rank,
+    run_command,
+)
 from ironsworn_tui.moves import ATTACK, CANNOT_TELL, NO_MOVE, stat_choices
 from ironsworn_tui.outcomes import Choose
 from ironsworn_tui.policy import Suggestion
@@ -56,13 +63,14 @@ GHOST_SELECTED = Style(dim=True, reverse=True)
 FIELD_HINTS = {
     "vow": "The vow",
     "rank": "troublesome, dangerous, formidable, extreme, or epic",
-    "foes": "Name rank, name rank",
+    "foes": "A name and a rank, such as Wolf dangerous",
     "destination": "The destination",
     "treat": "yourself, someone else, or a companion",
     "amount": "How much to spend",
     "bond": "yes or no",
 }
 DICE_LABELS = ("Action die", "First challenge die", "Second challenge die")
+PLACEHOLDER = "Type what your character does, or / for a command"
 
 type Mode = Literal["idle", "thinking", "suggest", "card", "follow_up", "offer"]
 
@@ -70,7 +78,7 @@ type Mode = Literal["idle", "thinking", "suggest", "card", "follow_up", "offer"]
 def option_name(engine: TurnEngine, option: str) -> str:
     """Return the name to show for a `move` option."""
     if option == ATTACK:
-        return "Attack"
+        return f"Attack ({engine.move_name(engine.move_for(ATTACK))})"
     if option in (NO_MOVE, CANNOT_TELL):
         return option.replace("_", " ").capitalize()
     return engine.move_name(option)
@@ -81,8 +89,11 @@ def _boost_line(boosts: list[AvailableBoost]) -> str:
 
 
 def _boxes(track: ProgressTrack) -> str:
-    full = track.ticks // TICKS_PER_BOX
-    return "■" * full + "□" * (10 - full)
+    """Draw a progress track: a filled box for each full box, and a half-filled one for a box
+    with some ticks."""
+    full, ticks = divmod(track.ticks, TICKS_PER_BOX)
+    part = "▣" if ticks else ""
+    return "■" * full + part + "□" * (10 - full - len(part))
 
 
 def _choose_prompt(choose: Choose) -> str:
@@ -124,18 +135,7 @@ class CharacterPanel(Static):
         ]
         if campaign.next_add:
             lines.append(f"Next move {campaign.next_add:+d}")
-        lines += ["", "[b]Assets[/b]"]
-        lines += [escape(asset_summary(data, owned)) for owned in c.assets]
-        lines += ["", "[b]Vows[/b]"]
-        lines += [f"{escape(v.name)} ({v.rank.name.lower()})\n  {_boxes(v)}" for v in campaign.vows]
-        lines += ["", f"Bonds {campaign.bonds // TICKS_PER_BOX}/10"]
-        if campaign.journey is not None:
-            j = campaign.journey
-            lines += [
-                "",
-                "[b]Journey[/b]",
-                f"{escape(j.name)} ({j.rank.name.lower()})\n  {_boxes(j)}",
-            ]
+        # A fight and a journey come first, so they show on a short screen.
         if campaign.foes:
             who = c.name if campaign.initiative == "character" else "foe"
             lines += ["", "[b]Fight[/b]", f"Initiative: {escape(who)}"]
@@ -147,6 +147,18 @@ class CharacterPanel(Static):
                 lines.append(
                     f"{mark}{escape(foe.name)} ({foe.rank.name.lower()})\n    {_boxes(foe)}"
                 )
+        if campaign.journey is not None:
+            j = campaign.journey
+            lines += [
+                "",
+                "[b]Journey[/b]",
+                f"{escape(j.name)} ({j.rank.name.lower()})\n  {_boxes(j)}",
+            ]
+        lines += ["", "[b]Vows[/b]"]
+        lines += [f"{escape(v.name)} ({v.rank.name.lower()})\n  {_boxes(v)}" for v in campaign.vows]
+        lines += ["", f"Bonds {campaign.bonds // TICKS_PER_BOX}/10"]
+        lines += ["", "[b]Assets[/b]"]
+        lines += [escape(asset_summary(data, owned)) for owned in c.assets]
         self.update("\n".join(lines))
 
 
@@ -166,6 +178,9 @@ class BarState:
         pending: The options picked for the current choice, not yet confirmed.
         message: A line shown above the options, such as "No move".
         boosts: The asset boosts turned on for the selected move or the owed endure roll.
+        typed: The characters the bar took as keys since the last other key, such as the I
+            that selects a move at the start of "I run". When a key the bar doesn't use
+            follows, they start the text on the input line.
     """
 
     mode: Mode = "idle"
@@ -179,6 +194,7 @@ class BarState:
     pending: list[int] = field(default_factory=list[int])
     message: str = ""
     boosts: list[AvailableBoost] = field(default_factory=list[AvailableBoost])
+    typed: str = ""
 
 
 class SuggestionBar(Static, can_focus=True):
@@ -209,7 +225,8 @@ class CommandInput(Input):
         self, complete: Callable[[str], Completion | None], placeholder: str, id: str
     ) -> None:
         """Create the input line with the function that completes its text."""
-        super().__init__(placeholder=placeholder, id=id)
+        # Focus doesn't select the text, so a key the bar passes on adds to it.
+        super().__init__(placeholder=placeholder, id=id, select_on_focus=False)
         self.complete = complete
         self.selected = 0
         self.dismissed = False
@@ -289,8 +306,9 @@ class InputsScreen(ModalScreen[MoveInputs | None]):
     DEFAULT_CSS = """
     InputsScreen { align: center middle; }
     InputsScreen > Vertical {
-        width: 60; height: auto; border: round $accent; padding: 1 2; background: $surface;
+        width: 72; height: auto; border: round $accent; padding: 1 2; background: $surface;
     }
+    InputsScreen #error { width: 100%; }
     """
 
     def __init__(
@@ -311,6 +329,7 @@ class InputsScreen(ModalScreen[MoveInputs | None]):
                 yield Label(name.capitalize())
                 yield Input(id=f"field-{name}", placeholder=FIELD_HINTS[name])
             yield Label("", id="error")
+            yield Label("[dim]Enter next field, then roll · Esc cancel[/dim]")
 
     def on_key(self, event: events.Key) -> None:
         """Cancel on Escape."""
@@ -431,7 +450,7 @@ class IronswornApp(App[None]):
     TITLE = "ironsworn-tui"
     CSS = """
     #main { height: 1fr; }
-    CharacterPanel { width: 36; height: 100%; border: round $accent; padding: 0 1; }
+    #panel { width: 36; height: 100%; border: round $accent; padding: 0 1; }
     RichLog { border: round $accent; }
     """
 
@@ -445,19 +464,29 @@ class IronswornApp(App[None]):
     def compose(self) -> ComposeResult:
         """Lay out the four parts."""
         with Horizontal(id="main"):
-            yield CharacterPanel()
-            yield RichLog(wrap=True, markup=True)
+            # The panel scrolls when it doesn't fit, as on an 80 by 24 screen.
+            with VerticalScroll(id="panel"):
+                yield CharacterPanel()
+            # RichLog wraps at 78 columns unless told otherwise, which crops a narrower log.
+            yield RichLog(wrap=True, markup=True, min_width=1)
         yield SuggestionBar()
         yield CommandInput(
             lambda text: REGISTRY.complete(self.engine, text),
-            placeholder="Action or /command",
+            placeholder=PLACEHOLDER,
             id="input",
         )
 
     def on_mount(self) -> None:
         """Show the campaign and the recent log, then whatever the campaign owes."""
-        for entry in self.engine.campaign.log[-LOG_RESTORED:]:
+        campaign = self.engine.campaign
+        for entry in campaign.log[-LOG_RESTORED:]:
             self.write_log(entry.kind, entry.text)
+        if not campaign.log:
+            name = campaign.character.name
+            self.note(
+                f"Welcome. Type what {name} does, such as I search the burned village for "
+                "tracks, and press Enter. Type /help to learn how to play."
+            )
         self.after_turn()
 
     @property
@@ -503,11 +532,14 @@ class IronswornApp(App[None]):
         engine = self.engine
         if not text or self.bar_state.mode == "thinking":
             return
-        event.input.value = ""
-        if engine.card is not None or (engine.follow_ups and not text.startswith("/")):
-            self.note("Finish the roll first")
+        command = text.startswith("/")
+        waiting = engine.card is not None or (engine.follow_ups and not command)
+        if waiting and not (command and changes_nothing(engine, text)):
+            # The text stays on the input line, to send once the roll is done.
+            self.note(self._finish_first())
             self.after_turn()
             return
+        event.input.value = ""
         if text.startswith("/"):
             self.command(text)
             return
@@ -520,6 +552,13 @@ class IronswornApp(App[None]):
         self._ask_id += 1
         self.ask(text, self._ask_id)
 
+    def _finish_first(self) -> str:
+        """Say what the bar waits for before the input line can send a message."""
+        engine = self.engine
+        if engine.card is not None:
+            return "Finish the roll in the bar below first: press Enter to apply it"
+        return f"Finish {engine.move_name(engine.follow_ups[0].move)} in the bar below first"
+
     def command(self, text: str) -> None:
         """Run a `/` command, then return to what the bar showed."""
         engine = self.engine
@@ -529,6 +568,9 @@ class IronswornApp(App[None]):
             result = run_command(engine, text)
         except (CommandError, TurnError) as error:
             self.note(str(error))
+            return
+        if result.quit:
+            self.exit()
             return
         self.log_new(before)
         for line in result.lines:
@@ -598,7 +640,10 @@ class IronswornApp(App[None]):
         engine = self.engine
         match state.mode:
             case "idle":
-                return "[dim]Enter send · / commands · Tab complete · /help explains them[/dim]"
+                return (
+                    "[dim]Enter send · / commands · Tab complete · /help explains them · "
+                    "/quit[/dim]"
+                )
             case "thinking":
                 return "Thinking…"
             case "suggest":
@@ -641,8 +686,11 @@ class IronswornApp(App[None]):
         lines.append("  ".join(parts))
         details = [f"Add {state.adds:+d}"]
         option = state.options[state.selected] if state.selected is not None else None
-        if option is not None and stat_choices(engine.data, option):
-            details.insert(0, f"Stat {state.stat or 'not set'}")
+        stats = self._stats_for(option) if option is not None else ()
+        if stats:
+            details.insert(
+                0, f"Stat {state.stat}" if state.stat in stats else self._stat_keys(stats)
+            )
         lines.append("  ".join(details))
         if state.boosts:
             lines.append(_boost_line(state.boosts))
@@ -654,6 +702,18 @@ class IronswornApp(App[None]):
             hints += self._abilities_hint(option)
         lines.append(f"[dim]{hints}[/dim]")
         return "\n".join(lines)
+
+    def _stats_for(self, option: str) -> tuple[Stat, ...]:
+        """The stats a move can roll with, or none when it doesn't ask."""
+        return tuple(choice.stat for choice in stat_choices(self.engine.data, option))
+
+    def _stat_keys(self, stats: tuple[Stat, ...]) -> str:
+        """Say which keys pick a stat, such as `Stat: press h heart, s shadow, or w wits`."""
+        keys = [f"{stat[0]} {stat}" for stat in stats]
+        listed = keys[0] if len(keys) == 1 else ", ".join(keys[:-1]) + f", or {keys[-1]}"
+        if len(keys) == 2:
+            listed = f"{keys[0]} or {keys[1]}"
+        return f"Stat: press {listed}"
 
     def _abilities_hint(self, option: str) -> str:
         count = len(self._available(option))
@@ -748,9 +808,21 @@ class IronswornApp(App[None]):
         """Handle the suggestion bar's keys while it has focus."""
         if not isinstance(self.focused, SuggestionBar):
             return
+        state = self.bar_state
+        character = event.character if event.is_printable else None
         if self.bar_key(event.key, event.character or ""):
             event.stop()
             event.prevent_default()
+            state.typed = state.typed + character if character else ""
+        elif character and not self.input.disabled:
+            # A key the bar doesn't use starts the text on the input line, so typing isn't
+            # lost: / starts a command, and other keys continue the keys the bar took.
+            event.stop()
+            event.prevent_default()
+            self.input.value = character if character == "/" else state.typed + character
+            self.input.cursor_position = len(self.input.value)
+            state.typed = ""
+            self.input.focus()
 
     def bar_key(self, key: str, character: str) -> bool:
         """Act on a key for the suggestion bar's mode.
@@ -833,7 +905,12 @@ class IronswornApp(App[None]):
         state = self.bar_state
         assert state.selected is not None
         option = state.options[state.selected]
-        stat = state.stat if stat_choices(self.engine.data, option) else None
+        stats = self._stats_for(option)
+        stat = state.stat if stats else None
+        if stats and stat not in stats:
+            self.note(f"{option_name(self.engine, option)} needs a stat. {self._stat_keys(stats)}")
+            self.refresh_all()
+            return
         fields = self.engine.inputs_needed(option)
         if any(available.boost.unleash for available in state.boosts):
             fields = (*fields, "amount")
@@ -907,7 +984,8 @@ class IronswornApp(App[None]):
             if current < len(chooses):
                 choose = chooses[current]
                 if not choose.minimum <= len(state.pending) <= choose.count:
-                    self.note(_choose_prompt(choose).removesuffix(":"))
+                    prompt = _choose_prompt(choose).removesuffix(":")
+                    self.note(f"{prompt}: press 1 to {len(choose.options)}, then Enter")
                     return True
                 state.picks.append(state.pending)
                 state.pending = []

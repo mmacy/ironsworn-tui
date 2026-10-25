@@ -4,7 +4,7 @@ import asyncio
 from pathlib import Path
 
 from textual.pilot import Pilot
-from textual.widgets import Input, RichLog
+from textual.widgets import Input, Label, RichLog
 
 from ironsworn_tui.abilities import BoostRef
 from ironsworn_tui.app import (
@@ -466,7 +466,7 @@ def test_enter_with_nothing_picked_names_the_choice(tmp_path: Path):
             await pilot.pause()
 
     asyncio.run(play())
-    assert notes == ["Choose one"]
+    assert notes == ["Choose one: press 1 to 2, then Enter"]
 
 
 def test_a_failed_request_shows_the_full_list_and_a_note(tmp_path: Path):
@@ -801,5 +801,245 @@ def test_a_card_waiting_at_restart_is_shown_again(tmp_path: Path):
             await pilot.pause()
             assert app.bar_state.mode == "card"
             assert app.bar_state.card == card
+
+    asyncio.run(play())
+
+
+def test_the_log_wraps_long_lines_at_80_columns(tmp_path: Path):
+    turn, _, _ = engine(tmp_path)
+
+    async def play() -> None:
+        app = IronswornApp(turn)
+        async with app.run_test(size=(80, 24)) as pilot:
+            await pilot.press(
+                *"/note The ferryman at the ford is named Oda and owes me a debt", "enter"
+            )
+            await pilot.pause()
+            log = app.query_one(RichLog)
+            width = log.scrollable_content_region.width
+            assert all(line.cell_length <= width for line in log.lines)
+            text = " ".join(line.text.strip() for line in log.lines)
+            assert "named Oda and owes me a debt" in text
+
+    asyncio.run(play())
+
+
+def full_list_engine(tmp_path: Path) -> TurnEngine:
+    """An engine whose decision model is down, so every message gets the full move list."""
+    turn, _, _ = engine(tmp_path)
+
+    class Down:
+        def decide(self, request: JsonObject, target: str) -> Decision:
+            raise DecideError("jevtester isn't reachable")
+
+    turn.decider = Down()
+    return turn
+
+
+def test_a_command_typed_on_the_bar_goes_to_the_input_line(tmp_path: Path):
+    turn = full_list_engine(tmp_path)
+
+    async def play() -> None:
+        app = IronswornApp(turn)
+        async with app.run_test(size=(120, 40)) as pilot:
+            await pilot.press(*"I look around", "enter")
+            await settle(app, pilot)
+            assert isinstance(app.focused, SuggestionBar)
+            await pilot.press(*"/endure harm 2")
+            assert isinstance(app.focused, CommandInput)
+            assert app.input.value == "/endure harm 2"
+            await pilot.press("enter")
+            await pilot.pause()
+            assert app.bar_state.mode == "follow_up"
+
+    asyncio.run(play())
+    assert all(entry.text != "No move" for entry in turn.campaign.log)
+
+
+def test_typing_on_an_owed_pay_the_price_does_not_pick_an_outcome(tmp_path: Path):
+    turn, _, _ = engine(tmp_path)
+    turn.campaign.follow_ups.append(OwedMove(move="pay_the_price"))
+
+    async def play() -> None:
+        app = IronswornApp(turn)
+        async with app.run_test(size=(120, 40)) as pilot:
+            await pilot.pause()
+            assert app.bar_state.mode == "follow_up"
+            await pilot.press(*"/tide")
+            assert app.input.value == "/tide"
+            assert turn.follow_ups
+            app.input.value = "I fall"
+            await pilot.press("enter")
+            await pilot.pause()
+            assert turn_notes(app)[-1] == "Finish Pay the Price in the bar below first"
+
+    asyncio.run(play())
+
+
+def test_a_refused_message_stays_on_the_input_line(tmp_path: Path):
+    turn, dice, _ = engine(tmp_path)
+    dice.load(3, 4, 6)
+    turn.make_move("face_danger", stat="edge")
+
+    async def play() -> None:
+        app = IronswornApp(turn)
+        async with app.run_test(size=(120, 40)) as pilot:
+            await pilot.pause()
+            app.input.focus()
+            await pilot.press(*"I run for the trees", "enter")
+            await pilot.pause()
+            assert app.input.value == "I run for the trees"
+            assert "press Enter to apply it" in turn_notes(app)[-1]
+
+    asyncio.run(play())
+
+
+def test_a_move_asks_for_its_stat_before_its_form(tmp_path: Path):
+    turn = full_list_engine(tmp_path)
+
+    async def play() -> None:
+        app = IronswornApp(turn)
+        async with app.run_test(size=(120, 40)) as pilot:
+            await pilot.press(*"A wolf leaps at me", "enter")
+            await settle(app, pilot)
+            fray = app.bar_state.options.index("enter_the_fray")
+            app.select(fray)
+            assert "h heart" in app.render_bar()
+            await pilot.press("enter")
+            await pilot.pause()
+            assert not isinstance(app.screen, InputsScreen)
+            assert "h heart" in turn_notes(app)[-1]
+            # A stat the move doesn't take is refused before the form too.
+            await pilot.press("e", "enter")
+            await pilot.pause()
+            assert not isinstance(app.screen, InputsScreen)
+
+    asyncio.run(play())
+
+
+def turn_notes(app: IronswornApp) -> list[str]:
+    return [line.text.strip() for line in app.query_one(RichLog).lines if line.text.strip()]
+
+
+def test_attack_names_the_move_it_makes(tmp_path: Path):
+    turn, dice, _ = engine(tmp_path)
+    dice.load(6, 1, 1)
+    turn.make_move(
+        "enter_the_fray", stat="heart", inputs=MoveInputs(foes=(("Wolf", Rank.DANGEROUS),))
+    )
+    turn.resolve()
+    app = IronswornApp(turn)
+    app.bar_state.options = ("attack",)
+    app.bar_state.mode = "suggest"
+    assert "1 Attack (Strike)" in app.render_bar()
+
+
+def test_a_long_form_error_wraps(tmp_path: Path):
+    turn, _, decider = engine(tmp_path)
+    decider.answers.append(("enter_the_fray", "shadow", 0.95))
+
+    async def play() -> None:
+        app = IronswornApp(turn)
+        async with app.run_test(size=(80, 24)) as pilot:
+            await pilot.press(*"I jump them", "enter")
+            await settle(app, pilot)
+            await pilot.press("enter")
+            await pilot.pause()
+            assert isinstance(app.screen, InputsScreen)
+            await pilot.press(*"Wolf fierce", "enter")
+            await pilot.pause()
+            error = app.screen.query_one("#error", Label)
+            assert str(error.render()).endswith("extreme, epic")
+            assert error.size.height > 1
+            assert "Esc cancel" in "\n".join(
+                str(label.render()) for label in app.screen.query(Label)
+            )
+
+    asyncio.run(play())
+
+
+def test_the_fight_shows_above_the_assets_in_the_panel(tmp_path: Path):
+    turn, dice, _ = engine(tmp_path)
+    dice.load(6, 1, 1)
+    turn.make_move(
+        "enter_the_fray", stat="heart", inputs=MoveInputs(foes=(("Wolf", Rank.DANGEROUS),))
+    )
+    turn.resolve()
+
+    async def play() -> None:
+        app = IronswornApp(turn)
+        async with app.run_test(size=(80, 24)) as pilot:
+            await pilot.pause()
+            panel = app.query_one(CharacterPanel)
+            text = str(panel.render())
+            assert text.index("Wolf") < text.index("Assets")
+            assert app.query_one("#panel").allow_vertical_scroll
+
+    asyncio.run(play())
+
+
+def test_quit_leaves_the_app(tmp_path: Path):
+    turn, _, _ = engine(tmp_path)
+
+    async def play() -> None:
+        app = IronswornApp(turn)
+        async with app.run_test(size=(120, 40)) as pilot:
+            await pilot.press(*"/quit", "enter")
+            await pilot.pause()
+            assert app.return_code == 0
+
+    asyncio.run(play())
+
+
+def test_a_new_campaign_says_how_to_start(tmp_path: Path):
+    turn, _, _ = engine(tmp_path)
+
+    async def play() -> None:
+        app = IronswornApp(turn)
+        async with app.run_test(size=(120, 40)) as pilot:
+            await pilot.pause()
+            text = " ".join(turn_notes(app))
+            assert "Kira" in text
+            assert "/help" in text
+
+    asyncio.run(play())
+    assert turn.campaign.log == []
+
+
+def test_a_sentence_typed_on_the_bar_keeps_its_first_letter(tmp_path: Path):
+    turn = full_list_engine(tmp_path)
+
+    async def play() -> None:
+        app = IronswornApp(turn)
+        async with app.run_test(size=(120, 40)) as pilot:
+            await pilot.press(*"I look around", "enter")
+            await settle(app, pilot)
+            # I selects a move on the full list, then the space starts typing.
+            await pilot.press(*"I search the well")
+            assert isinstance(app.focused, CommandInput)
+            assert app.input.value == "I search the well"
+
+    asyncio.run(play())
+
+
+def test_help_works_while_a_card_waits(tmp_path: Path):
+    turn, dice, _ = engine(tmp_path)
+    dice.load(3, 4, 6)
+    turn.make_move("face_danger", stat="edge")
+
+    async def play() -> None:
+        app = IronswornApp(turn)
+        async with app.run_test(size=(120, 40)) as pilot:
+            await pilot.pause()
+            await pilot.press(*"/help", "enter")
+            await pilot.pause()
+            assert any(line.startswith("/oracle:") for line in turn_notes(app))
+            assert app.bar_state.mode == "card"
+            await pilot.press(*"/vow help", "enter")
+            await pilot.pause()
+            assert "Usage: /vow swear <rank> <vow>" in turn_notes(app)
+            await pilot.press(*"/vow mark", "enter")
+            await pilot.pause()
+            assert turn_notes(app)[-1].startswith("Finish the roll in the bar below first")
 
     asyncio.run(play())

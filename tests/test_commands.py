@@ -100,7 +100,7 @@ def test_vow_mark_reaches_a_milestone(tmp_path: Path):
 
 def test_vow_lists_the_vows(tmp_path: Path):
     turn, _, _ = engine(tmp_path)
-    assert run_command(turn, "/vow").lines == ("Avenge my village (epic): 0/10",)
+    assert run_command(turn, "/vow").lines == ("Avenge my village (epic): 0/10 boxes",)
 
 
 ADJUSTMENTS: list[tuple[str, Callable[[Campaign], bool]]] = [
@@ -390,3 +390,18 @@ def test_endure_harm_without_an_amount_takes_the_foes_harm(tmp_path: Path):
     turn.resolve()
     run_command(turn, "/endure harm")
     assert turn.follow_ups == (OwedMove(move="endure_harm", amount=4),)
+
+
+def test_marking_an_epic_vow_reports_the_tick(tmp_path: Path):
+    turn, _, _ = engine(tmp_path)
+    run_command(turn, "/vow mark")
+    assert (
+        turn.campaign.log[-1].text
+        == "Reach a Milestone: Avenge my village, progress +1 tick (now 1 tick)"
+    )
+    assert run_command(turn, "/vow").lines == ("Avenge my village (epic): 0/10 boxes, 1 tick",)
+
+
+def test_quit_asks_the_app_to_quit(tmp_path: Path):
+    turn, _, _ = engine(tmp_path)
+    assert run_command(turn, "/quit").quit

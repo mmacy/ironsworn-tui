@@ -1,5 +1,6 @@
 """The campaign: the character, vows, bonds, foes, journey, and log, saved as JSON."""
 
+import difflib
 import os
 from collections.abc import Sequence
 from pathlib import Path
@@ -10,6 +11,7 @@ from pydantic import BaseModel, ConfigDict, Field
 from ironsworn_tui.moves import Context, Initiative
 from ironsworn_tui.rules.action import ActionRoll
 from ironsworn_tui.rules.datasworn import Datasworn, Stat, datasworn
+from ironsworn_tui.rules.errors import UnknownIdError
 from ironsworn_tui.rules.momentum import MomentumBounds, adjust_momentum, momentum_bounds
 from ironsworn_tui.rules.progress import TICKS_PER_BOX, TRACK_TICKS, ProgressRoll, Rank
 from ironsworn_tui.rules.suffer import Endurance
@@ -664,10 +666,17 @@ def create_character(
     if set(stats) != set(Stats.model_fields) or sorted(stats.values(), reverse=True) != list(
         STARTING_STATS
     ):
-        raise ValueError(f"stats must be assigned from {STARTING_STATS}, got {stats}")
+        given = ", ".join(f"{stat}={value}" for stat, value in stats.items())
+        raise ValueError(
+            "give the five stats, edge, heart, iron, shadow, and wits, the values 3, 2, 2, 1, "
+            f"and 1 in any order, got {given}"
+        )
+    ids = [spec.partition(":")[0] for spec in assets]
+    for asset_id in ids:
+        if asset_id not in data.assets:
+            raise UnknownIdError(_unknown_asset(data, asset_id))
     if len(assets) != STARTING_ASSETS:
         raise ValueError(f"pick {STARTING_ASSETS} assets, got {len(assets)}")
-    ids = [spec.partition(":")[0] for spec in assets]
     if len(set(ids)) != len(ids):
         raise AssetError(f"pick {STARTING_ASSETS} different assets, got {', '.join(ids)}")
     owned: list[OwnedAsset] = []
@@ -687,6 +696,27 @@ def create_character(
     )
     character.health = character.health_max
     return character
+
+
+def _unknown_asset(data: Datasworn, asset_id: str) -> str:
+    """Say there's no asset with an id, and suggest one or list them all."""
+    problem = f"there's no asset {asset_id!r}."
+    close = difflib.get_close_matches(asset_id, list(data.assets), n=1)
+    if close:
+        return f"{problem} Did you mean {close[0]}?"
+    return "\n".join([f"{problem} The assets are:", *asset_catalog(data)])
+
+
+def asset_catalog(data: Datasworn) -> list[str]:
+    """List the asset ids, one line for each category, such as `Companion: cave_lion, ...`.
+
+    Args:
+        data: The Datasworn data.
+    """
+    groups: dict[str, list[str]] = {}
+    for asset in data.assets.values():
+        groups.setdefault(asset.category, []).append(asset.id)
+    return [f"{category}: {', '.join(ids)}" for category, ids in groups.items()]
 
 
 # Abilities whose marking moves stat points, which a new character can't take.

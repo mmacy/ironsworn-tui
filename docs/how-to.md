@@ -2,7 +2,7 @@
 
 If you haven't played yet, start with the [tutorial](getting-started.md). For how a move works in the rules, see [How Ironsworn plays in the app](playing.md). For every option of a command, see the [reference](reference.md).
 
-Run the `uv run` commands from the ironsworn-tui folder. In the app, you type actions and `/` commands on the input line at the bottom, which says "Action or /command". The keys in these guides work when the suggestion bar above the input line has focus. The app gives it focus whenever it has something for you to pick. Press Tab to move focus between the log, the bar, and the input line. After a `/` on the input line, Tab completes the command instead.
+Run the `uv run` commands from the ironsworn-tui folder. In the app, you type actions and `/` commands on the input line at the bottom, which says "Type what your character does, or / for a command". The keys in these guides work when the suggestion bar above the input line has focus. The app gives it focus whenever it has something for you to pick. Press Tab to move focus between the character panel, the log, the bar, and the input line. With focus, the panel and the log scroll with the arrow keys. After a `/` on the input line, Tab completes the command instead.
 
 ## How to set up the model target
 
@@ -77,7 +77,7 @@ Use this when you have no network, no sign-in, or want to pick every move yourse
 
 2. Type what your character does and press Enter. The log shows your message, and the bar shows the full list of moves for where you are, with none selected.
 3. Pick a move. Press 1 to 9 for the first nine, Shift and a letter (`A`, `B`, and so on) for the moves after those, or the arrow keys for any move.
-4. If the bar shows "Stat not set", press e, h, i, s, or w for edge, heart, iron, shadow, or wits.
+4. If the bar shows "Stat: press" and a list of keys, press one of them: e, h, i, s, or w for edge, heart, iron, shadow, or wits.
 5. Press Enter to roll.
 
 You can also type `/moves` to open the full list without typing a message first.
@@ -92,7 +92,7 @@ Before you start, choose:
 
 - A name. The name also names the campaign file.
 - Your stats. Give 3 to one stat, 2 to two stats, and 1 to the other two.
-- Three asset ids. To see them, start any campaign and type `/asset list`, or `/asset list companion` for one category.
+- Three asset ids. Run `new` with `--assets help` to print every id by category. It creates nothing. In a campaign, `/asset list` shows them too.
 - For a companion, the ability it starts with, from 1 to 3.
 - Your background vow.
 - Up to three background bonds: people or communities your character is close to. They're optional.
@@ -114,12 +114,25 @@ Steps:
 The command prints the path of the new campaign file, such as `campaigns/Blarg.json`. If something is wrong, it prints an error and creates nothing. For example:
 
 - "Error: Hawk starts with no ability marked; pick one from 1 to 3" means you left off the companion's ability, as in `hawk` instead of `hawk:2`.
-- "Error: stats must be assigned from (3, 2, 2, 1, 1)" means the stats don't add up that way.
-- "Error: unknown asset id" means an id is misspelled.
+- "Error: give the five stats, edge, heart, iron, shadow, and wits, the values 3, 2, 2, 1, and 1" means the stats don't add up that way.
+- "Error: there's no asset 'wrigt'. Did you mean wright?" means an id is misspelled.
+- "Error: a campaign named Blarg already exists" means you made this character before. See [How to start a character over](#how-to-start-a-character-over).
 
 You can't start with the first ability of Battle-scarred or Shadow-kin, because it changes your stats when you mark it. You can start with either asset's second or third ability, such as `shadow_kin:2`. To get the first ability, buy or upgrade it in play, as [How to spend experience on an asset](#how-to-spend-experience-on-an-asset) shows.
 
 To name a companion, see [How to look after a companion](#how-to-look-after-a-companion).
+
+## How to start a character over
+
+Use this to throw away a campaign and create the character again, such as after a practice session.
+
+Run `new` with the same name and add `--overwrite`:
+
+```sh
+uv run ironsworn-tui new Blarg --description "the Destructor" --stats edge=2,heart=2,iron=1,shadow=1,wits=3 --assets archer,hawk:2,wright --vow "Avenge my village" --overwrite
+```
+
+The new campaign replaces the old one, and the old campaign is lost. To keep it, copy the campaign file first, as [How to resume a campaign and back it up](#how-to-resume-a-campaign-and-back-it-up) shows, or choose another name.
 
 ## How to swear, mark, and fulfill a vow
 
@@ -148,7 +161,7 @@ To mark progress when you reach a milestone:
 
    If you have only one vow, `/vow mark` is enough.
 
-The log shows "Reach a Milestone: Find my brother is at 2/10", or however full it is. The amount marked depends on the vow's rank.
+The log shows "Reach a Milestone: Find my brother, progress +2 boxes (now 2 boxes)", or however full it is. The amount marked depends on the vow's rank.
 
 To fulfill a vow:
 
@@ -180,12 +193,12 @@ Use this when your character fights one or more foes.
 
 The panel now shows "Fight", who has initiative, and each foe's progress track. The foe marked `>` is the one your attacks hit.
 
-![A fight in progress. The character panel's Fight section shows "Initiative: foe" and "> Raider (dangerous)" with a progress track that has two filled boxes. The log shows Enter the Fray and Strike rolls, and the suggestion bar suggests Attack with edge.](images/fight.svg)
+![A fight in progress. The character panel's Fight section shows "Initiative: foe" and "> Raider (dangerous)" with a progress track that has four filled boxes. The log shows Enter the Fray and Strike rolls, and the suggestion bar suggests "Attack (Clash)" with edge.](images/fight.svg)
 
 To attack:
 
 1. Type what your character does, like `I swing my axe`, and press Enter.
-2. Pick "Attack". Attack is Strike when you have initiative and Clash when the foe does, and the roll card shows which.
+2. Pick "Attack". Attack is Strike when you have initiative and Clash when the foe does, and the bar shows which, such as "Attack (Strike)".
 3. Set the stat with i or e, and press Enter to roll.
 4. Pick any choices on the card, then press Enter.
 
@@ -480,7 +493,7 @@ To find the campaign file:
 1. The file is `campaigns/<name>.json` in the ironsworn-tui folder, such as `campaigns/Blarg.json`.
 2. If `ironsworn-tui.toml` sets `campaigns_dir`, the file is in that folder instead. A relative path there starts at the ironsworn-tui folder, and `~` means your home folder.
 
-The app saves the file after every change, so there's no save command. To quit, press Ctrl+Q.
+The app saves the file after every change, so there's no save command. To quit, type `/quit` or press Ctrl+Q.
 
 To back up the campaign:
 
