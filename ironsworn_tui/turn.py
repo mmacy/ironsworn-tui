@@ -60,6 +60,7 @@ from ironsworn_tui.campaign import (
     OwedMove,
     ProgressTrack,
     meter_max,
+    setback_note,
 )
 from ironsworn_tui.cases import CaseSink, build_case, case_id, play_suite_name
 from ironsworn_tui.criteria import CriteriaStyle
@@ -1415,7 +1416,7 @@ class TurnEngine:
     def _momentum(self, amount: int) -> None:
         setback = self.campaign.character.change_momentum(amount)
         if setback:
-            self.campaign.add_log("note", _setback_note(setback))
+            self.campaign.add_log("note", setback_note(setback))
 
     def _meter(self, meter: Meter, amount: int) -> None:
         character = self.campaign.character
@@ -1629,7 +1630,7 @@ class TurnEngine:
             character.spirit = endurance.meter_after
         character.momentum = endurance.momentum_after
         if endurance.setback:
-            self.campaign.add_log("note", _setback_note(endurance.setback))
+            self.campaign.add_log("note", setback_note(endurance.setback))
         return endurance
 
     def _owed_companion(self, owed: OwedMove) -> str | None:
@@ -1977,13 +1978,6 @@ def _burn_one_die(progress: ProgressRoll, momentum: int) -> ProgressRoll:
     beaten = 1 + (score > other)
     hit = {2: Hit.STRONG, 1: Hit.WEAK}[beaten]
     return dataclasses.replace(progress, hit=max(hit, progress.hit))
-
-
-def _setback_note(setback: int) -> str:
-    return (
-        f"Face a Setback: exchange {setback} momentum for health, spirit, supply, or progress "
-        "on a track."
-    )
 
 
 def _describe(card: RollCard) -> str:

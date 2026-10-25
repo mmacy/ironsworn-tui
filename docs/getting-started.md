@@ -123,7 +123,7 @@ The suggestion bar shows "Thinking…" while the decision model reads your actio
 ```text
 1 Face Danger 0.94
 Stat edge  Add +0
-Enter roll · 1-9 or arrows move · e h i s w stat · + - add · n no move · Esc back
+Enter roll · 1 or arrows move · e h i s w stat · + - add · n no move · Esc back
 ```
 
 ![The suggestion bar after Blarg's action. The log shows the typed line "I creep across the frozen river toward the raider camp". The bar shows "1 Face Danger 0.94" highlighted, "Stat edge  Add +0", and the key hints.](images/suggestion.svg)
@@ -137,7 +137,7 @@ Read the bar from top to bottom:
 
 When the model is less sure, the bar shows two moves or the full list. If you started with `--no-model`, it always shows the full list. In either case, press the number before Face Danger to select it. In the full list, it's `1`. If the bar says `Stat not set`, press `e` to pick edge.
 
-![The full move list in the suggestion bar, as `/moves` or a low-confidence answer shows it. Moves 1 to 9 have number keys, from Face Danger to Sojourn, and the moves after them, such as Swear an Iron Vow and Enter the Fray, are reached with the arrow keys.](images/move-list.svg)
+![The full move list in the suggestion bar, as `/moves` or a low-confidence answer shows it. Moves 1 to 9 have number keys, from Face Danger to Sojourn, and the moves after them have capital-letter keys, from A Draw the Circle to J. The hints read "1-9 A-J or arrows move".](images/move-list.svg)
 
 Press Enter to roll.
 

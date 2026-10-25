@@ -241,13 +241,13 @@ Which moves appear depends on the model's confidence in its top move:
 
 The `act` and `confirm` thresholds in `suites/policies/moves.yaml` set the confidence bands.
 
-Each move shows its key and, when the model answered, its probability. The selected move is highlighted. Below the moves, `Stat <stat>` shows the stat the roll will use, for a move where you choose one. The model's suggested stat is set when you select the move, and `not set` means you must pick one. `Add +<n>` shows your add.
+Each move shows its key and, when the model answered, its probability. The selected move is highlighted. Below the moves, `Stat <stat>` shows the stat the roll will use, for a move where you choose one. The model's suggested stat is set when you select the move, and `not set` means you must pick one. `Add +<n>` shows your add. The hints name the keys for the moves shown, such as `1-9 A-F or arrows move`.
 
 | Key | Action |
 |---|---|
-| 1 to 9 | Select the move with that number. |
+| 1 to 9, then `A` to `Z` | Select the move with that key. Moves past the ninth take capital letters, so Shift and a letter selects one, because lowercase letters already set the stat or act. Moves past the 35th show `·` and are reached only with arrows. |
 | Left, Up | Select the previous move. |
-| Right, Down | Select the next move. Moves past the ninth show `·` and are reached only with arrows. |
+| Right, Down | Select the next move. |
 | `e`, `h`, `i`, `s`, `w` | Set the stat to edge, heart, iron, shadow, or wits. |
 | `+`, `-` | Raise or lower the add by 1. |
 | `a` | Open the [abilities picker](#pickers) for the selected move. Shown as `a abilities (<n>)` only when an asset ability applies. |
@@ -327,7 +327,7 @@ Type a command in the input line and press Enter. The command name is case-sensi
 Names you type:
 
 - **Vow and foe names** must match exactly, including case.
-- **Asset names** can be the id (`cave_lion`), the id with hyphens (`cave-lion`), or the asset's name (`Cave Lion`). Case doesn't matter.
+- **Asset names** can be the id (`cave_lion`), the id with hyphens (`cave-lion`), or the asset's name (`Cave Lion`). An owned companion also answers to its given name (`Kestrel`), set with `/asset set <companion> name <value>`. An asset's id or name wins over a given name that matches it. Case doesn't matter.
 - **Ranks** are `troublesome`, `dangerous`, `formidable`, `extreme`, and `epic`. Case doesn't matter.
 - **Stat changes** in `/asset buy` and `/asset upgrade` are `+<stat>` or `-<stat>`, one per stat point.
 
@@ -500,7 +500,7 @@ Changes a value by hand, without a move. `<n>` and `<ticks>` are whole numbers, 
 | Form | What it changes |
 |---|---|
 | `health`, `spirit`, `supply` `<n>` | Adds `<n>` to the meter, within 0 and its maximum. A marked wounded stops health from rising, and a marked shaken stops spirit from rising. |
-| `momentum <n>` | Adds `<n>` to momentum, within -6 and the maximum. |
+| `momentum <n>` | Adds `<n>` to momentum, within -6 and the maximum. A loss past -6 logs a note, `Face a Setback: exchange <n> momentum for health, spirit, supply, or progress on a track.`, as a move's loss does. |
 | `experience <n>` | Adds `<n>` to experience, not below 0. |
 | `bonds <n>` | Adds `<n>` ticks to the bonds track, within 0 and 40. |
 | `<debility> mark\|clear` | Marks or clears `wounded`, `shaken`, `unprepared`, `encumbered`, `maimed`, `corrupted`, `cursed`, or `tormented`. |
@@ -550,7 +550,7 @@ Blarg faces 2 harm
 /asset
 /asset list [<category>]
 /asset show <asset>
-/asset buy <asset> [<ability>] [+<stat> -<stat> ...]
+/asset buy <asset> [<ability> [+<stat> -<stat> ...]]
 /asset upgrade <asset> <ability> [+<stat> -<stat> ...]
 /asset meter <asset> <meter> <n>
 /asset set <asset> <field> <value>
@@ -566,7 +566,7 @@ Blarg faces 2 harm
 | `/asset` | Shows each owned asset as `<Asset> (<given name>): <marked abilities>, <meter> <value>/<max>, <field> <value>`. Changes nothing. |
 | `/asset list [<category>]` | Shows every asset as `<id>: <Asset>`, or only those in `combat_talent`, `companion`, `path`, or `ritual`. Changes nothing. |
 | `/asset show <asset>` | Shows the asset's category, requirement, and abilities, with `[x]` on marked ones. For an owned asset, adds its summary. Changes nothing. |
-| `/asset buy <asset> [<ability>] [...]` | Spends 3 experience on a new asset. An asset that starts with no ability marked needs `<ability>`, from 1 to 3. For Shadow-Kin 1 and Battle-Scarred 1, give the ability number, then the stat changes. |
+| `/asset buy <asset> [<ability> [...]]` | Spends 3 experience on a new asset. An asset that starts with no ability marked needs `<ability>`, from 1 to 3. For Shadow-Kin 1 and Battle-Scarred 1, give the ability number, then the stat changes. Stat changes always follow an ability number. |
 | `/asset upgrade <asset> <ability> [...]` | Spends 2 experience to mark an ability of an owned asset. Give stat changes after the ability number when it calls for them. |
 | `/asset meter <asset> <meter> <n>` | Adds `<n>` to an asset's meter, such as a companion's `health`, within 0 and its maximum. |
 | `/asset set <asset> <field> <value>` | Fills in a text or choice field, such as a companion's `name`. The value can have spaces. Setting Ironclad's `equipped` to `geared_for_war` marks encumbered, and changing it from that clears encumbered. |

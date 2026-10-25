@@ -76,7 +76,7 @@ Use this when you have no network, no sign-in, or want to pick every move yourse
    ```
 
 2. Type what your character does and press Enter. The log shows your message, and the bar shows the full list of moves for where you are, with none selected.
-3. Pick a move. Press 1 to 9 for the first nine, or the arrow keys for any move.
+3. Pick a move. Press 1 to 9 for the first nine, Shift and a letter (`A`, `B`, and so on) for the moves after those, or the arrow keys for any move.
 4. If the bar shows "Stat not set", press e, h, i, s, or w for edge, heart, iron, shadow, or wits.
 5. Press Enter to roll.
 
@@ -348,7 +348,7 @@ To have a companion take harm:
 2. The bar shows "Companion Endure Harm" and "Enter roll (2)". Press Enter. The companion loses the health first, then rolls.
 3. Pick any choices on the card, then press Enter.
 
-Use the companion's asset id or asset name in `/asset` commands, like `hawk`. The name you gave it doesn't work there.
+In `/asset` commands, you can use the companion's asset id, its asset name, or the name you gave it, like `hawk` or `Kestrel`.
 
 To heal a companion:
 

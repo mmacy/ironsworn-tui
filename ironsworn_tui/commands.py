@@ -1,6 +1,7 @@
 """The `/` commands, with no UI code."""
 
 import shlex
+from collections.abc import Sequence
 from dataclasses import dataclass
 from typing import Literal, get_args
 
@@ -13,7 +14,16 @@ from ironsworn_tui.assets import (
     set_field,
     upgrade,
 )
-from ironsworn_tui.campaign import AssetError, Debility, Meter, OwnedAsset, ProgressTrack, meter_max
+from ironsworn_tui.campaign import (
+    AssetError,
+    Debility,
+    Meter,
+    NotFoundError,
+    OwnedAsset,
+    ProgressTrack,
+    meter_max,
+    setback_note,
+)
 from ironsworn_tui.rules.datasworn import Asset, Datasworn, Stat, plain_text
 from ironsworn_tui.rules.oracles import Likelihood, ask_yes_no, roll_oracle
 from ironsworn_tui.rules.progress import TRACK_TICKS, Rank
@@ -44,7 +54,7 @@ COMMANDS = (
     "moves",
 )
 ASSET_USAGE = (
-    "usage: /asset [list [category] | show <asset> | buy <asset> [ability] [+stat -stat] | "
+    "usage: /asset [list [category] | show <asset> | buy <asset> [ability [+stat -stat]] | "
     "upgrade <asset> <ability> [+stat -stat] | meter <asset> <meter> <n> | "
     "set <asset> <field> <value> | debility <asset> on|off | harm <companion> <n> | "
     "use lorekeeper | use slayer ritual|sojourn | discard <asset>]"
@@ -115,8 +125,16 @@ def find_table(data: Datasworn, name: str) -> str:
     raise CommandError(f"{name!r} could be: {', '.join(sorted(matches))}")
 
 
-def find_asset(data: Datasworn, name: str) -> Asset:
+def find_asset(data: Datasworn, name: str, owned: Sequence[OwnedAsset] = ()) -> Asset:
     """Return the asset an id or a name refers to, such as `shadow_kin` or `Shadow-kin`.
+
+    An owned companion also answers to the name set with `/asset set <companion> name
+    <value>`. The catalog's ids and names come first, so `hawk` is always the Hawk asset.
+
+    Args:
+        data: The Datasworn data.
+        name: The id, the name, or a companion's given name, in any case.
+        owned: The character's assets, whose companions' given names also match.
 
     Raises:
         CommandError: If no asset matches.
@@ -124,6 +142,10 @@ def find_asset(data: Datasworn, name: str) -> Asset:
     key = name.strip().lower()
     for asset in data.assets.values():
         if key in (asset.id, asset.name.lower(), asset.id.replace("_", "-")):
+            return asset
+    for mine in owned:
+        asset = data.asset(mine.id)
+        if asset.category == "Companion" and mine.fields.get("name", "").lower() == key:
             return asset
     raise CommandError(f"no asset named {name!r}; /asset list shows them")
 
@@ -250,7 +272,7 @@ def _named_vow(engine: TurnEngine, name: str) -> ProgressTrack:
         raise CommandError("name the vow")
     try:
         return engine.campaign.vow(name)
-    except KeyError as error:
+    except NotFoundError as error:
         raise CommandError(str(error)) from error
 
 
@@ -290,12 +312,13 @@ def _adjust(engine: TurnEngine, rest: str) -> CommandResult:
     if len(words) < 2:
         raise CommandError(usage)
     what, args = words[0], words[1:]
+    setback = 0
     if what in METERS and len(args) == 1:
         meter = METERS[what]
         changed = character.change_meter(meter, _amount(args[0]))
         line = f"{what.capitalize()} {changed:+d}, now {character.meter(meter)}"
     elif what == "momentum" and len(args) == 1:
-        character.change_momentum(_amount(args[0]))
+        setback = character.change_momentum(_amount(args[0]))
         line = f"Momentum is now {character.momentum}"
     elif what == "experience" and len(args) == 1:
         character.experience = max(0, character.experience + _amount(args[0]))
@@ -332,6 +355,8 @@ def _adjust(engine: TurnEngine, rest: str) -> CommandResult:
     else:
         raise CommandError(usage)
     campaign.add_log("command", f"Adjust: {line}")
+    if setback:
+        campaign.add_log("note", setback_note(setback))
     engine.expire_low()
     engine.save()
     return CommandResult()
@@ -369,7 +394,7 @@ def _asset(engine: TurnEngine, rest: str) -> CommandResult:
         return CommandResult(tuple(f"{a.id}: {a.name}" for a in assets))
     if not args:
         raise CommandError(ASSET_USAGE)
-    asset, args = _split_asset(data, args)
+    asset, args = _split_asset(data, args, character.assets)
     if action == "show" and len(args) == 1:
         return CommandResult(_asset_card(engine, asset))
     match action:
@@ -422,7 +447,9 @@ def _asset(engine: TurnEngine, rest: str) -> CommandResult:
     return CommandResult()
 
 
-def _split_asset(data: Datasworn, words: list[str]) -> tuple[Asset, list[str]]:
+def _split_asset(
+    data: Datasworn, words: list[str], owned: Sequence[OwnedAsset]
+) -> tuple[Asset, list[str]]:
     """Find the asset the leading words name, trying the longest run first.
 
     Returns:
@@ -430,7 +457,7 @@ def _split_asset(data: Datasworn, words: list[str]) -> tuple[Asset, list[str]]:
     """
     for end in range(len(words), 0, -1):
         try:
-            asset = find_asset(data, " ".join(words[:end]))
+            asset = find_asset(data, " ".join(words[:end]), owned)
         except CommandError:
             continue
         return asset, [asset.id, *words[end:]]
