@@ -10,10 +10,17 @@ from typing import get_args
 
 from ironsworn_tui.app import IronswornApp
 from ironsworn_tui.campaign import Campaign, create_character, new_campaign
+from ironsworn_tui.cases import play_suite_name
 from ironsworn_tui.commands import parse_rank
 from ironsworn_tui.criteria import CriteriaStyle
 from ironsworn_tui.decide import DecideError, TurnState, build_request, jevtester_server
-from ironsworn_tui.experiment import SUITES_DIR, generated_files, load_phrasings
+from ironsworn_tui.experiment import (
+    SUITES_DIR,
+    dump_yaml,
+    generated_files,
+    load_phrasings,
+    play_suite,
+)
 from ironsworn_tui.moves import CANNOT_TELL, NO_MOVE, Context, Initiative
 from ironsworn_tui.policy import load_thresholds
 from ironsworn_tui.rules.datasworn import Stat, datasworn
@@ -137,6 +144,7 @@ def play(args: argparse.Namespace) -> int:
             decider=decider,
             target=settings.target,
             path=path,
+            cases=decider,
         )
         IronswornApp(engine).run()
     return 0
@@ -150,6 +158,12 @@ def write_suites(args: argparse.Namespace) -> int:
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(text)
         print(path.relative_to(SUITES_DIR.parent))
+    # The play suites hold cases from play, so they're created once and never rewritten.
+    for context in Context:
+        path = SUITES_DIR / f"{play_suite_name(context)}.yaml"
+        if not path.exists():
+            path.write_text(dump_yaml(play_suite(context)))
+            print(path.relative_to(SUITES_DIR.parent))
     return 0
 
 
@@ -184,7 +198,9 @@ def make_parser() -> argparse.ArgumentParser:
     p.add_argument("--no-model", action="store_true", help="Play without move suggestions.")
     p.set_defaults(func=play)
 
-    w = commands.add_parser("write-suites", help="Write the recognizer suites.")
+    w = commands.add_parser(
+        "write-suites", help="Write the recognizer suites, and create missing play suites."
+    )
     w.set_defaults(func=write_suites)
     return parser
 

@@ -102,3 +102,10 @@ def test_no_stale_generated_files():
         for path in SUITES_DIR.glob(pattern)
     }
     assert on_disk == generated
+
+
+@pytest.mark.parametrize("context", list(Context))
+def test_play_suites_ask_what_play_sends(context: Context):
+    suite = _load(SUITES_DIR / f"play-{context.value}.yaml")
+    assert suite["question_set"] == f"moves-{context.value}-guide"
+    assert suite["policy"] == "moves"

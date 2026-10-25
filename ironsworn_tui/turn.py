@@ -14,8 +14,17 @@ The TUI drives a [`TurnEngine`][ironsworn_tui.turn.TurnEngine] in this order:
    [`forsake`][ironsworn_tui.turn.TurnEngine.forsake]. No new move can be made while one
    is owed.
 
+In the TUI, the decision call runs in a worker: the TUI calls
+[`log_message`][ironsworn_tui.turn.TurnEngine.log_message], then
+[`decide`][ironsworn_tui.turn.TurnEngine.decide] in the worker, then
+[`accept`][ironsworn_tui.turn.TurnEngine.accept] on the UI thread. `suggest` does all three
+at once. The player's next move, or [`no_move`][ironsworn_tui.turn.TurnEngine.no_move],
+saves the message as a jevtester case. [`skip`][ironsworn_tui.turn.TurnEngine.skip] leaves
+it unsaved.
+
 The owed follow-ups, the next move's add, Turn the Tide, and the End the Fight offer are
-saved in the campaign, so they survive a restart. A rolled card that isn't resolved isn't.
+saved in the campaign, so they survive a restart. A rolled card that isn't resolved isn't,
+and neither is a message waiting for a move: its case is lost.
 """
 
 import dataclasses
@@ -35,9 +44,17 @@ from ironsworn_tui.campaign import (
     OwedMove,
     ProgressTrack,
 )
+from ironsworn_tui.cases import CaseSink, build_case, case_id, play_suite_name
 from ironsworn_tui.criteria import CriteriaStyle
 from ironsworn_tui.decide import DecideError, Decision, JsonObject, TurnState, build_request
-from ironsworn_tui.moves import ATTACK, CANNOT_TELL, NO_MOVE, attack_move, context_options
+from ironsworn_tui.moves import (
+    ATTACK,
+    CANNOT_TELL,
+    NO_MOVE,
+    Context,
+    attack_move,
+    context_options,
+)
 from ironsworn_tui.outcomes import (
     AddToNextMove,
     Choose,
@@ -201,6 +218,7 @@ class TurnEngine:
         target: str = "decision-1@foundry",
         path: Path | None = None,
         style: CriteriaStyle = CriteriaStyle.GUIDE,
+        cases: CaseSink | None = None,
     ) -> None:
         """Create an engine.
 
@@ -213,6 +231,7 @@ class TurnEngine:
             target: The jevtester target to ask.
             path: Where to save the campaign after each turn, or None to not save.
             style: How the `move` question describes each move.
+            cases: Where to save each answered turn as a jevtester case, or None to not save.
         """
         self.campaign = campaign
         self.data = data
@@ -222,8 +241,10 @@ class TurnEngine:
         self.target = target
         self.path = path
         self.style = style
+        self.cases = cases
         self._pending: _Pending | None = None
         self._initiative_set = False
+        self._answering: tuple[Context, Decision] | None = None
 
     @property
     def card(self) -> RollCard | None:
@@ -244,7 +265,54 @@ class TurnEngine:
         suggestion = self.decide(text)
         if suggestion.note is not None:
             self.campaign.add_log("note", suggestion.note)
+        self.accept(suggestion)
         return suggestion
+
+    def accept(self, suggestion: Suggestion) -> None:
+        """Remember the decision the player's next move answers, so it can be saved as a case.
+
+        The TUI calls this when a worker's answer reaches the screen. A failed request is
+        never saved.
+        """
+        decision = suggestion.decision
+        if decision is not None and decision.move is not None:
+            self._answering = (self.campaign.context, decision)
+        else:
+            self._answering = None
+
+    def no_move(self) -> None:
+        """Answer the last message with no move, and save that as its case if the model
+        answered it."""
+        self._record(NO_MOVE, None)
+        self.campaign.add_log("outcome", "No move")
+        self.save()
+
+    def skip(self) -> None:
+        """Leave the last message without a move, and don't save it as a case."""
+        self._answering = None
+
+    def _record(self, option: str, stat: Stat | None) -> None:
+        """Save the waiting decision as a case labeled with what the player did.
+
+        Nothing is saved when no decision is waiting, when the move isn't an option in the
+        context the message was asked in (because the context changed since), or when the
+        engine uses criteria other than the guide criteria the play suites ask with.
+        """
+        answering, self._answering = self._answering, None
+        if answering is None or self.cases is None:
+            return
+        context, decision = answering
+        if self.style is not CriteriaStyle.GUIDE:
+            return
+        if option not in context_options(context):
+            self.campaign.add_log("note", f"Case not saved: {option} wasn't offered then")
+            return
+        name = self.campaign.character.name
+        case = build_case(self.data, decision, option, stat, case_id(name))
+        try:
+            self.cases.add_case(play_suite_name(context), case)
+        except DecideError as error:
+            self.campaign.add_log("note", f"Case not saved: {error}")
 
     def log_message(self, text: str) -> None:
         """Log and save a player message."""
@@ -397,12 +465,16 @@ class TurnEngine:
         if option in (NO_MOVE, CANNOT_TELL):
             raise TurnError(f"{option} makes no move")
         if option == "end_the_fight":
+            # End the Fight isn't a `move` option, so it can't label a case.
+            self._answering = None
             return self._end_the_fight()
         if option not in context_options(campaign.context):
             name = "Attack" if option == ATTACK else self.data.move(option).name
             raise TurnError(f"{name} isn't a move in the {campaign.context} context")
         if option == "forsake_your_vow":
-            self._forsake(self._vow(inputs))
+            vow = self._vow(inputs)
+            self._record(option, None)
+            self._forsake(vow)
             return None
         tide = campaign.tide_armed
         move = (
@@ -417,6 +489,7 @@ class TurnEngine:
         if move == "fulfill_your_vow":
             self._vow(inputs)
 
+        self._record(option, stat)
         campaign.end_fight_offered = False
         if tide:
             campaign.initiative = "character"

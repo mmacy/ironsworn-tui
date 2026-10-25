@@ -7,6 +7,7 @@ from typing import Any, Literal
 from pydantic import BaseModel, ConfigDict, model_validator
 from ruamel.yaml import YAML
 
+from ironsworn_tui.cases import play_suite_name
 from ironsworn_tui.criteria import CriteriaStyle
 from ironsworn_tui.decide import (
     ACTS_QUESTION,
@@ -240,6 +241,21 @@ def dump_yaml(document: dict[str, Any]) -> str:
     out = io.StringIO()
     dumper.dump(document, out)
     return out.getvalue()
+
+
+def play_suite(context: Context) -> dict[str, Any]:
+    """Return an empty play suite, which play adds a case to after each answered turn.
+
+    Its question set is the one play sends: the guide criteria with the default shape.
+    """
+    guide = next(variant for variant in VARIANTS if variant.name == "guide")
+    return {
+        "name": play_suite_name(context),
+        "question_set": question_set_name(context, guide),
+        "policy": guide.policy,
+        "targets": list(TARGETS),
+        "cases": [],
+    }
 
 
 def generated_files(data: Datasworn, phrasings: Phrasings) -> dict[Path, str]:

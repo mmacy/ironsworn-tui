@@ -37,7 +37,8 @@ ironsworn-tui is a terminal app for solo Ironsworn. A decision model reads what 
 - Build step 6 is done: `app.py` (the Textual app), `commands.py` (the `/` commands, with no UI), and the `ironsworn-tui new` and `ironsworn-tui play` commands. The README shows how to play.
 - `tests/test_style.py` fails on any `noqa`, `type: ignore`, or `pyright: ignore` in the package or tests.
 - Never use the phrase "What do you do?" in UI text or prose; the user asked for that explicitly.
-- Start with build step 7, case logging.
+- Build step 7 is done: each answered message becomes a case in `suites/play-<context>.yaml`, saved through the running jevtester server. `n` on the suggestion bar saves a `no_move` case, and Escape saves nothing.
+- Build step 8, assets, is next. I recommended starting with simple abilities (an add, or another stat) and showing the rest as text; the user hasn't decided yet.
 - The user said to use `decision-1@foundry` for live calls. The Ollama models aren't downloaded, and won't be while the user is on a hotspot. The user approved `clef-flash@workers-ai` as the second target for the recognizer suites.
 - The user allowed changing `~/repos/jevtester` if it makes sense, for example to send structured criteria.
 - `diary/` holds the dev diary. Add an entry when a step or decision lands.

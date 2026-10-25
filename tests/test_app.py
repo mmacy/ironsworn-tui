@@ -299,3 +299,34 @@ def test_a_failed_request_shows_the_full_list_and_a_note(tmp_path: Path):
 
     asyncio.run(play())
     assert turn.campaign.log[-1].text.startswith("No suggestion")
+
+
+def test_n_saves_no_move_and_escape_saves_nothing(tmp_path: Path):
+    turn, dice, decider = engine(tmp_path)
+    saved: list[str] = []
+
+    class Sink:
+        def add_case(self, suite: str, case: JsonObject) -> None:
+            saved.append(case["expected"]["move"]["answer"])
+
+    turn.cases = Sink()
+    decider.answers.append(("face_danger", "edge", 0.95))
+    decider.answers.append(("face_danger", "edge", 0.95))
+
+    async def play() -> None:
+        app = IronswornApp(turn)
+        async with app.run_test(size=(120, 40)) as pilot:
+            await pilot.press(*"I sit by the fire", "enter")
+            await settle(app, pilot)
+            await pilot.press("n")
+            assert app.bar_state.mode == "idle"
+            await pilot.press(*"Hmm", "enter")
+            await settle(app, pilot)
+            await pilot.press("escape")
+            await pilot.press(*"/moves", "enter")
+            dice.load(6, 1, 1)
+            await pilot.press("1", "w", "enter")
+            assert app.bar_state.mode == "card"
+
+    asyncio.run(play())
+    assert saved == ["no_move"]

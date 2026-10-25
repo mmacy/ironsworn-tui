@@ -26,7 +26,7 @@ The app has no LLM narrator. In solo Ironsworn the player writes the fiction, so
 | osr-plugins, Ironsworn referee plugin | The Datasworn YAML, and `iron.py` and its tests as the reference for the port | `~/repos/osr-plugins/plugins/ironsworn-referee/skills/referee/`, commit `7e2e4a8` |
 | Move disambiguation guide | The move criteria and the known ambiguities | `references/move_disambiguation.md` in the same folder |
 | Play constitution | Which choices belong to the player, and how initiative works | `references/constitution.md` in the same folder |
-| jevtester | The `decide`, `run`, `report`, and `case add` commands, the suite, question set, and policy formats, and the targets | `~/repos/jevtester` |
+| jevtester | The `decide`, `run`, and `report` commands, the `serve` API for adding cases, the suite, question set, and policy formats, and the targets | `~/repos/jevtester` |
 
 `iron.py` is a CLI, not a library. Only `action_roll()` and `build_indices()` return values. Progress rolls, suffer moves, oracles, and momentum bounds exist only as `cmd_*` functions that print JSON, and its error helper calls `sys.exit(2)`. It also fails this project's gates: ruff and pyright both report findings, and `test_iron.py` uses `# noqa` and runs `iron.py` as a subprocess. So build step 1 ports the rules into typed functions in `ironsworn_tui/rules/` and ports the tests to call them, using `iron.py` as the reference for the math.
 
@@ -207,13 +207,13 @@ Character creation is a short form: a name, stats assigned from 3, 2, 2, 1, 1, t
 
 Every chat message the model answered is a test case, with three suites, one per context: `suites/play-exploring.yaml`, `suites/play-journey.yaml`, and `suites/play-fight.yaml`. Each suite uses a question set for its context in `suites/question-sets/` and the `moves` policy.
 
-`cases.py` saves each turn with `jevtester case add --from-decide`, which reads the `decide` output the turn already has. The case's expected answers are:
+The engine saves each turn's case through the running `jevtester serve`, with `POST /api/suites/{name}/cases`, as soon as the player answers the message. The case's state is the one the model saw, and its expected answers are:
 
-- `move`: the move the player rolled, or `no_move` when the player pressed Escape without rolling.
+- `move`: the move the player made, or `no_move` when the player pressed `n` on the suggestion bar. Escape leaves the message without a move and saves no case, because it can also mean "not now".
 - `stat_<move>`: the stat the player rolled with, for the move they rolled, when that move has a stat question.
 - `expected_action`: the policy action for that move.
 
-A case gets the `corrected` tag when the player overrode the model's top move. A turn where the request failed has no `decide` output, so it isn't saved.
+A case gets the `corrected` tag when the player overrode the model's top move, and the `abstained` tag instead when the model's top answer was `cannot_tell`. A turn where the request failed has no `decide` output, so it isn't saved. The play suites are tracked in git: the repository is private, and the user chose to keep them. `ironsworn-tui write-suites` creates them once and never rewrites them, because they hold the cases.
 
 To measure accuracy, run a suite and then report on the run:
 
@@ -234,7 +234,7 @@ Each step ends with a command that shows it works. Every step also passes the ga
 4. **Recognizer experiment.** `uv run ironsworn-tui suggest "<text>" --context exploring` prints the suggested move and stat. Write 40 phrasings by hand for each context (120 in all) with expected moves and stats, covering every option and the ambiguities in the disambiguation guide. Write the question sets and the `moves` policy. Done when `jevtester report` gives accuracy for two targets and for both kinds of move criteria. Stop and review the numbers with the user before building the rest. If no target reaches 80 percent move accuracy on `exploring`, rework the criteria first.
 5. **Outcomes, campaign, and turn loop.** `outcomes.py`, the pydantic models, JSON persistence, character creation, foes, and `turn.py`. Done when a test plays a scripted session with fixed dice and a fixture decision through `turn.py`: swear a vow, Face Danger, Enter the Fray against two foes, Strike, a miss that leads to Pay the Price, Turn the Tide, End the Fight, then save and reload, with the meters, progress, and initiative checked after each move.
 6. **TUI.** The four-part screen, focus handling, the commands, the roll card, outcome choices, and momentum burn. Done when Textual's `run_test()` pilot, using a fixture decision, drives a turn from typing to an applied outcome, and a second test runs a `/` command.
-7. **Case logging.** Save each turn with `jevtester case add`. Done when a scripted session through `turn.py` adds cases to the right suites, and `jevtester run` and `jevtester report` run on them.
+7. **Case logging.** Save each turn as a case through the running jevtester server. Done when a scripted session through `turn.py` adds cases to the right suites, and `jevtester run` and `jevtester report` run on them.
 8. **Assets.** Apply asset abilities that add to a roll or offer another stat. Ask the model whether an asset applies only once the app can apply it.
 
 ## Risks

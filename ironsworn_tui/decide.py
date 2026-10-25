@@ -397,6 +397,31 @@ class JevtesterClient:
             raise DecideError(f"jevtester's reply isn't valid JSON: {error}") from error
         return parse_decision(response, target)
 
+    def add_case(self, suite: str, case: JsonObject, timeout_s: float = 5.0) -> None:
+        """Add a case to the end of a suite's file.
+
+        Args:
+            suite: The suite's name, such as `play-exploring`.
+            case: The case, with an id the suite doesn't have yet.
+            timeout_s: Seconds to wait. It's short, because play waits for the save.
+
+        Raises:
+            DecideError: If jevtester can't be reached or refuses the case.
+        """
+        http_request = urllib.request.Request(
+            f"{self.base_url}/api/suites/{suite}/cases",
+            data=json.dumps(case).encode(),
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        try:
+            with _OPENER.open(http_request, timeout=timeout_s):
+                return
+        except urllib.error.HTTPError as error:
+            raise DecideError(_error_message(error)) from error
+        except (OSError, http.client.HTTPException) as error:
+            raise DecideError(f"jevtester isn't reachable at {self.base_url}: {error}") from error
+
 
 def _error_message(error: urllib.error.HTTPError) -> str:
     try:
