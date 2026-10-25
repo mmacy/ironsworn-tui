@@ -333,6 +333,7 @@ class IronswornApp(App[None]):
         if ask_id != self._ask_id or self.bar_state.mode != "thinking":
             return
         self.input.disabled = False
+        self.engine.accept(suggestion)
         if suggestion.note is not None:
             before = len(self.engine.campaign.log)
             self.engine.campaign.add_log("note", suggestion.note)
@@ -410,7 +411,7 @@ class IronswornApp(App[None]):
         if option is not None and stat_choices(engine.data, option):
             details.insert(0, f"Stat {state.stat or 'not set'}")
         lines.append("  ".join(details))
-        hints = "Enter roll · 1-9 or arrows move · e h i s w stat · + - add · Esc back"
+        hints = "Enter roll · 1-9 or arrows move · e h i s w stat · + - add · n no move · Esc back"
         lines.append(f"[dim]{hints}[/dim]")
         return "\n".join(lines)
 
@@ -489,6 +490,8 @@ class IronswornApp(App[None]):
         """
         mode = self.bar_state.mode
         if key == "escape" and mode in ("suggest", "offer"):
+            if mode == "suggest":
+                self.engine.skip()
             self.bar_state = BarState()
             self.refresh_all()
             self.input.focus()
@@ -522,6 +525,12 @@ class IronswornApp(App[None]):
             self.select(min(last, (state.selected if state.selected is not None else -1) + 1))
         elif character in STAT_KEYS:
             state.stat = STAT_KEYS[character]
+        elif character == "n":
+            before = len(self.engine.campaign.log)
+            self.engine.no_move()
+            self.log_new(before)
+            self.after_turn()
+            return True
         elif character == "+":
             state.adds += 1
         elif character == "-":
