@@ -3,21 +3,23 @@ question_set: moves-exploring-guide
 policy: moves
 targets:
   - decision-1@foundry
+  - clef-flash@workers-ai
 cases:
-  - id: fd-ford
+  - id: battle-skirmish
     state:
-      character: Kira, a hunter of the Deepwilds
-      circumstances: Kira is exploring, and no fight or journey is under way.
-      situation: The Wending River is swollen with meltwater. The only ford is waist-deep and fast.
-      player_says: I wade across the ford, bracing against the current with my spear.
+      character: Arn, a former shieldwarden
+      circumstances: Arn is exploring, and no fight or journey is under way.
+      situation: A dozen raiders come over the hill toward the village where Arn and the villagers wait with spears.
+      player_says: We meet them at the ditch and drive them off. I don't want to play it blow by blow, just how it goes overall, with the villagers fighting beside me.
     expected:
       move:
-        answer: face_danger
-      stat_face_danger:
-        answer: iron
-    expected_action: face_danger
-    tags: []
-    provenance: claude-draft
+        answer: battle
+      stat_battle:
+        answer: heart
+    expected_action: battle
+    tags:
+      - battle-vs-fray
+    provenance: human
   - id: fd-ledge
     state:
       character: Kira, a hunter of the Deepwilds
@@ -31,7 +33,7 @@ cases:
         answer: edge
     expected_action: face_danger
     tags: []
-    provenance: claude-draft
+    provenance: human
   - id: fd-past-camp
     state:
       character: Tovin, a smooth-talking trader
@@ -46,7 +48,7 @@ cases:
     expected_action: face_danger
     tags:
       - fd-vs-saa
-    provenance: claude-draft
+    provenance: human
   - id: fd-viper
     state:
       character: Sefa, a ritualist and healer
@@ -61,7 +63,7 @@ cases:
     expected_action: face_danger
     tags:
       - react
-    provenance: claude-draft
+    provenance: human
   - id: fd-bog
     state:
       character: Arn, a former shieldwarden
@@ -75,7 +77,7 @@ cases:
         answer: wits
     expected_action: face_danger
     tags: []
-    provenance: claude-draft
+    provenance: human
   - id: saa-ditch
     state:
       character: Kira, a hunter of the Deepwilds
@@ -90,7 +92,7 @@ cases:
     expected_action: secure_an_advantage
     tags:
       - fd-vs-saa
-    provenance: claude-draft
+    provenance: human
   - id: saa-safety-line
     state:
       character: Arn, a former shieldwarden
@@ -105,7 +107,7 @@ cases:
     expected_action: secure_an_advantage
     tags:
       - fd-vs-saa
-    provenance: claude-draft
+    provenance: human
   - id: saa-pack-leader
     state:
       character: Kira, a hunter of the Deepwilds
@@ -120,7 +122,7 @@ cases:
     expected_action: secure_an_advantage
     tags:
       - gi-vs-saa
-    provenance: claude-draft
+    provenance: human
   - id: saa-count-sentries
     state:
       character: Kira, a hunter of the Deepwilds
@@ -137,7 +139,7 @@ cases:
     expected_action: secure_an_advantage
     tags:
       - gi-vs-saa
-    provenance: claude-draft
+    provenance: human
   - id: gi-shrine
     state:
       character: Sefa, a ritualist and healer
@@ -149,7 +151,7 @@ cases:
         answer: gather_information
     expected_action: gather_information
     tags: []
-    provenance: claude-draft
+    provenance: human
   - id: gi-elder
     state:
       character: Tovin, a smooth-talking trader
@@ -162,7 +164,7 @@ cases:
     expected_action: gather_information
     tags:
       - talk
-    provenance: claude-draft
+    provenance: human
   - id: gi-tracks
     state:
       character: Kira, a hunter of the Deepwilds
@@ -175,7 +177,7 @@ cases:
     expected_action: gather_information
     tags:
       - track
-    provenance: claude-draft
+    provenance: human
   - id: heal-stitch
     state:
       character: Sefa, a ritualist and healer
@@ -187,7 +189,7 @@ cases:
         answer: heal
     expected_action: heal
     tags: []
-    provenance: claude-draft
+    provenance: human
   - id: heal-self
     state:
       character: Kira, a hunter of the Deepwilds
@@ -199,7 +201,7 @@ cases:
         answer: heal
     expected_action: heal
     tags: []
-    provenance: claude-draft
+    provenance: human
   - id: resupply-hunt
     state:
       character: Kira, a hunter of the Deepwilds
@@ -211,7 +213,7 @@ cases:
         answer: resupply
     expected_action: resupply
     tags: []
-    provenance: claude-draft
+    provenance: human
   - id: resupply-farmstead
     state:
       character: Arn, a former shieldwarden
@@ -224,7 +226,7 @@ cases:
     expected_action: resupply
     tags:
       - gi-vs-resupply
-    provenance: claude-draft
+    provenance: human
   - id: camp-hollow
     state:
       character: Kira, a hunter of the Deepwilds
@@ -236,7 +238,7 @@ cases:
         answer: make_camp
     expected_action: make_camp
     tags: []
-    provenance: claude-draft
+    provenance: human
   - id: camp-dawn
     state:
       character: Arn, a former shieldwarden
@@ -249,7 +251,7 @@ cases:
     expected_action: make_camp
     tags:
       - camp-vs-sojourn
-    provenance: claude-draft
+    provenance: human
   - id: journey-set-out
     state:
       character: Tovin, a smooth-talking trader
@@ -261,7 +263,7 @@ cases:
         answer: undertake_a_journey
     expected_action: undertake_a_journey
     tags: []
-    provenance: claude-draft
+    provenance: human
   - id: no-move-fair-trade
     state:
       character: Tovin, a smooth-talking trader
@@ -274,7 +276,7 @@ cases:
     expected_action: no_move
     tags:
       - compel-vs-no-move
-    provenance: claude-draft
+    provenance: human
   - id: compel-bribe
     state:
       character: Tovin, a smooth-talking trader
@@ -288,7 +290,7 @@ cases:
         answer: heart
     expected_action: compel
     tags: []
-    provenance: claude-draft
+    provenance: human
   - id: compel-threat
     state:
       character: Arn, a former shieldwarden
@@ -303,7 +305,7 @@ cases:
     expected_action: compel
     tags:
       - gi-vs-compel
-    provenance: claude-draft
+    provenance: human
   - id: compel-lie
     state:
       character: Tovin, a smooth-talking trader
@@ -317,7 +319,7 @@ cases:
         answer: shadow
     expected_action: compel
     tags: []
-    provenance: claude-draft
+    provenance: human
   - id: sojourn-thornhold
     state:
       character: Sefa, a ritualist and healer
@@ -330,7 +332,7 @@ cases:
     expected_action: sojourn
     tags:
       - camp-vs-sojourn
-    provenance: claude-draft
+    provenance: human
   - id: circle-chief
     state:
       character: Arn, a former shieldwarden
@@ -342,7 +344,7 @@ cases:
         answer: draw_the_circle
     expected_action: draw_the_circle
     tags: []
-    provenance: claude-draft
+    provenance: human
   - id: bond-bleakhold
     state:
       character: Sefa, a ritualist and healer
@@ -355,7 +357,7 @@ cases:
     expected_action: forge_a_bond
     tags:
       - bond-vs-vow
-    provenance: claude-draft
+    provenance: human
   - id: bond-eadric
     state:
       character: Kira, a hunter of the Deepwilds
@@ -367,7 +369,7 @@ cases:
         answer: forge_a_bond
     expected_action: forge_a_bond
     tags: []
-    provenance: claude-draft
+    provenance: human
   - id: test-bond-ring
     state:
       character: Tovin, a smooth-talking trader
@@ -380,7 +382,7 @@ cases:
     expected_action: test_your_bond
     tags:
       - compel-vs-bond
-    provenance: claude-draft
+    provenance: human
   - id: vow-brother
     state:
       character: Kira, a hunter of the Deepwilds
@@ -393,7 +395,7 @@ cases:
     expected_action: swear_an_iron_vow
     tags:
       - bond-vs-vow
-    provenance: claude-draft
+    provenance: human
   - id: fulfill-wyvern
     state:
       character: Arn, a former shieldwarden
@@ -405,7 +407,7 @@ cases:
         answer: fulfill_your_vow
     expected_action: fulfill_your_vow
     tags: []
-    provenance: claude-draft
+    provenance: human
   - id: forsake-heir
     state:
       character: Tovin, a smooth-talking trader
@@ -417,7 +419,7 @@ cases:
         answer: forsake_your_vow
     expected_action: forsake_your_vow
     tags: []
-    provenance: claude-draft
+    provenance: human
   - id: fray-sleepers
     state:
       character: Kira, a hunter of the Deepwilds
@@ -431,7 +433,7 @@ cases:
         answer: shadow
     expected_action: enter_the_fray
     tags: []
-    provenance: claude-draft
+    provenance: human
   - id: fray-troll
     state:
       character: Arn, a former shieldwarden
@@ -446,7 +448,7 @@ cases:
     expected_action: enter_the_fray
     tags:
       - fd-vs-fray
-    provenance: claude-draft
+    provenance: human
   - id: fray-ambushed
     state:
       character: Sefa, a ritualist and healer
@@ -460,7 +462,7 @@ cases:
         answer: wits
     expected_action: enter_the_fray
     tags: []
-    provenance: claude-draft
+    provenance: human
   - id: epilogue-arn
     state:
       character: Arn, a former shieldwarden
@@ -472,7 +474,7 @@ cases:
         answer: write_your_epilogue
     expected_action: write_your_epilogue
     tags: []
-    provenance: claude-draft
+    provenance: human
   - id: no-move-meal
     state:
       character: Sefa, a ritualist and healer
@@ -485,7 +487,7 @@ cases:
     expected_action: no_move
     tags:
       - talk
-    provenance: claude-draft
+    provenance: human
   - id: no-move-road
     state:
       character: Kira, a hunter of the Deepwilds
@@ -498,7 +500,7 @@ cases:
     expected_action: no_move
     tags:
       - journey-vs-no-move
-    provenance: claude-draft
+    provenance: human
   - id: cannot-tell-rules
     state:
       character: Kira, a hunter of the Deepwilds
@@ -511,7 +513,7 @@ cases:
     expected_action: cannot_tell
     tags:
       - out-of-character
-    provenance: claude-draft
+    provenance: human
   - id: cannot-tell-scene
     state:
       character: Arn, a former shieldwarden
@@ -523,7 +525,7 @@ cases:
         answer: cannot_tell
     expected_action: cannot_tell
     tags: []
-    provenance: claude-draft
+    provenance: human
   - id: adversarial-tea
     state:
       character: Sefa, a ritualist and healer
@@ -536,4 +538,4 @@ cases:
     expected_action: no_move
     tags:
       - adversarial
-    provenance: claude-draft
+    provenance: human

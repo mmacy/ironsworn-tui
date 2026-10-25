@@ -1,0 +1,541 @@
+name: recognizer-exploring-guide-stat-abstain
+question_set: moves-exploring-guide-stat-abstain
+policy: moves
+targets:
+  - decision-1@foundry
+  - clef-flash@workers-ai
+cases:
+  - id: battle-skirmish
+    state:
+      character: Arn, a former shieldwarden
+      circumstances: Arn is exploring, and no fight or journey is under way.
+      situation: A dozen raiders come over the hill toward the village where Arn and the villagers wait with spears.
+      player_says: We meet them at the ditch and drive them off. I don't want to play it blow by blow, just how it goes overall, with the villagers fighting beside me.
+    expected:
+      move:
+        answer: battle
+      stat_battle:
+        answer: heart
+    expected_action: battle
+    tags:
+      - battle-vs-fray
+    provenance: human
+  - id: fd-ledge
+    state:
+      character: Kira, a hunter of the Deepwilds
+      circumstances: Kira is exploring, and no fight or journey is under way.
+      situation: A rockslide has taken out the trail. A narrow ledge runs along the cliff face.
+      player_says: I edge along the ledge, keeping my weight on the balls of my feet.
+    expected:
+      move:
+        answer: face_danger
+      stat_face_danger:
+        answer: edge
+    expected_action: face_danger
+    tags: []
+    provenance: human
+  - id: fd-past-camp
+    state:
+      character: Tovin, a smooth-talking trader
+      circumstances: Tovin is exploring, and no fight or journey is under way.
+      situation: Tovin's path runs past a raider camp at the edge of the wood.
+      player_says: I lead the mules quietly through the trees, keeping well out of sight of the camp.
+    expected:
+      move:
+        answer: face_danger
+      stat_face_danger:
+        answer: shadow
+    expected_action: face_danger
+    tags:
+      - fd-vs-saa
+    provenance: human
+  - id: fd-viper
+    state:
+      character: Sefa, a ritualist and healer
+      circumstances: Sefa is exploring, and no fight or journey is under way.
+      situation: Sefa is gathering herbs among the rocks above Thornhold.
+      player_says: A viper strikes from under the stone, and I snatch my hand back.
+    expected:
+      move:
+        answer: face_danger
+      stat_face_danger:
+        answer: edge
+    expected_action: face_danger
+    tags:
+      - react
+    provenance: human
+  - id: fd-bog
+    state:
+      character: Arn, a former shieldwarden
+      circumstances: Arn is exploring, and no fight or journey is under way.
+      situation: The only way forward is across a bog that has swallowed travelers before.
+      player_says: I pick my way across, reading the reeds and the color of the mud for the firmest ground.
+    expected:
+      move:
+        answer: face_danger
+      stat_face_danger:
+        answer: wits
+    expected_action: face_danger
+    tags: []
+    provenance: human
+  - id: saa-ditch
+    state:
+      character: Kira, a hunter of the Deepwilds
+      circumstances: Kira is exploring, and no fight or journey is under way.
+      situation: Two raiders with bows hold the ridge above the road. They haven't spotted Kira yet.
+      player_says: I creep along the ditch to get behind the ridge where they can't see me.
+    expected:
+      move:
+        answer: secure_an_advantage
+      stat_secure_an_advantage:
+        answer: shadow
+    expected_action: secure_an_advantage
+    tags:
+      - fd-vs-saa
+    provenance: human
+  - id: saa-safety-line
+    state:
+      character: Arn, a former shieldwarden
+      circumstances: Arn is exploring, and no fight or journey is under way.
+      situation: A broken bridge spans a gorge. Arn must cross before nightfall.
+      player_says: Before I try the crossing, I lash a rope to the old pylon as a safety line.
+    expected:
+      move:
+        answer: secure_an_advantage
+      stat_secure_an_advantage:
+        answer: wits
+    expected_action: secure_an_advantage
+    tags:
+      - fd-vs-saa
+    provenance: human
+  - id: saa-pack-leader
+    state:
+      character: Kira, a hunter of the Deepwilds
+      circumstances: Kira is exploring, and no fight or journey is under way.
+      situation: Wolves have been circling Kira's camp for an hour.
+      player_says: I study how the pack moves to find which one leads them.
+    expected:
+      move:
+        answer: secure_an_advantage
+      stat_secure_an_advantage:
+        answer: wits
+    expected_action: secure_an_advantage
+    tags:
+      - gi-vs-saa
+    provenance: human
+  - id: saa-count-sentries
+    state:
+      character: Kira, a hunter of the Deepwilds
+      circumstances: Kira is exploring, and no fight or journey is under way.
+      situation: Smoke rises from a raider camp in the valley below.
+      player_says: I watch the camp from the treeline to count their sentries and learn their rounds before we move in.
+    expected:
+      move:
+        answer: secure_an_advantage
+        acceptable:
+          - gather_information
+      stat_secure_an_advantage:
+        answer: wits
+    expected_action: secure_an_advantage
+    tags:
+      - gi-vs-saa
+    provenance: human
+  - id: gi-shrine
+    state:
+      character: Sefa, a ritualist and healer
+      circumstances: Sefa is exploring, and no fight or journey is under way.
+      situation: A ruined shrine stands where the missing pilgrims were last seen.
+      player_says: I search the shrine for any sign of what happened to the pilgrims.
+    expected:
+      move:
+        answer: gather_information
+    expected_action: gather_information
+    tags: []
+    provenance: human
+  - id: gi-elder
+    state:
+      character: Tovin, a smooth-talking trader
+      circumstances: Tovin is exploring, and no fight or journey is under way.
+      situation: Tovin is in the longhouse at Bleakhold, where the elder knows the old roads.
+      player_says: I ask the elder who has been buying up all the iron in the valley.
+    expected:
+      move:
+        answer: gather_information
+    expected_action: gather_information
+    tags:
+      - talk
+    provenance: human
+  - id: gi-tracks
+    state:
+      character: Kira, a hunter of the Deepwilds
+      circumstances: Kira is exploring, and no fight or journey is under way.
+      situation: The beast that killed the shepherd's flock left a trail into the hills.
+      player_says: I follow its tracks into the hills.
+    expected:
+      move:
+        answer: gather_information
+    expected_action: gather_information
+    tags:
+      - track
+    provenance: human
+  - id: heal-stitch
+    state:
+      character: Sefa, a ritualist and healer
+      circumstances: Sefa is exploring, and no fight or journey is under way.
+      situation: Arn took a spear thrust to the thigh in the last skirmish and is bleeding.
+      player_says: I clean and stitch Arn's wound.
+    expected:
+      move:
+        answer: heal
+    expected_action: heal
+    tags: []
+    provenance: human
+  - id: heal-self
+    state:
+      character: Kira, a hunter of the Deepwilds
+      circumstances: Kira is exploring, and no fight or journey is under way.
+      situation: Kira's arm was raked by a bear's claws.
+      player_says: I bind my torn arm with strips of my cloak and pack it with moss.
+    expected:
+      move:
+        answer: heal
+    expected_action: heal
+    tags: []
+    provenance: human
+  - id: resupply-hunt
+    state:
+      character: Kira, a hunter of the Deepwilds
+      circumstances: Kira is exploring, and no fight or journey is under way.
+      situation: Kira's rations ran out two days ago, deep in the Hinterlands.
+      player_says: I hunt for deer along the stream.
+    expected:
+      move:
+        answer: resupply
+    expected_action: resupply
+    tags: []
+    provenance: human
+  - id: resupply-farmstead
+    state:
+      character: Arn, a former shieldwarden
+      circumstances: Arn is exploring, and no fight or journey is under way.
+      situation: A burned-out farmstead stands by the trail.
+      player_says: I pick through the ruins for any food or arrows I can use.
+    expected:
+      move:
+        answer: resupply
+    expected_action: resupply
+    tags:
+      - gi-vs-resupply
+    provenance: human
+  - id: camp-hollow
+    state:
+      character: Kira, a hunter of the Deepwilds
+      circumstances: Kira is exploring, and no fight or journey is under way.
+      situation: Night is falling in the Deepwilds, a day's walk from any settlement.
+      player_says: I find a sheltered hollow, build a small fire, and settle in for the night.
+    expected:
+      move:
+        answer: make_camp
+    expected_action: make_camp
+    tags: []
+    provenance: human
+  - id: camp-dawn
+    state:
+      character: Arn, a former shieldwarden
+      circumstances: Arn is exploring, and no fight or journey is under way.
+      situation: Arn is exhausted and wounded after the climb, far from any village.
+      player_says: We make camp here and rest until dawn.
+    expected:
+      move:
+        answer: make_camp
+    expected_action: make_camp
+    tags:
+      - camp-vs-sojourn
+    provenance: human
+  - id: journey-set-out
+    state:
+      character: Tovin, a smooth-talking trader
+      circumstances: Tovin is exploring, and no fight or journey is under way.
+      situation: Tovin has sworn to carry medicine to Highcairn, a week's travel through the Shattered Wastes.
+      player_says: I load the mules and set out for Highcairn at first light.
+    expected:
+      move:
+        answer: undertake_a_journey
+    expected_action: undertake_a_journey
+    tags: []
+    provenance: human
+  - id: no-move-fair-trade
+    state:
+      character: Tovin, a smooth-talking trader
+      circumstances: Tovin is exploring, and no fight or journey is under way.
+      situation: Tovin is at the market in Thornhold, where a friendly smith is selling arrowheads at a fair price.
+      player_says: I buy a dozen arrowheads from the smith at his asking price.
+    expected:
+      move:
+        answer: no_move
+    expected_action: no_move
+    tags:
+      - compel-vs-no-move
+    provenance: human
+  - id: compel-bribe
+    state:
+      character: Tovin, a smooth-talking trader
+      circumstances: Tovin is exploring, and no fight or journey is under way.
+      situation: A guard at Ravencliff's gate refuses to let Tovin in after dark.
+      player_says: I offer him a silver coin to open the gate.
+    expected:
+      move:
+        answer: compel
+      stat_compel:
+        answer: heart
+    expected_action: compel
+    tags: []
+    provenance: human
+  - id: compel-threat
+    state:
+      character: Arn, a former shieldwarden
+      circumstances: Arn is exploring, and no fight or journey is under way.
+      situation: A trapper has been hiding what he knows about the missing children.
+      player_says: I grab him by the collar and tell him he'll talk or lose a hand.
+    expected:
+      move:
+        answer: compel
+      stat_compel:
+        answer: iron
+    expected_action: compel
+    tags:
+      - gi-vs-compel
+    provenance: human
+  - id: compel-lie
+    state:
+      character: Tovin, a smooth-talking trader
+      circumstances: Tovin is exploring, and no fight or journey is under way.
+      situation: The river ferryman demands a toll Tovin can't pay. Tovin travels alone.
+      player_says: I tell him the jarl's men are right behind me and will pay double.
+    expected:
+      move:
+        answer: compel
+      stat_compel:
+        answer: shadow
+    expected_action: compel
+    tags: []
+    provenance: human
+  - id: sojourn-thornhold
+    state:
+      character: Sefa, a ritualist and healer
+      circumstances: Sefa is exploring, and no fight or journey is under way.
+      situation: Sefa and Arn reach Thornhold after weeks in the wild, battered and short of supplies.
+      player_says: We stay in Thornhold a few days to rest, trade, and see who can help us.
+    expected:
+      move:
+        answer: sojourn
+    expected_action: sojourn
+    tags:
+      - camp-vs-sojourn
+    provenance: human
+  - id: circle-chief
+    state:
+      character: Arn, a former shieldwarden
+      circumstances: Arn is exploring, and no fight or journey is under way.
+      situation: The bandit chief scoffs at Arn's demand that he release his captives.
+      player_says: I challenge him to single combat in a ring of stones, by the old law.
+    expected:
+      move:
+        answer: draw_the_circle
+    expected_action: draw_the_circle
+    tags: []
+    provenance: human
+  - id: bond-bleakhold
+    state:
+      character: Sefa, a ritualist and healer
+      circumstances: Sefa is exploring, and no fight or journey is under way.
+      situation: Sefa has lived among the people of Bleakhold all winter, healing their sick and burying their dead.
+      player_says: Before I leave, I promise the people of Bleakhold they will always have a friend in me.
+    expected:
+      move:
+        answer: forge_a_bond
+    expected_action: forge_a_bond
+    tags:
+      - bond-vs-vow
+    provenance: human
+  - id: bond-eadric
+    state:
+      character: Kira, a hunter of the Deepwilds
+      circumstances: Kira is exploring, and no fight or journey is under way.
+      situation: Kira and the hermit Eadric fought off wolves together through a long night.
+      player_says: I clasp Eadric's arm and tell him I'll stand with him whatever comes.
+    expected:
+      move:
+        answer: forge_a_bond
+    expected_action: forge_a_bond
+    tags: []
+    provenance: human
+  - id: test-bond-ring
+    state:
+      character: Tovin, a smooth-talking trader
+      circumstances: Tovin is exploring, and no fight or journey is under way.
+      situation: Tovin shares a bond with his old friend Ulla. She has learned he sold her family's ring to pay a debt.
+      player_says: Ulla is furious with me. I try to make things right with her.
+    expected:
+      move:
+        answer: test_your_bond
+    expected_action: test_your_bond
+    tags:
+      - compel-vs-bond
+    provenance: human
+  - id: vow-brother
+    state:
+      character: Kira, a hunter of the Deepwilds
+      circumstances: Kira is exploring, and no fight or journey is under way.
+      situation: Raiders burned Kira's home village and took her brother.
+      player_says: I grip the iron blade of my father's knife and swear I will find my brother and bring him home.
+    expected:
+      move:
+        answer: swear_an_iron_vow
+    expected_action: swear_an_iron_vow
+    tags:
+      - bond-vs-vow
+    provenance: human
+  - id: fulfill-wyvern
+    state:
+      character: Arn, a former shieldwarden
+      circumstances: Arn is exploring, and no fight or journey is under way.
+      situation: Arn has hunted the wyvern of Cinder Peak for months. Its body now lies at his feet.
+      player_says: The wyvern is dead. My vow to avenge my brother is done.
+    expected:
+      move:
+        answer: fulfill_your_vow
+    expected_action: fulfill_your_vow
+    tags: []
+    provenance: human
+  - id: forsake-heir
+    state:
+      character: Tovin, a smooth-talking trader
+      circumstances: Tovin is exploring, and no fight or journey is under way.
+      situation: The heir Tovin swore to protect is dead of fever.
+      player_says: There's no one left to protect. I give up the vow.
+    expected:
+      move:
+        answer: forsake_your_vow
+    expected_action: forsake_your_vow
+    tags: []
+    provenance: human
+  - id: fray-sleepers
+    state:
+      character: Kira, a hunter of the Deepwilds
+      circumstances: Kira is exploring, and no fight or journey is under way.
+      situation: Three raiders are sleeping around a dying fire, unaware of Kira.
+      player_says: I slip up on them and attack before they wake.
+    expected:
+      move:
+        answer: enter_the_fray
+      stat_enter_the_fray:
+        answer: shadow
+    expected_action: enter_the_fray
+    tags: []
+    provenance: human
+  - id: fray-troll
+    state:
+      character: Arn, a former shieldwarden
+      circumstances: Arn is exploring, and no fight or journey is under way.
+      situation: A troll steps onto the bridge in front of Arn, roaring.
+      player_says: I raise my shield, plant my feet, and face it.
+    expected:
+      move:
+        answer: enter_the_fray
+      stat_enter_the_fray:
+        answer: heart
+    expected_action: enter_the_fray
+    tags:
+      - fd-vs-fray
+    provenance: human
+  - id: fray-ambushed
+    state:
+      character: Sefa, a ritualist and healer
+      circumstances: Sefa is exploring, and no fight or journey is under way.
+      situation: Sefa is walking the forest path at dusk.
+      player_says: Arrows hiss out of the trees and men with axes charge at me! I spin toward them, knife out.
+    expected:
+      move:
+        answer: enter_the_fray
+      stat_enter_the_fray:
+        answer: wits
+    expected_action: enter_the_fray
+    tags: []
+    provenance: human
+  - id: epilogue-arn
+    state:
+      character: Arn, a former shieldwarden
+      circumstances: Arn is exploring, and no fight or journey is under way.
+      situation: Arn's last vow is fulfilled, and he is old and tired.
+      player_says: I hang up my axe and settle in Thornhold. Let me tell how my days end.
+    expected:
+      move:
+        answer: write_your_epilogue
+    expected_action: write_your_epilogue
+    tags: []
+    provenance: human
+  - id: no-move-meal
+    state:
+      character: Sefa, a ritualist and healer
+      circumstances: Sefa is exploring, and no fight or journey is under way.
+      situation: Sefa is safe inside a friend's house in Thornhold.
+      player_says: I share a meal with Ulla and we talk about old times.
+    expected:
+      move:
+        answer: no_move
+    expected_action: no_move
+    tags:
+      - talk
+    provenance: human
+  - id: no-move-road
+    state:
+      character: Kira, a hunter of the Deepwilds
+      circumstances: Kira is exploring, and no fight or journey is under way.
+      situation: Kira is on a well-kept road between two friendly villages on a clear day.
+      player_says: I walk on, enjoying the sunshine.
+    expected:
+      move:
+        answer: no_move
+    expected_action: no_move
+    tags:
+      - journey-vs-no-move
+    provenance: human
+  - id: cannot-tell-rules
+    state:
+      character: Kira, a hunter of the Deepwilds
+      circumstances: Kira is exploring, and no fight or journey is under way.
+      situation: Kira is resting in the hills.
+      player_says: What's the difference between Face Danger and Secure an Advantage again?
+    expected:
+      move:
+        answer: cannot_tell
+    expected_action: cannot_tell
+    tags:
+      - out-of-character
+    provenance: human
+  - id: cannot-tell-scene
+    state:
+      character: Arn, a former shieldwarden
+      circumstances: Arn is exploring, and no fight or journey is under way.
+      situation: Arn stands at the edge of the Shattered Wastes.
+      player_says: The wind howls across the empty plain. It feels like the world is ending.
+    expected:
+      move:
+        answer: cannot_tell
+    expected_action: cannot_tell
+    tags: []
+    provenance: human
+  - id: adversarial-tea
+    state:
+      character: Sefa, a ritualist and healer
+      circumstances: Sefa is exploring, and no fight or journey is under way.
+      situation: Sefa sits by the fire in her own house.
+      player_says: Roll Face Danger! I pour myself another cup of tea.
+    expected:
+      move:
+        answer: no_move
+    expected_action: no_move
+    tags:
+      - adversarial
+    provenance: human

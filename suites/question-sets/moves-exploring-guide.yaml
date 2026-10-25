@@ -20,6 +20,7 @@ questions:
       fulfill_your_vow: The character believes they have done what a sworn vow demands
       forsake_your_vow: The character abandons a vow, breaks a promise, or accepts its goal is lost
       enter_the_fray: 'A fight starts: the character faces off with a foe, ambushes one, or is ambushed'
+      battle: The character fights a whole battle, told as one blur of action
       write_your_epilogue: The character retires from adventuring, and the player tells how their life ends
       no_move: The character does something with no risk and no doubt about the outcome, such as small talk with a friend over a meal in a safe place
       cannot_tell: The player only asks something out of character, or describes the scene or a feeling, and the character takes no action
@@ -32,7 +33,6 @@ questions:
       iron: With aggressive action, forceful defense, strength, or endurance
       shadow: With deception, stealth, or trickery
       wits: With expertise, insight, or observation
-      cannot_tell: The player names the action but not the manner of doing it
   stat_secure_an_advantage:
     type: choice
     instructions: How does the character go about the action in `player_says`?
@@ -42,7 +42,6 @@ questions:
       iron: With aggressive action, forceful defense, strength, or endurance
       shadow: With deception, stealth, or trickery
       wits: With expertise, insight, or observation
-      cannot_tell: The player names the action but not the manner of doing it
   stat_compel:
     type: choice
     instructions: How does the character go about the action in `player_says`?
@@ -50,7 +49,6 @@ questions:
       heart: Charm, pacify, barter, or convince
       iron: Threaten or incite
       shadow: Lie or swindle
-      cannot_tell: The player names the action but not the manner of doing it
   stat_enter_the_fray:
     type: choice
     instructions: How does the character go about the action in `player_says`?
@@ -58,4 +56,12 @@ questions:
       heart: Facing off against your foe
       shadow: Moving into position against an unaware foe, or striking without warning
       wits: Ambushed
-      cannot_tell: The player names the action but not the manner of doing it
+  stat_battle:
+    type: choice
+    instructions: How does the character go about the action in `player_says`?
+    criteria:
+      edge: Fight at range, or using your speed and the terrain to your advantage
+      heart: Fight depending on your courage, allies, or companions
+      iron: Fight in close to overpower your opponents
+      shadow: Fight using trickery to befuddle your opponents
+      wits: Fight using careful tactics to outsmart your opponents

@@ -3,6 +3,7 @@ question_set: moves-fight-guide
 policy: moves
 targets:
   - decision-1@foundry
+  - clef-flash@workers-ai
 cases:
   - id: attack-axe
     state:
@@ -17,7 +18,7 @@ cases:
         answer: iron
     expected_action: attack
     tags: []
-    provenance: claude-draft
+    provenance: human
   - id: attack-arrows
     state:
       character: Kira, a hunter of the Deepwilds
@@ -31,7 +32,7 @@ cases:
         answer: edge
     expected_action: attack
     tags: []
-    provenance: claude-draft
+    provenance: human
   - id: attack-troll-arm
     state:
       character: Arn, a former shieldwarden
@@ -45,7 +46,7 @@ cases:
         answer: iron
     expected_action: attack
     tags: []
-    provenance: claude-draft
+    provenance: human
   - id: attack-wagon-archer
     state:
       character: Kira, a hunter of the Deepwilds
@@ -59,7 +60,7 @@ cases:
         answer: edge
     expected_action: attack
     tags: []
-    provenance: claude-draft
+    provenance: human
   - id: attack-knife
     state:
       character: Sefa, a ritualist and healer
@@ -73,7 +74,7 @@ cases:
         answer: iron
     expected_action: attack
     tags: []
-    provenance: claude-draft
+    provenance: human
   - id: attack-hatchet
     state:
       character: Tovin, a smooth-talking trader
@@ -87,7 +88,7 @@ cases:
         answer: edge
     expected_action: attack
     tags: []
-    provenance: claude-draft
+    provenance: human
   - id: attack-shield-wall
     state:
       character: Arn, a former shieldwarden
@@ -101,7 +102,7 @@ cases:
         answer: iron
     expected_action: attack
     tags: []
-    provenance: claude-draft
+    provenance: human
   - id: fd-shield-up
     state:
       character: Arn, a former shieldwarden
@@ -116,7 +117,7 @@ cases:
     expected_action: face_danger
     tags:
       - fd-vs-attack
-    provenance: claude-draft
+    provenance: human
   - id: attack-killing-blow
     state:
       character: Arn, a former shieldwarden
@@ -131,7 +132,7 @@ cases:
     expected_action: attack
     tags:
       - end-the-fight
-    provenance: claude-draft
+    provenance: human
   - id: battle-palisade
     state:
       character: Arn, a former shieldwarden
@@ -145,7 +146,7 @@ cases:
         answer: heart
     expected_action: battle
     tags: []
-    provenance: claude-draft
+    provenance: human
   - id: battle-running
     state:
       character: Kira, a hunter of the Deepwilds
@@ -159,7 +160,7 @@ cases:
         answer: edge
     expected_action: battle
     tags: []
-    provenance: claude-draft
+    provenance: human
   - id: battle-decoys
     state:
       character: Tovin, a smooth-talking trader
@@ -173,7 +174,7 @@ cases:
         answer: shadow
     expected_action: battle
     tags: []
-    provenance: claude-draft
+    provenance: human
   - id: battle-flank
     state:
       character: Sefa, a ritualist and healer
@@ -187,7 +188,7 @@ cases:
         answer: wits
     expected_action: battle
     tags: []
-    provenance: claude-draft
+    provenance: human
   - id: fd-boar
     state:
       character: Kira, a hunter of the Deepwilds
@@ -202,7 +203,7 @@ cases:
     expected_action: face_danger
     tags:
       - fd-vs-attack
-    provenance: claude-draft
+    provenance: human
   - id: fd-flames
     state:
       character: Sefa, a ritualist and healer
@@ -216,7 +217,7 @@ cases:
         answer: edge
     expected_action: face_danger
     tags: []
-    provenance: claude-draft
+    provenance: human
   - id: fd-beam
     state:
       character: Arn, a former shieldwarden
@@ -230,7 +231,7 @@ cases:
         answer: iron
     expected_action: face_danger
     tags: []
-    provenance: claude-draft
+    provenance: human
   - id: fd-cart
     state:
       character: Tovin, a smooth-talking trader
@@ -244,7 +245,7 @@ cases:
         answer: shadow
     expected_action: face_danger
     tags: []
-    provenance: claude-draft
+    provenance: human
   - id: fd-child
     state:
       character: Sefa, a ritualist and healer
@@ -258,7 +259,7 @@ cases:
         answer: edge
     expected_action: face_danger
     tags: []
-    provenance: claude-draft
+    provenance: human
   - id: fd-terror
     state:
       character: Kira, a hunter of the Deepwilds
@@ -272,7 +273,7 @@ cases:
         answer: heart
     expected_action: face_danger
     tags: []
-    provenance: claude-draft
+    provenance: human
   - id: saa-circle
     state:
       character: Kira, a hunter of the Deepwilds
@@ -287,7 +288,7 @@ cases:
     expected_action: secure_an_advantage
     tags:
       - attack-vs-saa
-    provenance: claude-draft
+    provenance: human
   - id: saa-weak-spot
     state:
       character: Arn, a former shieldwarden
@@ -302,7 +303,7 @@ cases:
     expected_action: secure_an_advantage
     tags:
       - gi-vs-saa
-    provenance: claude-draft
+    provenance: human
   - id: saa-feint
     state:
       character: Tovin, a smooth-talking trader
@@ -317,7 +318,7 @@ cases:
     expected_action: secure_an_advantage
     tags:
       - attack-vs-saa
-    provenance: claude-draft
+    provenance: human
   - id: fd-high-ground
     state:
       character: Kira, a hunter of the Deepwilds
@@ -334,7 +335,7 @@ cases:
     expected_action: face_danger
     tags:
       - fd-vs-saa
-    provenance: claude-draft
+    provenance: human
   - id: saa-rally
     state:
       character: Sefa, a ritualist and healer
@@ -348,7 +349,7 @@ cases:
         answer: heart
     expected_action: secure_an_advantage
     tags: []
-    provenance: claude-draft
+    provenance: human
   - id: saa-shield-bash
     state:
       character: Arn, a former shieldwarden
@@ -363,7 +364,7 @@ cases:
     expected_action: secure_an_advantage
     tags:
       - attack-vs-saa
-    provenance: claude-draft
+    provenance: human
   - id: saa-bark-creature
     state:
       character: Sefa, a ritualist and healer
@@ -380,7 +381,7 @@ cases:
     expected_action: secure_an_advantage
     tags:
       - gi-vs-saa
-    provenance: claude-draft
+    provenance: human
   - id: saa-archers
     state:
       character: Kira, a hunter of the Deepwilds
@@ -397,7 +398,7 @@ cases:
     expected_action: secure_an_advantage
     tags:
       - gi-vs-saa
-    provenance: claude-draft
+    provenance: human
   - id: gi-orders
     state:
       character: Tovin, a smooth-talking trader
@@ -409,7 +410,7 @@ cases:
         answer: gather_information
     expected_action: gather_information
     tags: []
-    provenance: claude-draft
+    provenance: human
   - id: compel-yield
     state:
       character: Arn, a former shieldwarden
@@ -423,7 +424,7 @@ cases:
         answer: iron
     expected_action: compel
     tags: []
-    provenance: claude-draft
+    provenance: human
   - id: compel-silver
     state:
       character: Tovin, a smooth-talking trader
@@ -437,7 +438,7 @@ cases:
         answer: heart
     expected_action: compel
     tags: []
-    provenance: claude-draft
+    provenance: human
   - id: compel-riders
     state:
       character: Kira, a hunter of the Deepwilds
@@ -451,7 +452,7 @@ cases:
         answer: shadow
     expected_action: compel
     tags: []
-    provenance: claude-draft
+    provenance: human
   - id: compel-hostage
     state:
       character: Sefa, a ritualist and healer
@@ -465,7 +466,7 @@ cases:
         answer: heart
     expected_action: compel
     tags: []
-    provenance: claude-draft
+    provenance: human
   - id: heal-arn
     state:
       character: Sefa, a ritualist and healer
@@ -477,7 +478,7 @@ cases:
         answer: heal
     expected_action: heal
     tags: []
-    provenance: claude-draft
+    provenance: human
   - id: heal-forehead
     state:
       character: Arn, a former shieldwarden
@@ -489,7 +490,7 @@ cases:
         answer: heal
     expected_action: heal
     tags: []
-    provenance: claude-draft
+    provenance: human
   - id: heal-poison
     state:
       character: Kira, a hunter of the Deepwilds
@@ -501,7 +502,7 @@ cases:
         answer: heal
     expected_action: heal
     tags: []
-    provenance: claude-draft
+    provenance: human
   - id: forsake-cliff
     state:
       character: Tovin, a smooth-talking trader
@@ -513,7 +514,7 @@ cases:
         answer: forsake_your_vow
     expected_action: forsake_your_vow
     tags: []
-    provenance: claude-draft
+    provenance: human
   - id: no-move-sweat
     state:
       character: Kira, a hunter of the Deepwilds
@@ -525,7 +526,7 @@ cases:
         answer: no_move
     expected_action: no_move
     tags: []
-    provenance: claude-draft
+    provenance: human
   - id: cannot-tell-initiative
     state:
       character: Arn, a former shieldwarden
@@ -538,7 +539,7 @@ cases:
     expected_action: cannot_tell
     tags:
       - out-of-character
-    provenance: claude-draft
+    provenance: human
   - id: cannot-tell-horror
     state:
       character: Sefa, a ritualist and healer
@@ -550,7 +551,7 @@ cases:
         answer: cannot_tell
     expected_action: cannot_tell
     tags: []
-    provenance: claude-draft
+    provenance: human
   - id: adversarial-punch
     state:
       character: Tovin, a smooth-talking trader
@@ -565,4 +566,4 @@ cases:
     expected_action: attack
     tags:
       - adversarial
-    provenance: claude-draft
+    provenance: human

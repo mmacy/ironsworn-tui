@@ -20,6 +20,7 @@ questions:
       fulfill_your_vow: When you achieve what you believe to be the fulfillment of your vow...
       forsake_your_vow: When you renounce your quest, betray your promise, or the goal is lost to you...
       enter_the_fray: When you enter into combat...
+      battle: When you fight a battle, and it happens in a blur, and you...
       write_your_epilogue: When you retire from your life as Ironsworn...
       reach_your_destination: When your journey comes to an end...
       no_move: The character does something with no risk and no doubt about the outcome, such as small talk with a friend over a meal in a safe place
@@ -33,7 +34,6 @@ questions:
       iron: With aggressive action, forceful defense, strength, or endurance
       shadow: With deception, stealth, or trickery
       wits: With expertise, insight, or observation
-      cannot_tell: The player names the action but not the manner of doing it
   stat_secure_an_advantage:
     type: choice
     instructions: How does the character go about the action in `player_says`?
@@ -43,7 +43,6 @@ questions:
       iron: With aggressive action, forceful defense, strength, or endurance
       shadow: With deception, stealth, or trickery
       wits: With expertise, insight, or observation
-      cannot_tell: The player names the action but not the manner of doing it
   stat_compel:
     type: choice
     instructions: How does the character go about the action in `player_says`?
@@ -51,7 +50,6 @@ questions:
       heart: Charm, pacify, barter, or convince
       iron: Threaten or incite
       shadow: Lie or swindle
-      cannot_tell: The player names the action but not the manner of doing it
   stat_enter_the_fray:
     type: choice
     instructions: How does the character go about the action in `player_says`?
@@ -59,4 +57,12 @@ questions:
       heart: Facing off against your foe
       shadow: Moving into position against an unaware foe, or striking without warning
       wits: Ambushed
-      cannot_tell: The player names the action but not the manner of doing it
+  stat_battle:
+    type: choice
+    instructions: How does the character go about the action in `player_says`?
+    criteria:
+      edge: Fight at range, or using your speed and the terrain to your advantage
+      heart: Fight depending on your courage, allies, or companions
+      iron: Fight in close to overpower your opponents
+      shadow: Fight using trickery to befuddle your opponents
+      wits: Fight using careful tactics to outsmart your opponents

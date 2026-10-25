@@ -1,0 +1,72 @@
+name: moves-exploring-guide-stat-abstain
+questions:
+  move:
+    type: choice
+    instructions: Which move does the action in `player_says` trigger, given `circumstances` and `situation`?
+    criteria:
+      face_danger: The character tries to overcome a danger or obstacle directly, or reacts to a threat about to hit
+      secure_an_advantage: The character sizes up a threat or sets up an edge for an action still to come
+      gather_information: The character searches, investigates, or questions people to learn facts about a mystery, place, or quest
+      heal: The character treats a wound or illness, their own or a companion's
+      resupply: The character hunts, forages, or scavenges for food and gear
+      make_camp: The character camps away from any settlement, to rest and recover for the night
+      undertake_a_journey: The character sets out or travels on through dangerous or unknown lands
+      compel: The character persuades, bargains with, threatens, or lies to someone to make them act
+      sojourn: The character spends time in a community to recover, resupply, or get its people's help
+      draw_the_circle: The character challenges someone to a formal duel, or accepts a challenge
+      forge_a_bond: The character seals a lasting bond with a person or community after time or hardship together
+      test_your_bond: A bond the character has made is strained by conflict, betrayal, or events
+      swear_an_iron_vow: The character swears upon iron to complete a quest
+      fulfill_your_vow: The character believes they have done what a sworn vow demands
+      forsake_your_vow: The character abandons a vow, breaks a promise, or accepts its goal is lost
+      enter_the_fray: 'A fight starts: the character faces off with a foe, ambushes one, or is ambushed'
+      battle: The character fights a whole battle, told as one blur of action
+      write_your_epilogue: The character retires from adventuring, and the player tells how their life ends
+      no_move: The character does something with no risk and no doubt about the outcome, such as small talk with a friend over a meal in a safe place
+      cannot_tell: The player only asks something out of character, or describes the scene or a feeling, and the character takes no action
+  stat_face_danger:
+    type: choice
+    instructions: How does the character go about the action in `player_says`?
+    criteria:
+      edge: With speed, agility, or precision
+      heart: With charm, loyalty, or courage
+      iron: With aggressive action, forceful defense, strength, or endurance
+      shadow: With deception, stealth, or trickery
+      wits: With expertise, insight, or observation
+      cannot_tell: The player names the action but not the manner of doing it
+  stat_secure_an_advantage:
+    type: choice
+    instructions: How does the character go about the action in `player_says`?
+    criteria:
+      edge: With speed, agility, or precision
+      heart: With charm, loyalty, or courage
+      iron: With aggressive action, forceful defense, strength, or endurance
+      shadow: With deception, stealth, or trickery
+      wits: With expertise, insight, or observation
+      cannot_tell: The player names the action but not the manner of doing it
+  stat_compel:
+    type: choice
+    instructions: How does the character go about the action in `player_says`?
+    criteria:
+      heart: Charm, pacify, barter, or convince
+      iron: Threaten or incite
+      shadow: Lie or swindle
+      cannot_tell: The player names the action but not the manner of doing it
+  stat_enter_the_fray:
+    type: choice
+    instructions: How does the character go about the action in `player_says`?
+    criteria:
+      heart: Facing off against your foe
+      shadow: Moving into position against an unaware foe, or striking without warning
+      wits: Ambushed
+      cannot_tell: The player names the action but not the manner of doing it
+  stat_battle:
+    type: choice
+    instructions: How does the character go about the action in `player_says`?
+    criteria:
+      edge: Fight at range, or using your speed and the terrain to your advantage
+      heart: Fight depending on your courage, allies, or companions
+      iron: Fight in close to overpower your opponents
+      shadow: Fight using trickery to befuddle your opponents
+      wits: Fight using careful tactics to outsmart your opponents
+      cannot_tell: The player names the action but not the manner of doing it

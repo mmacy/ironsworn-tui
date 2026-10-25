@@ -28,14 +28,15 @@ Build step 3 applied:
 - Each guide criterion is a concrete situation. Criteria for moves that overlap name the line between them: Face Danger overcomes a danger directly, while Secure an Advantage sets up an edge for an action still to come, and Gather Information learns facts. Make Camp is away from any settlement, and Sojourn is in a community.
 - `no_move` and `cannot_tell` describe situations instead of negations, and they come last in every list.
 
-Build step 4 tests:
+Build step 4 measured, on Decision-1 and Clef-flash ([results](../experiments/results.md)):
 
-- The two criteria styles, as the plan says.
-- A companion Noul ("Does `player_says` describe something the character does?") against the `cannot_tell` option.
-- Whether the stat questions change the `move` answer on Clef.
-- Option order, with `jevtester probe`.
-- Whether the `character` field sways the stat answers.
-- A phrasing that tries to dictate the move.
-- Acting on the top-to-second ratio as well as confidence.
+- The guide criteria beat the Datasworn trigger text on both targets, so play uses them.
+- A `cannot_tell` option on the stat questions won most stat misses, so the stat questions have none.
+- The companion `acts` question lowered move accuracy on both targets, because it answered no for many real actions. The `move` question keeps its `cannot_tell` option.
 
-jevtester's choice criteria are strings, so the structured criteria TypeSafe suggests would need a jevtester change. The user allowed changing jevtester if it makes sense. Make that change if step 4 shows the model confusing moves that one-line criteria can't separate.
+- Messages that name a move ("Roll Face Danger! I pour myself another cup of tea") didn't pull either model toward the named move.
+- Whether the stat questions change the `move` answer is unsettled. Dropping the stat `cannot_tell` option changed one `move` choice on Clef-flash and none on Decision-1, but probabilities moved by up to 0.09 on both, and one run of each can't separate that from run-to-run variation.
+
+Still to test: option order with `jevtester probe`, whether the `character` field sways the stat answers, and acting on the top-to-second ratio as well as confidence.
+
+jevtester's choice criteria are strings, so the structured criteria TypeSafe suggests would need a jevtester change. The user allowed changing jevtester if it makes sense. The moves the models still confuse (a shield bash read as an attack, a rallying shout read as Compel) are few and borderline, so step 4 didn't make that change.

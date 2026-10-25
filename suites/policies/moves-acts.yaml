@@ -1,0 +1,63 @@
+# The `moves` policy, for requests that ask the `acts` yes/no question instead of offering
+# `cannot_tell` in the `move` question. A no on `acts` means the player described no action.
+name: moves-acts
+
+thresholds:
+  # At or above act, the bar preselects the move. Between confirm and act, it shows the top two.
+  # Below confirm, it shows the full list.
+  act: 0.7
+  confirm: 0.4
+
+bands:
+  move: {act: act, confirm: confirm}
+
+# A no on `acts` comes first. Then one rule per option, in the order the contexts list them.
+rules:
+  - action: cannot_tell
+    when: {acts: false}
+  - action: face_danger
+    when: {move: face_danger}
+  - action: secure_an_advantage
+    when: {move: secure_an_advantage}
+  - action: gather_information
+    when: {move: gather_information}
+  - action: heal
+    when: {move: heal}
+  - action: resupply
+    when: {move: resupply}
+  - action: make_camp
+    when: {move: make_camp}
+  - action: undertake_a_journey
+    when: {move: undertake_a_journey}
+  - action: compel
+    when: {move: compel}
+  - action: sojourn
+    when: {move: sojourn}
+  - action: draw_the_circle
+    when: {move: draw_the_circle}
+  - action: forge_a_bond
+    when: {move: forge_a_bond}
+  - action: test_your_bond
+    when: {move: test_your_bond}
+  - action: swear_an_iron_vow
+    when: {move: swear_an_iron_vow}
+  - action: fulfill_your_vow
+    when: {move: fulfill_your_vow}
+  - action: forsake_your_vow
+    when: {move: forsake_your_vow}
+  - action: enter_the_fray
+    when: {move: enter_the_fray}
+  - action: write_your_epilogue
+    when: {move: write_your_epilogue}
+  - action: no_move
+    when: {move: no_move}
+  - action: cannot_tell
+    when: {move: cannot_tell}
+  - action: reach_your_destination
+    when: {move: reach_your_destination}
+  - action: attack
+    when: {move: attack}
+  - action: battle
+    when: {move: battle}
+
+default: escalate

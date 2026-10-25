@@ -34,6 +34,8 @@ MOVE_INSTRUCTIONS = (
     "Which move does the action in `player_says` trigger, given `circumstances` and `situation`?"
 )
 STAT_INSTRUCTIONS = "How does the character go about the action in `player_says`?"
+ACTS_QUESTION = "acts"
+ACTS_INSTRUCTIONS = "Does `player_says` describe something the character does?"
 STAT_CANNOT_TELL = "The player names the action but not the manner of doing it"
 # jevtester gives up on the target after this long and returns a result with `ok` False. The
 # client waits longer, so that result arrives instead of a socket timeout.
@@ -105,7 +107,31 @@ class TurnState:
         }
 
 
-def build_request(data: Datasworn, state: TurnState, style: CriteriaStyle) -> JsonObject:
+@dataclass(frozen=True)
+class RequestShape:
+    """How a request handles messages that don't fit an option, for the step 4 experiments.
+
+    The defaults are what play sends. On 2026-10-24, a `cannot_tell` option on the stat
+    questions won 12 of 14 stat misses, and dropping it raised stat accuracy on both targets.
+    The `acts` question lowered move accuracy on both. `experiments/results.md` has the numbers.
+
+    Attributes:
+        stat_abstain: True to give each stat question a `cannot_tell` option.
+        acts_question: True to replace the `move` question's `cannot_tell` option with a
+            yes/no question, `acts`, asking whether the player describes an action at all.
+            TypeSafe recommends this companion question over an abstain option.
+    """
+
+    stat_abstain: bool = False
+    acts_question: bool = False
+
+
+DEFAULT_SHAPE = RequestShape()
+
+
+def build_request(
+    data: Datasworn, state: TurnState, style: CriteriaStyle, shape: RequestShape = DEFAULT_SHAPE
+) -> JsonObject:
     """Build the decide request for a turn: the `move` question and every stat question.
 
     The move isn't known until the answers come back, so the request has a stat question for
@@ -116,20 +142,23 @@ def build_request(data: Datasworn, state: TurnState, style: CriteriaStyle) -> Js
         data: The Datasworn data.
         state: The turn's state.
         style: How the `move` question describes each move.
+        shape: How the request handles messages that don't fit an option.
 
     Returns:
         The request body, with `state` and `questions`.
     """
+    move = move_criteria(data, state.context, style)
+    if shape.acts_question:
+        del move[CANNOT_TELL]
     questions: JsonObject = {
-        MOVE_QUESTION: {
-            "type": "choice",
-            "instructions": MOVE_INSTRUCTIONS,
-            "criteria": move_criteria(data, state.context, style),
-        }
+        MOVE_QUESTION: {"type": "choice", "instructions": MOVE_INSTRUCTIONS, "criteria": move}
     }
+    if shape.acts_question:
+        questions[ACTS_QUESTION] = {"type": "noul", "instructions": ACTS_INSTRUCTIONS}
     for option in stat_question_options(data, state.context):
         criteria = {choice.stat: choice.text for choice in stat_choices(data, option)}
-        criteria[CANNOT_TELL] = STAT_CANNOT_TELL
+        if shape.stat_abstain:
+            criteria[CANNOT_TELL] = STAT_CANNOT_TELL
         questions[stat_question_id(option)] = {
             "type": "choice",
             "instructions": STAT_INSTRUCTIONS,
@@ -235,6 +264,7 @@ class Decision:
         error: Why there's no usable `move` answer, when `ok` is False.
         move: The `move` answer, or None when `ok` is False.
         stats: The usable stat answers, by `move` option.
+        acts: The probability that the player describes an action, when the request asked.
         warnings: jevtester's warnings, as `code: message`.
         response: The whole decide response, which case logging saves.
     """
@@ -245,6 +275,7 @@ class Decision:
     error: str | None
     move: ChoiceAnswer | None
     stats: Mapping[str, ChoiceAnswer]
+    acts: float | None
     warnings: tuple[str, ...]
     response: JsonObject = field(repr=False)
 
@@ -302,9 +333,11 @@ def parse_decision(response: JsonObject, target: str) -> Decision:
         stat = _usable_choice(parsed, result.answers, question)
         if question.startswith(prefix) and stat is not None:
             stats[question.removeprefix(prefix)] = stat
+    acts = result.answers.get(ACTS_QUESTION)
     return Decision(
         target=target,
         ok=move is not None,
+        acts=acts.probability if isinstance(acts, NoulAnswer) else None,
         latency_ms=result.latency_ms,
         error=problem,
         move=move,
