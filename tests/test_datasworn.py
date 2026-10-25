@@ -12,6 +12,7 @@ from ironsworn_tui.rules.datasworn import (
     StatOption,
     YamlMap,
     datasworn,
+    plain_text,
 )
 from ironsworn_tui.rules.errors import UnknownIdError
 
@@ -147,3 +148,10 @@ def test_indices_are_read_only():
         npcs["warrior"] = {}
     with pytest.raises(TypeError):
         moves["face_danger"] = datasworn().move("strike")
+
+
+def test_plain_text_drops_links_and_bold_markers():
+    text = (
+        "On a __weak hit__, make the [Endure Harm](datasworn:move:classic/suffer/endure_harm) move."
+    )
+    assert plain_text(text) == "On a weak hit, make the Endure Harm move."
