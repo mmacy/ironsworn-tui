@@ -4,9 +4,13 @@ import tomllib
 from pathlib import Path
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, ValidationError
 
 SETTINGS_FILE = Path(__file__).resolve().parent.parent / "ironsworn-tui.toml"
+
+
+class SettingsError(ValueError):
+    """The settings file can't be read or isn't valid."""
 
 
 class Settings(BaseModel):
@@ -44,15 +48,20 @@ def load_settings(path: Path = SETTINGS_FILE) -> Settings:
         The settings.
 
     Raises:
-        OSError: If the file can't be read.
-        tomllib.TOMLDecodeError: If the file isn't valid TOML.
-        pydantic.ValidationError: If the file has an unknown key or a value of the wrong type.
-        ValueError: If the file sets `jevtester_config`.
+        SettingsError: If the file can't be read, isn't valid TOML, has an unknown key or a
+            value of the wrong type, or sets `jevtester_config`.
     """
-    raw: dict[str, Any] = tomllib.loads(path.read_text())
+    try:
+        raw: dict[str, Any] = tomllib.loads(path.read_text())
+    except OSError as error:
+        raise SettingsError(f"can't read {path}: {error.strerror}") from error
+    except UnicodeDecodeError as error:
+        raise SettingsError(f"{path} isn't UTF-8 text: {error.reason}") from error
+    except tomllib.TOMLDecodeError as error:
+        raise SettingsError(f"{path} isn't valid TOML: {error}") from error
     # jevtester_config is always the jevtester.toml beside this file, never a setting.
     if "jevtester_config" in raw:
-        raise ValueError(f"{path}: jevtester_config isn't a setting")
+        raise SettingsError(f"{path}: jevtester_config isn't a setting")
     base = path.parent
     defaults = {
         "jevtester_project": "~/repos/jevtester",
@@ -64,4 +73,17 @@ def load_settings(path: Path = SETTINGS_FILE) -> Settings:
         if isinstance(values[key], str):
             values[key] = _resolve(base, values[key])
     values["jevtester_config"] = base / "jevtester.toml"
-    return Settings.model_validate(values)
+    try:
+        return Settings.model_validate(values)
+    except ValidationError as error:
+        problems = "; ".join(_problem(e["loc"], e["msg"]) for e in error.errors())
+        raise SettingsError(f"{path}: {problems}") from error
+
+
+def _problem(loc: tuple[int | str, ...], message: str) -> str:
+    key = ".".join(str(part) for part in loc)
+    return (
+        f"{key} isn't a setting"
+        if message == "Extra inputs are not permitted"
+        else f"{key}: {message}"
+    )

@@ -39,13 +39,7 @@ ironsworn-tui is a terminal app for solo Ironsworn. A decision model reads what 
 - Build step 8, assets, is in progress. The user asked for every asset, not a subset (2026-10-25). The plan splits it into four pull requests. Part 1, the catalog and ownership, is done: typed asset models in `rules/datasworn.py`, owned assets in `campaign.py`, buying and upgrading in `assets.py`, and the `/asset` commands. Part 2 is done: `abilities.py` holds the hand-written ability table and the helpers that apply a boost to a result, and the turn engine and TUI apply them. Part 3 is done: the 23 asset moves have outcomes and join the full move list, lasting effects (`Campaign.lasting`, `abilities.LASTING`) work like boosts and end on their own rules, Companion Endure Harm, Face Death, Face Desolation, and Scrape By are rolled follow-ups (`TurnEngine.roll_follow_up`), and the Endure tables' "The harm is mortal" and "You are overwhelmed" results owe Face Death or Face Desolation. Part 4, the decision model and assets, starts only after the user agrees.
 - Campaign files are now schema version 2, and version 1 files don't load. No campaigns existed when this changed.
 - The user documentation follows the Diataxis framework: the tutorial `getting-started.md`, the task guides `how-to.md`, the reference `reference.md`, and the explanation `playing.md`, all in `docs/`. Update them with any change to a command, key, or rule the app applies.
-- Known issues found while writing the docs, not yet fixed:
-  - A cost from Pay the Price or a foe's attack is only logged, so the player applies harm with `/adjust health`, which skips Endure Harm.
-  - Escape on the End the Fight offer leaves the offer set, and it comes back after a `/` command.
-  - `new --assets` accepts the same asset twice.
-  - A missing or invalid `ironsworn-tui.toml` ends in a traceback instead of `Error:`.
-  - Enter on a choose-one card with nothing picked shows "Choose 1 to 1".
-  - The game starts with no bonds, and Aid Your Ally isn't in the app.
+- The issues found while writing the docs are fixed: `/endure harm|stress <n>` owes Endure Harm or Endure Stress for harm from the fiction, Escape declines the End the Fight offer, `new` refuses a duplicate asset and takes up to three `--bond`s, a bad settings file prints `Error:`, and Aid Your Ally is on the full move list (`MoveGroup.LIST`), rolled as Secure an Advantage, with the benefits noted for the ally.
 - The user said to use `decision-1@foundry` for live calls. The Ollama models aren't downloaded, and won't be while the user is on a hotspot. The user approved `clef-flash@workers-ai` as the second target for the recognizer suites.
 - The user allowed changing `~/repos/jevtester` if it makes sense, for example to send structured criteria.
 - `diary/` holds the dev diary. Add an entry when a step or decision lands.

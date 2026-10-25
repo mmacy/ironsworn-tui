@@ -2,7 +2,7 @@
 
 import shlex
 from dataclasses import dataclass
-from typing import get_args
+from typing import Literal, get_args
 
 from ironsworn_tui.assets import (
     StatChanges,
@@ -38,6 +38,7 @@ COMMANDS = (
     "target",
     "tide",
     "adjust",
+    "endure",
     "asset",
     "effects",
     "moves",
@@ -170,6 +171,8 @@ def run_command(engine: TurnEngine, text: str) -> CommandResult:
             return CommandResult()
         case "adjust":
             return _adjust(engine, rest)
+        case "endure":
+            return _endure(engine, rest)
         case "asset":
             try:
                 return _asset(engine, rest)
@@ -256,6 +259,21 @@ def _amount(text: str) -> int:
         return int(text)
     except ValueError:
         raise CommandError(f"{text!r} isn't a number") from None
+
+
+def _endure(engine: TurnEngine, rest: str) -> CommandResult:
+    match rest.split():
+        case ["harm" | "stress" as what, amount]:
+            move: Literal["endure_harm", "endure_stress"] = (
+                "endure_harm" if what == "harm" else "endure_stress"
+            )
+            try:
+                engine.endure(move, _amount(amount))
+            except TurnError as error:
+                raise CommandError(str(error)) from error
+            return CommandResult()
+        case _:
+            raise CommandError("usage: /endure harm|stress <n>")
 
 
 def _adjust(engine: TurnEngine, rest: str) -> CommandResult:

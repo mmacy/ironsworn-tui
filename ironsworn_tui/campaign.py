@@ -1,6 +1,7 @@
 """The campaign: the character, vows, bonds, foes, journey, and log, saved as JSON."""
 
 import os
+from collections.abc import Sequence
 from pathlib import Path
 from typing import Literal
 
@@ -16,6 +17,7 @@ METER_MAX = 5
 STARTING_STATS = (3, 2, 2, 1, 1)
 STARTING_ASSETS = 3
 STARTING_MOMENTUM = 2
+MAX_BACKGROUND_BONDS = 3
 
 type Meter = Literal["health", "spirit", "supply"]
 type Debility = Literal[
@@ -537,6 +539,9 @@ def create_character(
         raise ValueError(f"stats must be assigned from {STARTING_STATS}, got {stats}")
     if len(assets) != STARTING_ASSETS:
         raise ValueError(f"pick {STARTING_ASSETS} assets, got {len(assets)}")
+    ids = [spec.partition(":")[0] for spec in assets]
+    if len(set(ids)) != len(ids):
+        raise AssetError(f"pick {STARTING_ASSETS} different assets, got {', '.join(ids)}")
     owned: list[OwnedAsset] = []
     for spec in assets:
         asset_id, _, pick = spec.partition(":")
@@ -566,10 +571,29 @@ def _check_no_stat_change(data: Datasworn, asset_id: str, ability: int) -> None:
         raise AssetError(f"buy {name} with /asset buy once you play, to choose its stat changes")
 
 
-def new_campaign(character: Character, background_vow: str, rank: Rank) -> Campaign:
-    """Start a campaign with a character and their background vow."""
-    return Campaign(
+def new_campaign(
+    character: Character, background_vow: str, rank: Rank, bonds: Sequence[str] = ()
+) -> Campaign:
+    """Start a campaign with a character, their background vow, and their background bonds.
+
+    Args:
+        character: The character.
+        background_vow: The background vow's name.
+        rank: The background vow's rank.
+        bonds: Up to three people or communities the character shares a bond with. Each
+            marks one tick on the bonds track (rulebook page 36).
+
+    Raises:
+        ValueError: If there are more than three bonds.
+    """
+    if len(bonds) > MAX_BACKGROUND_BONDS:
+        raise ValueError(f"a character starts with up to {MAX_BACKGROUND_BONDS} bonds")
+    campaign = Campaign(
         character=character,
         vows=[ProgressTrack(name=background_vow, rank=rank)],
         background_vow=background_vow,
+        bonds=len(bonds),
     )
+    for bond in bonds:
+        campaign.add_log("command", f"Bond: {bond}")
+    return campaign

@@ -23,10 +23,9 @@ from ironsworn_tui.rules.errors import UnknownIdError
 SPECIAL_OPTIONS = {ATTACK, NO_MOVE, CANNOT_TELL}
 
 
-def test_every_move_but_aid_your_ally_has_one_group():
+def test_every_move_has_one_group():
     data = datasworn()
-    grouped = {move_id for move_id in data.moves if move_group(data, move_id) is not None}
-    assert set(data.moves) - grouped == {"aid_your_ally"}
+    assert all(isinstance(move_group(data, move_id), MoveGroup) for move_id in data.moves)
 
 
 @pytest.mark.parametrize(
@@ -36,6 +35,7 @@ def test_every_move_but_aid_your_ally_has_one_group():
         (MoveGroup.AFTER_RESULT, 1),
         (MoveGroup.OUTCOME, 8),
         (MoveGroup.COMMAND, 4),
+        (MoveGroup.LIST, 1),
     ],
 )
 def test_group_sizes(group: MoveGroup, count: int):
@@ -47,7 +47,7 @@ def test_groups_of_named_moves():
     assert move_group(datasworn(), "face_a_setback") is MoveGroup.OUTCOME
     assert move_group(datasworn(), "turn_the_tide") is MoveGroup.COMMAND
     assert move_group(datasworn(), "strike") is MoveGroup.FICTION
-    assert move_group(datasworn(), "aid_your_ally") is None
+    assert move_group(datasworn(), "aid_your_ally") is MoveGroup.LIST
 
 
 @pytest.mark.parametrize(
@@ -191,6 +191,12 @@ def test_strike_and_clash_offer_the_same_stats():
 )
 def test_moves_without_a_stat_question_have_no_choices(move_id: str):
     assert stat_choices(datasworn(), move_id) == ()
+
+
+def test_aid_your_ally_asks_secure_an_advantages_stat_question():
+    assert stat_choices(datasworn(), "aid_your_ally") == stat_choices(
+        datasworn(), "secure_an_advantage"
+    )
 
 
 @pytest.mark.parametrize("move_id", ["commune", "create_elixir"])

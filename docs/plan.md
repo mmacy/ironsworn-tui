@@ -77,7 +77,7 @@ The app sorts the 35 moves into four groups:
 
 Turn the Tide isn't a separate action. Its text says the character steals initiative "to make a move (not a progress move)", adds +1, and takes +1 momentum on a hit, or must Pay the Price on a miss. So `/tide` arms it for the next move. The app allows it once per fight, only when the foe has initiative, and treats the next attack as Strike.
 
-Aid Your Ally is co-op only and is left out.
+Aid Your Ally is Secure an Advantage for an ally. It's on the full move list, not a `move` option, and rolls as Secure an Advantage with the benefits noted for the ally.
 
 ### Contexts
 

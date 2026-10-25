@@ -86,6 +86,7 @@ Before you start, choose:
 - Three asset ids. To see them, start any campaign and type `/asset list`, or `/asset list companion` for one category.
 - For a companion, the ability it starts with, from 1 to 3.
 - Your background vow.
+- Up to three background bonds: people or communities your character is close to. They're optional.
 
 Steps:
 
@@ -99,6 +100,7 @@ Steps:
 
    - `--rank` sets the background vow's rank. It's `epic` unless you give another rank: `troublesome`, `dangerous`, `formidable`, or `extreme`.
    - `--harm 1` means your character doesn't carry a deadly weapon. The default is 2.
+   - `--bond` names a background bond, such as `--bond "My sister Ash"`. Repeat it for up to three bonds. Each one marks a tick on your bonds track.
 
 The command prints the path of the new campaign file, such as `campaigns/Kira.json`. If something is wrong, it prints an error and creates nothing. For example:
 
@@ -384,7 +386,12 @@ The app makes the owed moves one at a time, in order. They're saved with the cam
 
 If you press a before an Endure Harm or Endure Stress roll, you can turn on the abilities that help, as on any roll.
 
-Pay the Price only logs what happens. If the price is harm, stress, or lost supply, apply it yourself with `/adjust`, as the next guide shows.
+Pay the Price only logs what happens. If the price is harm or stress, or a foe's attack hurts you, owe the roll yourself:
+
+1. Type `/endure harm 2` for 2 harm, or `/endure stress 1` for 1 stress. Use the foe's harm for an attack: 1 for troublesome, up to 5 for epic.
+2. The bar shows Endure Harm or Endure Stress. Press Enter to roll.
+
+For other prices, such as lost supply, use `/adjust`, as the next guide shows.
 
 ## How to fix a mistake or apply a rule the app doesn't
 
@@ -414,7 +421,7 @@ These rules aren't applied by the app yet. Use `/adjust` for each one:
 
 - Sojourn: if you share a bond, you choose one more action. For example, type `/adjust spirit 2` for Consort.
 - Draw the Circle offers up to two boasts. The rulebook allows three. To take a third boast, apply it yourself: `/adjust momentum 1`, plus the boast's effect.
-- Draw the Circle's "Bare yourself" boast makes your foe's harm +1, and the app doesn't add it. Each time that foe harms you, take 1 more with `/adjust health -1`.
+- Draw the Circle's "Bare yourself" boast makes your foe's harm +1, and the app doesn't add it. Each time that foe harms you, add 1 to the harm you type in `/endure harm`.
 - Draw the Circle's "Hold no iron" boast makes your harm 1. Type `/adjust harm 1`, and `/adjust harm 2` when the fight ends.
 - A roll card you haven't applied is lost if you quit. Press Enter on the card before you quit. If you lose one, make the move again, or apply its result with `/adjust`.
 

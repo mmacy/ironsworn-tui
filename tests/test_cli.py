@@ -6,7 +6,7 @@ import pytest
 
 from ironsworn_tui import cli
 from ironsworn_tui.campaign import Campaign
-from ironsworn_tui.settings import Settings
+from ironsworn_tui.settings import Settings, SettingsError
 
 
 @pytest.fixture
@@ -73,3 +73,33 @@ def test_play_reports_a_broken_campaign(settings: Settings):
     settings.campaigns_dir.mkdir(parents=True)
     (settings.campaigns_dir / "Kira.json").write_text("{")
     assert cli.main(["play", "Kira", "--no-model"]) == 2
+
+
+def test_new_records_background_bonds(settings: Settings):
+    assert cli.main([*ARGS, "--bond", "My sister Ash", "--bond", "Highvale"]) == 0
+    campaign = Campaign.load(settings.campaigns_dir / "Kira.json")
+    assert campaign.bonds == 2
+    assert [entry.text for entry in campaign.log] == ["Bond: My sister Ash", "Bond: Highvale"]
+
+
+def test_new_refuses_more_than_three_bonds(settings: Settings):
+    bonds = [arg for name in "abcd" for arg in ("--bond", name)]
+    assert cli.main([*ARGS, *bonds]) == 2
+    assert not (settings.campaigns_dir / "Kira.json").exists()
+
+
+def test_new_refuses_the_same_asset_twice(settings: Settings):
+    args = [*ARGS]
+    args[7] = "archer,archer,wright"
+    assert cli.main(args) == 2
+
+
+def test_a_bad_settings_file_is_an_error_not_a_traceback(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+):
+    def broken() -> Settings:
+        raise SettingsError("ironsworn-tui.toml: targett isn't a setting")
+
+    monkeypatch.setattr(cli, "load_settings", broken)
+    assert cli.main(["play", "Kira", "--no-model"]) == 2
+    assert capsys.readouterr().err == "Error: ironsworn-tui.toml: targett isn't a setting\n"

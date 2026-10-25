@@ -9,6 +9,9 @@ from ironsworn_tui.rules.datasworn import Datasworn, Stat, StatOption
 ATTACK = "attack"
 NO_MOVE = "no_move"
 CANNOT_TELL = "cannot_tell"
+AID_YOUR_ALLY = "aid_your_ally"
+# Aid Your Ally is Secure an Advantage made for an ally, so it rolls like it (rulebook page 76).
+AIDED_MOVE = "secure_an_advantage"
 
 type Initiative = Literal["character", "foe"]
 
@@ -27,6 +30,9 @@ class MoveGroup(StrEnum):
 
     COMMAND = "command"
     """Started by the player with a command."""
+
+    LIST = "list"
+    """Picked from the full move list. The decision model never suggests it."""
 
 
 _GROUPS: dict[MoveGroup, tuple[str, ...]] = {
@@ -65,12 +71,13 @@ _GROUPS: dict[MoveGroup, tuple[str, ...]] = {
         "face_a_setback",
     ),
     MoveGroup.COMMAND: ("turn_the_tide", "ask_the_oracle", "reach_a_milestone", "advance"),
+    MoveGroup.LIST: (AID_YOUR_ALLY,),
 }
 
 _GROUP_OF = {move_id: group for group, move_ids in _GROUPS.items() for move_id in move_ids}
 
 
-def move_group(data: Datasworn, move_id: str) -> MoveGroup | None:
+def move_group(data: Datasworn, move_id: str) -> MoveGroup:
     """Return a move's group.
 
     Args:
@@ -78,13 +85,13 @@ def move_group(data: Datasworn, move_id: str) -> MoveGroup | None:
         move_id: The move id, such as `face_danger`.
 
     Returns:
-        The group, or None for a move the app leaves out (Aid Your Ally).
+        The group.
 
     Raises:
         UnknownIdError: If no move has the id.
     """
     data.move(move_id)
-    return _GROUP_OF.get(move_id)
+    return _GROUP_OF[move_id]
 
 
 class Context(StrEnum):
@@ -213,7 +220,7 @@ def stat_choices(data: Datasworn, option: str) -> tuple[StatChoice, ...]:
     """
     if option in (NO_MOVE, CANNOT_TELL) or option in data.asset_moves:
         return ()
-    move = data.move("strike" if option == ATTACK else option)
+    move = data.move({ATTACK: "strike", AID_YOUR_ALLY: AIDED_MOVE}.get(option, option))
     choices: list[StatChoice] = []
     for condition in move.trigger.conditions:
         if condition.method != "player_choice" or condition.text is None:

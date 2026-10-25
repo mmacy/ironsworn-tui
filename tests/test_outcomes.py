@@ -35,9 +35,10 @@ def _flatten(effects: tuple[Effect, ...]) -> list[Effect]:
 
 
 def _text(move: str) -> str:
-    """The move's text and its results' text. An asset move's text leaves out its miss."""
-    data = datasworn().find_move(move)
-    parts = [data.text]
+    """The move's text and its results' text. An asset move's text leaves out its miss, and
+    Aid Your Ally's results are Secure an Advantage's."""
+    parts = [datasworn().find_move(move).text]
+    data = datasworn().find_move(_rolls_as(move))
     if data.outcomes is not None:
         parts += [
             data.outcomes.strong_hit.text,
@@ -53,7 +54,9 @@ def test_every_move_that_rolls_from_the_chat_has_an_entry():
         if move_group(data, move_id) is MoveGroup.FICTION and move.roll_type != "no_roll":
             assert move_id in OUTCOMES, move_id
     assert {"end_the_fight", "endure_harm", "endure_stress"} <= set(OUTCOMES)
-    assert all(data.find_move(move_id).roll_type != "no_roll" for move_id in OUTCOMES)
+    # Aid Your Ally has no roll of its own: it rolls as Secure an Advantage.
+    rolled = set(OUTCOMES) - {"aid_your_ally"}
+    assert all(data.find_move(move_id).roll_type != "no_roll" for move_id in rolled)
 
 
 @pytest.mark.parametrize("move", sorted(OUTCOMES))
@@ -70,8 +73,12 @@ DERIVED = {
 }
 
 
+def _rolls_as(move: str) -> str:
+    return "secure_an_advantage" if move == "aid_your_ally" else move
+
+
 def _result_text(move: str, hit: Hit) -> str:
-    outcomes = datasworn().find_move(move).outcomes
+    outcomes = datasworn().find_move(_rolls_as(move)).outcomes
     assert outcomes is not None
     result = {Hit.STRONG: outcomes.strong_hit, Hit.WEAK: outcomes.weak_hit, Hit.MISS: outcomes.miss}
     return re.sub(r"\[([^\]]+)\]\(datasworn:[^)]+\)", r"\1", result[hit].text)

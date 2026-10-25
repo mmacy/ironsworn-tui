@@ -6,7 +6,7 @@ import pytest
 
 from ironsworn_tui.campaign import Campaign, OwedMove
 from ironsworn_tui.moves import Context
-from ironsworn_tui.outcomes import Choose
+from ironsworn_tui.outcomes import Choose, Note
 from ironsworn_tui.rules.dice import Hit
 from ironsworn_tui.rules.oracles import OracleResult, YesNo
 from ironsworn_tui.rules.progress import Rank
@@ -502,3 +502,80 @@ def test_burning_momentum_on_endure_harm_rebuilds_the_card(tmp_path: Path):
     assert not any(
         isinstance(e, Choose) and e.options[-1].label == "Roll on the table" for e in burned.effects
     )
+
+
+def test_declining_the_end_the_fight_offer(tmp_path: Path):
+    turn, dice, _ = engine(tmp_path)
+    dice.load(6, 1, 1)
+    turn.make_move(
+        "enter_the_fray", stat="heart", inputs=MoveInputs(foes=(("Raider", Rank.DANGEROUS),))
+    )
+    turn.resolve()
+    dice.load(6, 1, 1)
+    turn.make_move("attack", stat="iron")
+    turn.resolve()
+    assert turn.campaign.end_fight_offered is True
+    turn.decline_end_fight()
+    assert turn.campaign.end_fight_offered is False
+    with pytest.raises(TurnError):
+        turn.make_move("end_the_fight")
+
+
+def test_endure_owes_the_move(tmp_path: Path):
+    turn, dice, _ = engine(tmp_path)
+    turn.endure("endure_harm", 2)
+    assert turn.follow_ups == (OwedMove(move="endure_harm", amount=2),)
+    dice.load(6, 1, 1)
+    card = turn.roll_follow_up()
+    assert card is not None and card.move == "endure_harm"
+    turn.resolve([[1]])
+    assert turn.campaign.character.health == 3
+    with pytest.raises(TurnError):
+        turn.endure("endure_harm", 0)
+
+
+def test_aid_your_ally_is_on_the_full_list_in_every_context(tmp_path: Path):
+    turn, dice, _ = engine(tmp_path)
+    assert "aid_your_ally" in turn.full_list().options
+    dice.load(6, 1, 1)
+    turn.make_move(
+        "enter_the_fray", stat="heart", inputs=MoveInputs(foes=(("Raider", Rank.DANGEROUS),))
+    )
+    turn.resolve()
+    assert "aid_your_ally" in turn.full_list().options
+
+
+def test_aid_your_ally_gives_the_benefits_to_the_ally(tmp_path: Path):
+    turn, dice, _ = engine(tmp_path)
+    momentum = turn.campaign.character.momentum
+    dice.load(6, 1, 1)
+    card = turn.make_move("aid_your_ally", stat="edge")
+    assert card is not None
+    assert (card.name, card.rolled_with, card.hit) == ("Aid Your Ally", "edge", Hit.STRONG)
+    assert "they (instead of you)" in card.outcome_text
+    assert all(isinstance(effect, Note) for effect in card.effects)
+    turn.resolve()
+    assert turn.campaign.character.momentum == momentum
+
+
+def test_aid_your_ally_in_a_fight_takes_initiative_on_a_strong_hit(tmp_path: Path):
+    turn, dice, _ = engine(tmp_path)
+    dice.load(1, 9, 9)
+    turn.make_move(
+        "enter_the_fray", stat="heart", inputs=MoveInputs(foes=(("Raider", Rank.DANGEROUS),))
+    )
+    turn.resolve()
+    assert turn.campaign.initiative == "foe"
+    turn.pay_the_price("obvious")
+    dice.load(6, 1, 1)
+    turn.make_move("aid_your_ally", stat="edge")
+    turn.resolve()
+    assert turn.campaign.initiative == "character"
+
+
+def test_aid_your_ally_miss_pays_the_price(tmp_path: Path):
+    turn, dice, _ = engine(tmp_path)
+    dice.load(1, 9, 9)
+    turn.make_move("aid_your_ally", stat="edge")
+    turn.resolve()
+    assert turn.follow_ups == (OwedMove(move="pay_the_price"),)

@@ -26,7 +26,7 @@ from ironsworn_tui.moves import CANNOT_TELL, NO_MOVE, Context, Initiative
 from ironsworn_tui.policy import load_thresholds
 from ironsworn_tui.rules.datasworn import Stat, datasworn
 from ironsworn_tui.rules.errors import UnknownIdError
-from ironsworn_tui.settings import load_settings
+from ironsworn_tui.settings import SettingsError, load_settings
 from ironsworn_tui.turn import TurnEngine
 
 TOP_MOVES = 3
@@ -106,7 +106,7 @@ def new(args: argparse.Namespace) -> int:
             args.assets.split(","),
             harm=args.harm,
         )
-        campaign = new_campaign(character, args.vow, parse_rank(args.rank))
+        campaign = new_campaign(character, args.vow, parse_rank(args.rank), args.bond)
     except (ValueError, UnknownIdError) as error:
         print(f"Error: {error}", file=sys.stderr)
         return 2
@@ -291,6 +291,15 @@ def make_parser() -> argparse.ArgumentParser:
     )
     n.add_argument("--vow", required=True, help="The background vow, in quotes.")
     n.add_argument(
+        "--bond",
+        action="append",
+        default=[],
+        help=(
+            "A person or community the character shares a background bond with, in quotes. "
+            "Repeat it for up to three bonds. Each marks one tick on the bonds track."
+        ),
+    )
+    n.add_argument(
         "--rank",
         default="epic",
         help=(
@@ -346,4 +355,8 @@ def make_parser() -> argparse.ArgumentParser:
 def main(argv: Sequence[str] | None = None) -> int:
     """Run the command."""
     args = make_parser().parse_args(argv)
-    return args.func(args)
+    try:
+        return args.func(args)
+    except SettingsError as error:
+        print(f"Error: {error}", file=sys.stderr)
+        return 2
