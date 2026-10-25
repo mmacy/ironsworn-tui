@@ -72,7 +72,7 @@ uv run --project ~/repos/jevtester jevtester --config ~/repos/ironsworn-tui/jevt
 The app sorts the 35 moves into four groups:
 
 - **Triggered from the fiction**, which go in the `move` question's options: Face Danger, Secure an Advantage, Gather Information, Heal, Resupply, Make Camp, Undertake a Journey, Reach Your Destination, Compel, Sojourn, Draw the Circle, Forge a Bond, Test Your Bond, Swear an Iron Vow, Fulfill Your Vow, Forsake Your Vow, Enter the Fray, Strike, Clash, Battle, and Write Your Epilogue.
-- **Offered after a result**, which the app offers as a key on the roll card: End the Fight, after a strong hit on Strike or Clash against a foe with progress marked. The disambiguation guide says not to call End the Fight on a fresh foe, so the card offers it only when the foe's track has at least one full box (4 ticks).
+- **Offered after a result**, which the app offers as a key on the roll card: End the Fight, after a strong hit on Strike or Clash when the targeted foe's track then has at least one full box (4 ticks). The rulebook (page 82) allows any decisive move as the setup; limiting it to attacks is this app's choice, and `/adjust` covers the rest.
 - **Triggered by an outcome**, which the app runs when a result calls for one: Pay the Price, Endure Harm, Endure Stress, Companion Endure Harm, Face Death, Face Desolation, Out of Supply, and Face a Setback.
 - **Started by the player with a command**: Turn the Tide, Ask the Oracle, Reach a Milestone, and Advance.
 
@@ -147,8 +147,8 @@ Start with `act = 0.7` and `confirm = 0.4`, then tune them per target from the c
 `outcomes.py` describes, for each chat move and each hit (strong, weak, miss), what changes on the campaign. Datasworn's outcome text is prose, so this table is written by hand for the 21 chat moves, End the Fight, and the suffer moves, and tests check each entry against the move text. Each outcome is a list of effects:
 
 - A change to momentum, health, spirit, or supply, limited by the meter's range and by debilities. A debility stops its meter from increasing, and the momentum maximum is 10 minus the number of debilities. The momentum reset is +2 with no debilities, +1 with one, and 0 with two or more.
-- Progress marked on a vow, a journey, or a foe. A foe's progress per harm depends on its rank: 12 ticks for troublesome, 8 for dangerous, 4 for formidable, 2 for extreme, and 1 for epic. Harm is 1, and Strike's strong hit and Clash's "find an opening" option add +1.
-- An initiative change. Strike's strong hit keeps initiative, its weak hit loses it, and any miss in a fight gives the foe initiative.
+- Progress marked on a vow, a journey, or a foe. A foe's progress per harm depends on its rank: 12 ticks for troublesome, 8 for dangerous, 4 for formidable, 2 for extreme, and 1 for epic. Harm is 2 for a character armed with a deadly weapon and 1 without one (rulebook page 19), stored on the character. Strike's strong hit and Clash's "find an opening" option add +1.
+- An initiative change. Unless a move says otherwise, a strong hit in a fight takes or keeps initiative, and a weak hit or miss loses it (rulebook page 53). That includes suffer moves.
 - A follow-up move: Pay the Price, Endure Harm with an amount, or Endure Stress with an amount. The harm a foe inflicts equals its rank (1 to 5).
 - A player choice: "choose one" lists, Heal's supply-or-momentum cost, and Pay the Price's three options (choose, roll the oracle, or ask the oracle). The roll card numbers the choices, and the player picks.
 
@@ -156,7 +156,7 @@ When the outcome text says something the table can't express, the roll card show
 
 Rolls follow the rules in the reference:
 
-- **Burning momentum** sets the action score to the momentum value against the same challenge dice, so the port re-evaluates the existing roll instead of rolling again. The roll card offers it only when it improves the result. Afterward, momentum resets.
+- **Burning momentum** cancels each challenge die lower than the momentum, and any other die stands against the action score. The port re-evaluates the existing roll instead of rolling again. The roll card offers it only when it improves the result. Afterward, momentum resets.
 - **A negative momentum** equal to the action die cancels the die.
 - **Progress rolls** (End the Fight, Fulfill Your Vow, Reach Your Destination) ignore momentum and can't burn it.
 - **A match** on the challenge dice is marked on the roll card. Ironsworn leaves its meaning to the player, so the app only shows it.
