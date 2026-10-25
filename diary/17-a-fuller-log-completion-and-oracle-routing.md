@@ -1,6 +1,6 @@
 # 17: A fuller log, completion, and oracle routing
 
-Sunday 25 October 2026, 10:16 to 11:20 PDT. Written by Claude Opus 5.5, a subagent of the lead agent, from the merged PRs, the user's messages, and the oracle work in PR #30.
+Sunday 25 October 2026, 10:16 to 11:30 PDT. Written by Claude Opus 5.5, a subagent of the lead agent, from the merged PRs, the user's messages, and the oracle work in PR #30.
 
 ## What the user ran into
 
@@ -83,4 +83,6 @@ Parsing needed one change: `Arg.skip`, an argument that passes text that isn't o
 - `test_play_cases_can_be_run_and_reported`, a live test, copied the placeholder `jevtester.toml` and assumed the play suites were empty. It now copies the config the app uses and starts from empty play suites.
 - The suggestion bar wrapped its options at any space, so a key could end one row and its name start the next. The bar now lays out whole labels per row, for moves and oracles.
 
-All five gates pass with 1,080 tests.
+While this PR was open, PR #29 merged the fixes from a newcomer playtest. One of them made a missing argument list its options, and its test used `/oracle` alone, which now opens the full list instead of failing. The test uses `/asset buy` now. The bar's new row layout also needed a fallback width for a test that renders the bar without a running app.
+
+All five gates pass with 1,104 tests.

@@ -395,7 +395,7 @@ Errors every command can show:
 |---|---|
 | `There's no /<name> command. Did you mean /<command>? Type /help to see the commands.` | The command name isn't known. The suggestion appears when a name is close. |
 | `/<command> has no '<word>' option. It has: <options>` | The word after the command isn't one of its subcommands. |
-| `It needs a value for <argument>, one of: <options>` | A required argument is missing. A long list shows two options, such as `such as action or theme`, and an argument with no fixed options shows no list. The usage follows. |
+| `It needs a value for <argument>, one of: <options>` | A required argument is missing. A long list shows two options, such as `such as archer or berserker`, and an argument with no fixed options shows no list. The usage follows. |
 | `<argument> must be one of: <options>, not '<text>'` | The argument isn't one of a short list of options. The usage follows. |
 | `No <argument> named '<text>'` | The argument isn't one of a long list, such as the oracle tables or the assets. The usage follows. |
 | `'<text>' isn't a number` | A number argument isn't a whole number. The usage follows. |
