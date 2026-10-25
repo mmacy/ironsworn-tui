@@ -269,6 +269,8 @@ Ask the Oracle has four parts:
 
 The oracle gives an answer. You decide what it means in the fiction.
 
+The likelihood is yours to choose, because it depends on the story so far. If you type only a question after `/oracle`, the decision model suggests a likelihood for a yes or no question, or a table for anything else, and you confirm it or pick another. In a test of 56 questions, it told yes or no questions from table questions every time, and picked a table that fit 30 of 33 times. Its likelihoods were rougher: 14 of 21 matched the expected one, and 19 of 21 were the expected one or the one next to it. So read a suggested likelihood as a starting point. When the scene points to "likely" and the app suggests "50/50," pick "likely."
+
 ## Assets
 
 *Assets* are your character's skills, companions, and magic (rulebook pages 21 and 39 to 44). There are four kinds: companions, paths, combat talents, and rituals. Each asset has three abilities. You start with three assets, and you mark more abilities as you gain experience.

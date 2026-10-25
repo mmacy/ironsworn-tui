@@ -33,6 +33,9 @@ class CommandResult:
         show_moves: True when the suggestion bar should show the full move list.
         help: Help lines to show, which aren't in the campaign log either.
         quit: True when the app should quit.
+        oracle_question: A question for the decision model to suggest a table or a likelihood
+            for, from `/oracle` with no table. An empty string means `/oracle` alone, which
+            offers every table without asking the model.
     """
 
     lines: tuple[str, ...] = ()
@@ -40,6 +43,7 @@ class CommandResult:
     show_moves: bool = False
     help: tuple[str, ...] = ()
     quit: bool = False
+    oracle_question: str | None = None
 
 
 type Values = tuple[str, ...]
@@ -65,6 +69,9 @@ class Arg:
         rest: True when it takes the rest of the line, such as a scene's text.
         number: True when it must be a whole number, such as `-2`.
         repeat: True when it takes any number of options, such as stat changes.
+        skip: True when text that isn't one of the options goes to the next argument, so
+            this one's value is an empty string. `/oracle` uses it, so a question can follow
+            the command with no table.
     """
 
     name: str
@@ -74,6 +81,7 @@ class Arg:
     rest: bool = False
     number: bool = False
     repeat: bool = False
+    skip: bool = False
 
     def choices(self, engine: TurnEngine, values: Values) -> tuple[str, ...]:
         """Return the argument's current options."""
@@ -330,6 +338,9 @@ class Registry:
                 if arg.optional or arg.repeat:
                     break
                 raise UsageError(_missing(arg, arg.choices(engine, tuple(values))))
+            if arg.skip and _match(rest, arg.choices(engine, tuple(values)), at_end=True) is None:
+                values.append("")
+                continue
             while rest:
                 last = index == len(args) - 1
                 value, rest = self._take(engine, arg, tuple(values), rest, last=last)
@@ -435,6 +446,10 @@ class Registry:
                 placeholder = f"<{arg.name}>" if free and not rest else ""
                 flags = tuple(more and name != HELP for name in names)
                 return Completion(text, start, names, flags, placeholder)
+            if found is None and arg.skip:
+                values.append("")
+                index += 1
+                continue
             if found is None:
                 word, _, _ = rest.partition(" ")
                 if not (arg.free or arg.number):

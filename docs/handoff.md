@@ -24,7 +24,7 @@ ironsworn-tui is a terminal app for solo Ironsworn. A decision model reads what 
 
 The app is playable. It covers every core move, all 78 assets and their abilities, the 23 asset moves, lasting effects, companions, fights, journeys, vows, and oracles. Each answered message is saved as a jevtester case in `suites/play-<context>.yaml`. [`architecture.md`](architecture.md) describes each module.
 
-On the 120 hand-written recognizer cases, `decision-1@foundry` picks the right move 95 percent of the time on `exploring`, and `clef-flash@workers-ai` 87.5 percent. Play uses the guide criteria, stat questions without a `cannot_tell` option, and the `move` question's `cannot_tell` option. [`experiments/results.md`](https://github.com/mmacy/ironsworn-tui/blob/main/experiments/results.md) has the numbers and what's unmeasured.
+On the 120 hand-written recognizer cases, `decision-1@foundry` picks the right move 95 percent of the time on `exploring`, and `clef-flash@workers-ai` 87.5 percent. Play uses the guide criteria, stat questions without a `cannot_tell` option, and the `move` question's `cannot_tell` option. For a question typed after `/oracle` with no table, `decision-1@foundry` told yes or no questions from table questions for all 56 hand-written questions, picked a fitting table for 30 of 33, and an acceptable likelihood for 19 of 21. [`experiments/results.md`](https://github.com/mmacy/ironsworn-tui/blob/main/experiments/results.md) has the numbers and what's unmeasured.
 
 What's open:
 

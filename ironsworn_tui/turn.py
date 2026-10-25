@@ -73,9 +73,25 @@ from ironsworn_tui.campaign import (
     meter_max,
     setback_note,
 )
-from ironsworn_tui.cases import CaseSink, build_case, case_id, play_suite_name
+from ironsworn_tui.cases import (
+    ORACLE_SUITE,
+    CaseSink,
+    build_case,
+    build_oracle_case,
+    case_id,
+    play_suite_name,
+)
 from ironsworn_tui.criteria import CriteriaStyle
-from ironsworn_tui.decide import DecideError, Decision, JsonObject, TurnState, build_request
+from ironsworn_tui.decide import (
+    DecideError,
+    Decision,
+    JsonObject,
+    OracleDecision,
+    OracleState,
+    TurnState,
+    build_oracle_request,
+    build_request,
+)
 from ironsworn_tui.moves import (
     AID_YOUR_ALLY,
     AIDED_MOVE,
@@ -86,6 +102,7 @@ from ironsworn_tui.moves import (
     attack_move,
     context_options,
 )
+from ironsworn_tui.oracles import LIKELIHOOD_OPTIONS, LIKELIHOODS, ORACLES
 from ironsworn_tui.outcomes import (
     AddLasting,
     AddToNextMove,
@@ -126,7 +143,15 @@ from ironsworn_tui.outcomes import (
     SetInitiative,
     outcome,
 )
-from ironsworn_tui.policy import Suggestion, Thresholds, suggest
+from ironsworn_tui.policy import (
+    OracleSuggestion,
+    OracleThresholds,
+    Suggestion,
+    Thresholds,
+    load_oracle_thresholds,
+    suggest,
+    suggest_oracle,
+)
 from ironsworn_tui.rules.action import ActionRoll, burn_momentum, evaluate_action
 from ironsworn_tui.rules.datasworn import Datasworn, Stat, StatOption, plain_text
 from ironsworn_tui.rules.dice import Hit, roll_challenge_dice
@@ -237,6 +262,10 @@ class Decider(Protocol):
         """Send a request to a target and return its answers."""
         ...
 
+    def decide_oracle(self, request: JsonObject, target: str) -> OracleDecision:
+        """Send an oracle request to a target and return its answers."""
+        ...
+
 
 @dataclass(frozen=True)
 class MoveInputs:
@@ -342,6 +371,7 @@ class TurnEngine:
         path: Path | None = None,
         style: CriteriaStyle = CriteriaStyle.GUIDE,
         cases: CaseSink | None = None,
+        oracle_thresholds: OracleThresholds | None = None,
     ) -> None:
         """Create an engine.
 
@@ -355,6 +385,8 @@ class TurnEngine:
             path: Where to save the campaign after each turn, or None to not save.
             style: How the `move` question describes each move.
             cases: Where to save each answered turn as a jevtester case, or None to not save.
+            oracle_thresholds: The oracle policy thresholds for the target, or None to read
+                them from the oracle policy file.
         """
         self.campaign = campaign
         self.data = data
@@ -365,6 +397,7 @@ class TurnEngine:
         self.path = path
         self.style = style
         self.cases = cases
+        self.oracle_thresholds = oracle_thresholds or load_oracle_thresholds(target)
         unknown = [lasting.kind for lasting in campaign.lasting if lasting.kind not in LASTING]
         if unknown:
             raise ValueError(f"unknown lasting effects: {', '.join(unknown)}")
@@ -376,6 +409,7 @@ class TurnEngine:
         self._companion: str | None = None
         self._action_die = 0
         self._answering: tuple[Context, Decision] | None = None
+        self._oracle_answering: OracleDecision | None = None
 
     @property
     def card(self) -> RollCard | None:
@@ -572,6 +606,125 @@ class TurnEngine:
         if result.band == "escalate":
             result = dataclasses.replace(result, options=result.options + self.asset_options())
         return dataclasses.replace(result, note=note)
+
+    def roll_table(self, name: str, question: str = "") -> OracleResult:
+        """Roll an oracle table by its short name, and log the question with the result.
+
+        Args:
+            name: The table's short name, such as `action`.
+            question: The player's question, or an empty string.
+
+        Returns:
+            The roll.
+        """
+        entry = ORACLES[name]
+        table_id = entry.tables[0]
+        if len(entry.tables) > 1:
+            table_id = entry.tables[self.rng.randint(1, len(entry.tables)) - 1]
+        result = roll_oracle(self.data, table_id, self.rng)
+        head = f"Oracle ({entry.name}): " + (f"{question} " if question else "")
+        self.campaign.add_log("outcome", f"{head}{result.roll}: {plain_text(result.text)}")
+        for sub in result.subrolls:
+            self.campaign.add_log("outcome", f"  {sub.roll}: {plain_text(sub.text)}")
+        self.save()
+        return result
+
+    def ask_yes_no(self, likelihood: str, question: str = "") -> YesNo:
+        """Ask the oracle a yes or no question, and log the question with the answer.
+
+        Args:
+            likelihood: The likelihood by the name `/ask` takes, such as `likely`.
+            question: The player's question, or an empty string.
+
+        Returns:
+            The answer.
+        """
+        answer = ask_yes_no(LIKELIHOODS[likelihood], self.rng)
+        head = f"Ask ({likelihood}): " + (f"{question} " if question else "")
+        line = f"{head}{answer.roll}: {'yes' if answer.yes else 'no'}"
+        if answer.match:
+            line += ", match"
+        self.campaign.add_log("outcome", line)
+        self.save()
+        return answer
+
+    def suggest_oracle(self, question: str) -> OracleSuggestion:
+        """Ask the decision model how to answer a question typed after `/oracle`, and keep
+        the decision so the player's roll can label it."""
+        suggestion = self.decide_oracle(question)
+        self.accept_oracle(suggestion)
+        return suggestion
+
+    def decide_oracle(self, question: str) -> OracleSuggestion:
+        """Ask the decision model whether a yes or no answers a question, with which
+        likelihood, or which table answers it, without changing the campaign.
+
+        The TUI calls this from a worker thread. Without a decider, or when the request
+        fails, the suggestion offers every table and likelihood, with a note saying why.
+        """
+        character = self.campaign.character
+        state = OracleState(
+            character=f"{character.name}, {character.description}",
+            situation=self._situation(),
+            question=question,
+        )
+        decision: OracleDecision | None = None
+        note: str | None = None
+        if self.decider is not None:
+            try:
+                decision = self.decider.decide_oracle(build_oracle_request(state), self.target)
+            except DecideError as error:
+                note = f"No suggestion: {error}"
+            else:
+                if decision.kind is None:
+                    note = f"No suggestion: {decision.error}"
+        result = suggest_oracle(decision, question, self.oracle_thresholds)
+        return dataclasses.replace(result, note=note)
+
+    def accept_oracle(self, suggestion: OracleSuggestion) -> None:
+        """Remember the oracle decision the player's roll answers, and log why a request
+        failed."""
+        if suggestion.note is not None:
+            self.campaign.add_log("note", suggestion.note)
+            self.save()
+        decision = suggestion.decision
+        self._oracle_answering = decision if decision is not None and decision.ok else None
+
+    def oracle_full_list(self, question: str = "") -> OracleSuggestion:
+        """Return a suggestion that offers every table, then every likelihood, with none
+        selected."""
+        return suggest_oracle(None, question, self.oracle_thresholds)
+
+    def answer_oracle(self, option: str, question: str) -> None:
+        """Roll the likelihood or table the player confirmed for a question, and save the
+        waiting oracle decision as a case labeled with it.
+
+        Args:
+            option: A likelihood option id, such as `likely`, or a table's short name.
+            question: The question, which the log keeps with the answer.
+
+        Raises:
+            ValueError: If the option is neither a likelihood nor a table.
+        """
+        if option in LIKELIHOOD_OPTIONS:
+            self.ask_yes_no(LIKELIHOOD_OPTIONS[option], question)
+        elif option in ORACLES:
+            self.roll_table(option, question)
+        else:
+            raise ValueError(f"{option!r} is neither a likelihood nor an oracle table")
+        decision, self._oracle_answering = self._oracle_answering, None
+        if decision is None or self.cases is None:
+            return
+        case = build_oracle_case(decision, option, case_id(self.campaign.character.name))
+        try:
+            self.cases.add_case(ORACLE_SUITE, case)
+        except DecideError as error:
+            self.campaign.add_log("note", f"Case not saved: {error}")
+            self.save()
+
+    def skip_oracle(self) -> None:
+        """Leave the oracle question without a roll, and don't save it as a case."""
+        self._oracle_answering = None
 
     def _situation(self) -> str:
         campaign = self.campaign

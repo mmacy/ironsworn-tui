@@ -176,6 +176,16 @@ async def oracle(
     await type_line(pilot, "/oracle theme")
 
 
+async def oracle_question(
+    app: IronswornApp, pilot: Pilot[None], dice: Dice, decider: FixtureDecider
+) -> None:
+    """A question after `/oracle` with no table, and the suggested table in the bar."""
+    await swear(app, pilot, dice, decider)
+    decider.oracle_answers.append(("table", "ironlander-name", 0.96))
+    await type_line(pilot, "/oracle What is the raider chief called?")
+    await settle(app, pilot)
+
+
 async def completion(
     app: IronswornApp, pilot: Pilot[None], dice: Dice, decider: FixtureDecider
 ) -> None:
@@ -220,6 +230,7 @@ SCREENS: dict[str, Drive] = {
     "turn-record": turn_record,
     "abilities": abilities,
     "oracle": oracle,
+    "oracle-question": oracle_question,
     "completion": completion,
     "fight": fight,
 }

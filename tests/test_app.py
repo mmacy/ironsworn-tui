@@ -19,7 +19,7 @@ from ironsworn_tui.app import (
 )
 from ironsworn_tui.assets import buy, upgrade
 from ironsworn_tui.campaign import Campaign, OwedMove
-from ironsworn_tui.decide import DecideError, Decision, JsonObject
+from ironsworn_tui.decide import DecideError, Decision, JsonObject, OracleDecision
 from ironsworn_tui.rules.datasworn import datasworn
 from ironsworn_tui.rules.progress import Rank
 from ironsworn_tui.turn import MoveInputs, TurnEngine
@@ -476,6 +476,9 @@ def test_a_failed_request_shows_the_full_list_and_a_note(tmp_path: Path):
         def decide(self, request: JsonObject, target: str) -> Decision:
             raise DecideError("jevtester isn't reachable")
 
+        def decide_oracle(self, request: JsonObject, target: str) -> OracleDecision:
+            raise DecideError("jevtester isn't reachable")
+
     turn.decider = Down()
 
     async def play() -> None:
@@ -832,6 +835,9 @@ def full_list_engine(tmp_path: Path) -> TurnEngine:
         def decide(self, request: JsonObject, target: str) -> Decision:
             raise DecideError("jevtester isn't reachable")
 
+        def decide_oracle(self, request: JsonObject, target: str) -> OracleDecision:
+            raise DecideError("jevtester isn't reachable")
+
     turn.decider = Down()
     return turn
 
@@ -1043,3 +1049,142 @@ def test_help_works_while_a_card_waits(tmp_path: Path):
             assert turn_notes(app)[-1].startswith("Finish the roll in the bar below first")
 
     asyncio.run(play())
+
+
+CASTLE = "Do I know which castle I'm in?"
+
+
+def test_an_oracle_question_suggests_a_likelihood_and_enter_rolls_it(tmp_path: Path):
+    turn, dice, decider = engine(tmp_path)
+    decider.oracle_answers.append(("yes_no", "unlikely", 0.9))
+
+    async def play() -> None:
+        app = IronswornApp(turn)
+        async with app.run_test(size=(120, 40)) as pilot:
+            await pilot.press(*f"/oracle {CASTLE}", "enter")
+            await settle(app, pilot)
+            assert isinstance(app.focused, SuggestionBar)
+            assert app.bar_state.mode == "oracle"
+            assert app.bar_state.options[0] == "unlikely"
+            assert app.bar_state.selected == 0
+            bar = app.render_bar()
+            assert CASTLE in bar
+            assert "1 Ask unlikely 0.90" in bar
+            dice.load(80)
+            await pilot.press("enter")
+            await pilot.pause()
+            assert app.bar_state.mode == "idle"
+            assert isinstance(app.focused, Input)
+
+    asyncio.run(play())
+    assert turn.campaign.log[-1].text == f"Ask (unlikely): {CASTLE} 80: yes"
+    assert decider.requests[0]["state"]["question"] == CASTLE
+
+
+def test_the_player_can_pick_another_oracle(tmp_path: Path):
+    turn, dice, decider = engine(tmp_path)
+    decider.oracle_answers.append(("yes_no", "unlikely", 0.9))
+
+    async def play() -> None:
+        app = IronswornApp(turn)
+        async with app.run_test(size=(120, 40)) as pilot:
+            await pilot.press(*f"/oracle {CASTLE}", "enter")
+            await settle(app, pilot)
+            # The five likelihoods come first, then the tables.
+            assert app.bar_state.options[5] == "action"
+            dice.load(2)
+            await pilot.press("6", "enter")
+            await pilot.pause()
+
+    asyncio.run(play())
+    assert turn.campaign.log[-1].text == f"Oracle (action): {CASTLE} 2: Clash"
+
+
+def test_a_failed_oracle_request_offers_every_table(tmp_path: Path):
+    turn, _, _ = engine(tmp_path)
+
+    class Down:
+        def decide(self, request: JsonObject, target: str) -> Decision:
+            raise DecideError("jevtester isn't reachable")
+
+        def decide_oracle(self, request: JsonObject, target: str) -> OracleDecision:
+            raise DecideError("jevtester isn't reachable")
+
+    turn.decider = Down()
+    notes: list[str] = []
+
+    def note(text: str) -> None:
+        notes.append(text)
+
+    async def play() -> None:
+        app = IronswornApp(turn)
+        app.note = note
+        async with app.run_test(size=(120, 40)) as pilot:
+            await pilot.press(*f"/oracle {CASTLE}", "enter")
+            await settle(app, pilot)
+            assert app.bar_state.mode == "oracle"
+            assert app.bar_state.selected is None
+            assert app.bar_state.options[0] == "action"
+            await pilot.press("enter")
+            assert notes[-1] == "Pick an oracle"
+
+    asyncio.run(play())
+    assert turn.campaign.log[-1].text == "No suggestion: jevtester isn't reachable"
+
+
+def test_escape_leaves_the_oracle_question_unrolled(tmp_path: Path):
+    turn, _, decider = engine(tmp_path)
+    decider.oracle_answers.append(("table", "location", 0.9))
+
+    async def play() -> None:
+        app = IronswornApp(turn)
+        async with app.run_test(size=(120, 40)) as pilot:
+            await pilot.press(*"/oracle What do I find?", "enter")
+            await settle(app, pilot)
+            before = len(turn.campaign.log)
+            await pilot.press("escape")
+            assert app.bar_state.mode == "idle"
+            assert len(turn.campaign.log) == before
+
+    asyncio.run(play())
+
+
+def test_oracle_alone_lists_every_table_without_asking(tmp_path: Path):
+    turn, _, decider = engine(tmp_path)
+
+    async def play() -> None:
+        app = IronswornApp(turn)
+        async with app.run_test(size=(120, 40)) as pilot:
+            await pilot.press(*"/oracle", "enter")
+            await pilot.pause()
+            assert app.bar_state.mode == "oracle"
+            assert app.bar_state.selected is None
+            assert app.bar_state.options[0] == "action"
+
+    asyncio.run(play())
+    assert decider.requests == []
+
+
+def test_an_oracle_question_returns_to_the_move_suggestion(tmp_path: Path):
+    turn, dice, decider = engine(tmp_path)
+    decider.answers.append(("face_danger", "edge", 0.95))
+    decider.oracle_answers.append(("yes_no", "likely", 0.9))
+
+    async def play() -> None:
+        app = IronswornApp(turn)
+        async with app.run_test(size=(120, 40)) as pilot:
+            await pilot.press(*"I leap the gap", "enter")
+            await settle(app, pilot)
+            assert app.bar_state.mode == "suggest"
+            app.input.focus()
+            await pilot.press(*"/oracle Is the far side solid?", "enter")
+            await settle(app, pilot)
+            assert app.bar_state.mode == "oracle"
+            dice.load(50)
+            await pilot.press("enter")
+            await pilot.pause()
+            assert app.bar_state.mode == "suggest"
+            assert app.bar_state.options == ("face_danger",)
+
+    asyncio.run(play())
+    assert turn.campaign.log[-1].text == "Ask (likely): Is the far side solid? 50: yes"

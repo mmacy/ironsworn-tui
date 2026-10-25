@@ -1,0 +1,869 @@
+name: recognizer-oracle
+question_set: oracle
+policy: oracle
+targets:
+  - decision-1@foundry
+  - clef-flash@workers-ai
+cases:
+  - id: yn-bridge-guarded
+    state:
+      character: Arn, a former shieldwarden
+      situation: The bridge into Thornhold has been guarded day and night since the raids began.
+      question: Is the bridge guarded tonight?
+    expected:
+      kind:
+        answer: yes_no
+      likelihood:
+        answer: almost_certain
+        acceptable:
+          - likely
+    expected_action: almost_certain
+    tags:
+      - yes_no
+    provenance: human
+  - id: yn-hawk-returns
+    state:
+      character: Kira, a hunter of the Deepwilds
+      situation: Kira's hawk has come back to her whistle every time for six years.
+      question: Does the hawk come back when I whistle?
+    expected:
+      kind:
+        answer: yes_no
+      likelihood:
+        answer: almost_certain
+        acceptable:
+          - likely
+    expected_action: almost_certain
+    tags:
+      - yes_no
+    provenance: human
+  - id: yn-tracks-in-snow
+    state:
+      character: Kira, a hunter of the Deepwilds
+      situation: Fresh snow fell an hour ago, and the elk ran this way minutes ago.
+      question: Can I see the elk's tracks?
+    expected:
+      kind:
+        answer: yes_no
+      likelihood:
+        answer: almost_certain
+        acceptable:
+          - likely
+    expected_action: almost_certain
+    tags:
+      - yes_no
+    provenance: human
+  - id: yn-surely-locked
+    state:
+      character: Tovin, a smooth-talking trader
+      situation: The merchant's strongroom in the guildhall at night.
+      question: Surely the strongroom door is locked?
+    expected:
+      kind:
+        answer: yes_no
+      likelihood:
+        answer: almost_certain
+        acceptable:
+          - likely
+    expected_action: almost_certain
+    tags:
+      - yes_no
+      - wording
+    provenance: human
+  - id: yn-farm-occupied
+    state:
+      character: Arn, a former shieldwarden
+      situation: Smoke rose from the farmstead's chimney an hour ago.
+      question: Is anyone still at the farm?
+    expected:
+      kind:
+        answer: yes_no
+      likelihood:
+        answer: likely
+        acceptable:
+          - almost_certain
+    expected_action: likely
+    tags:
+      - yes_no
+    provenance: human
+  - id: yn-healer-in-village
+    state:
+      character: Sefa, a ritualist and healer
+      situation: Sefa reaches Bleakhold, a large village on the trade road.
+      question: Does the village have a healer?
+    expected:
+      kind:
+        answer: yes_no
+      likelihood:
+        answer: likely
+    expected_action: likely
+    tags:
+      - yes_no
+    provenance: human
+  - id: yn-raiders-followed
+    state:
+      character: Kira, a hunter of the Deepwilds
+      situation: Kira left a clear trail through the mud, and the raiders have hounds.
+      question: Have the raiders followed me?
+    expected:
+      kind:
+        answer: yes_no
+      likelihood:
+        answer: likely
+    expected_action: likely
+    tags:
+      - yes_no
+    provenance: human
+  - id: yn-probably-water
+    state:
+      character: Arn, a former shieldwarden
+      situation: A well stands in the middle of the ruined steading.
+      question: There's probably still water in the well, right?
+    expected:
+      kind:
+        answer: yes_no
+      likelihood:
+        answer: likely
+        acceptable:
+          - fifty_fifty
+    expected_action: likely
+    tags:
+      - yes_no
+      - wording
+    provenance: human
+  - id: yn-castle
+    state:
+      character: Kira, a hunter of the Deepwilds
+      situation: Kira wakes in a stone cell with no memory of the road that brought her here.
+      question: Do I know which castle I'm in?
+    expected:
+      kind:
+        answer: yes_no
+      likelihood:
+        answer: fifty_fifty
+        acceptable:
+          - unlikely
+    expected_action: fifty_fifty
+    tags:
+      - yes_no
+    provenance: human
+  - id: yn-innkeeper-awake
+    state:
+      character: Tovin, a smooth-talking trader
+      situation: Tovin knocks at the inn's door late in the evening.
+      question: Is the innkeeper still awake?
+    expected:
+      kind:
+        answer: yes_no
+      likelihood:
+        answer: fifty_fifty
+        acceptable:
+          - likely
+    expected_action: fifty_fifty
+    tags:
+      - yes_no
+    provenance: human
+  - id: yn-stranger-friendly
+    state:
+      character: Sefa, a ritualist and healer
+      situation: A hooded stranger walks toward Sefa's fire on the moor.
+      question: Is the stranger friendly?
+    expected:
+      kind:
+        answer: yes_no
+      likelihood:
+        answer: fifty_fifty
+    expected_action: fifty_fifty
+    tags:
+      - yes_no
+    provenance: human
+  - id: yn-rain
+    state:
+      character: Arn, a former shieldwarden
+      situation: Grey clouds gather over the hills as Arn sets out.
+      question: Does it rain before nightfall?
+    expected:
+      kind:
+        answer: yes_no
+      likelihood:
+        answer: fifty_fifty
+        acceptable:
+          - likely
+    expected_action: fifty_fifty
+    tags:
+      - yes_no
+    provenance: human
+  - id: yn-mill-inhabited
+    state:
+      character: Tovin, a smooth-talking trader
+      situation: The village by the old mill was abandoned years ago after the fever.
+      question: Does anyone live in the old mill?
+    expected:
+      kind:
+        answer: yes_no
+      likelihood:
+        answer: unlikely
+        acceptable:
+          - small_chance
+    expected_action: unlikely
+    tags:
+      - yes_no
+    provenance: human
+  - id: yn-guard-bribe
+    state:
+      character: Tovin, a smooth-talking trader
+      situation: The gate captain is known for his honesty and his hatred of traders.
+      question: Does the captain take my bribe?
+    expected:
+      kind:
+        answer: yes_no
+      likelihood:
+        answer: unlikely
+        acceptable:
+          - small_chance
+    expected_action: unlikely
+    tags:
+      - yes_no
+    provenance: human
+  - id: yn-doubt-supplies
+    state:
+      character: Arn, a former shieldwarden
+      situation: Arn searches a cart that raiders looted yesterday.
+      question: I doubt they left anything, but is there food in the cart?
+    expected:
+      kind:
+        answer: yes_no
+      likelihood:
+        answer: unlikely
+        acceptable:
+          - small_chance
+    expected_action: unlikely
+    tags:
+      - yes_no
+      - wording
+    provenance: human
+  - id: yn-wolves-gone
+    state:
+      character: Kira, a hunter of the Deepwilds
+      situation: The wolf pack has circled Kira's camp all night and grows bolder.
+      question: Have the wolves given up and left by dawn?
+    expected:
+      kind:
+        answer: yes_no
+      likelihood:
+        answer: unlikely
+    expected_action: unlikely
+    tags:
+      - yes_no
+    provenance: human
+  - id: yn-ship-frozen-sea
+    state:
+      character: Tovin, a smooth-talking trader
+      situation: No ship has crossed the frozen sea in ten winters.
+      question: Is there a ship waiting in the harbor?
+    expected:
+      kind:
+        answer: yes_no
+      likelihood:
+        answer: small_chance
+        acceptable:
+          - unlikely
+    expected_action: small_chance
+    tags:
+      - yes_no
+    provenance: human
+  - id: yn-dead-man-alive
+    state:
+      character: Sefa, a ritualist and healer
+      situation: The hunter fell from the cliff two days ago and lay in the snow since.
+      question: Is the fallen hunter still alive?
+    expected:
+      kind:
+        answer: yes_no
+      likelihood:
+        answer: small_chance
+        acceptable:
+          - unlikely
+    expected_action: small_chance
+    tags:
+      - yes_no
+    provenance: human
+  - id: yn-any-chance-help
+    state:
+      character: Arn, a former shieldwarden
+      situation: Arn is alone in the Shattered Wastes, a week from any settlement.
+      question: Is there any chance someone comes to help me?
+    expected:
+      kind:
+        answer: yes_no
+      likelihood:
+        answer: small_chance
+        acceptable:
+          - unlikely
+    expected_action: small_chance
+    tags:
+      - yes_no
+      - wording
+    provenance: human
+  - id: yn-sword-intact
+    state:
+      character: Kira, a hunter of the Deepwilds
+      situation: The sword has lain at the bottom of the bog for a hundred years.
+      question: Is the sword's blade still sharp?
+    expected:
+      kind:
+        answer: yes_no
+      likelihood:
+        answer: small_chance
+        acceptable:
+          - unlikely
+    expected_action: small_chance
+    tags:
+      - yes_no
+    provenance: human
+  - id: tb-what-next
+    state:
+      character: Kira, a hunter of the Deepwilds
+      situation: Kira reaches the edge of the burned village. Nothing moves.
+      question: What happens next?
+    expected:
+      kind:
+        answer: table
+      table:
+        answer: action
+        acceptable:
+          - plot-twist
+          - theme
+    expected_action: action
+    tags:
+      - table
+    provenance: human
+  - id: tb-stranger-doing
+    state:
+      character: Tovin, a smooth-talking trader
+      situation: A stranger lingers by the market well, watching the crowd.
+      question: What is the stranger up to?
+    expected:
+      kind:
+        answer: table
+      table:
+        answer: action
+        acceptable:
+          - goal
+          - theme
+    expected_action: action
+    tags:
+      - table
+    provenance: human
+  - id: tb-shrine-about
+    state:
+      character: Sefa, a ritualist and healer
+      situation: An old shrine stands at the crossroads, its carvings worn smooth.
+      question: What is the shrine dedicated to?
+    expected:
+      kind:
+        answer: table
+      table:
+        answer: theme
+        acceptable:
+          - action
+    expected_action: theme
+    tags:
+      - table
+    provenance: human
+  - id: tb-letter-subject
+    state:
+      character: Tovin, a smooth-talking trader
+      situation: Tovin breaks the seal on a letter he took from the courier.
+      question: What is the letter about?
+    expected:
+      kind:
+        answer: table
+      table:
+        answer: theme
+        acceptable:
+          - action
+    expected_action: theme
+    tags:
+      - table
+    provenance: human
+  - id: tb-rider-who
+    state:
+      character: Arn, a former shieldwarden
+      situation: A rider in a grey cloak waits at the ford.
+      question: Who is the rider?
+    expected:
+      kind:
+        answer: table
+      table:
+        answer: role
+        acceptable:
+          - descriptor
+    expected_action: role
+    tags:
+      - table
+    provenance: human
+  - id: tb-elder-trade
+    state:
+      character: Sefa, a ritualist and healer
+      situation: The village elder greets Sefa at the gate.
+      question: What did the elder do before she led the village?
+    expected:
+      kind:
+        answer: table
+      table:
+        answer: role
+    expected_action: role
+    tags:
+      - table
+    provenance: human
+  - id: tb-chief-wants
+    state:
+      character: Arn, a former shieldwarden
+      situation: The raider chief agrees to talk under a flag of truce.
+      question: What does the raider chief want?
+    expected:
+      kind:
+        answer: table
+      table:
+        answer: goal
+        acceptable:
+          - action
+    expected_action: goal
+    tags:
+      - table
+    provenance: human
+  - id: tb-hermit-goal
+    state:
+      character: Kira, a hunter of the Deepwilds
+      situation: A hermit has lived alone in the pass for twenty years.
+      question: Why is the hermit living out here?
+    expected:
+      kind:
+        answer: table
+      table:
+        answer: goal
+        acceptable:
+          - theme
+    expected_action: goal
+    tags:
+      - table
+    provenance: human
+  - id: tb-smith-like
+    state:
+      character: Tovin, a smooth-talking trader
+      situation: Tovin enters the smithy to haggle over a blade.
+      question: What is the smith like?
+    expected:
+      kind:
+        answer: table
+      table:
+        answer: descriptor
+    expected_action: descriptor
+    tags:
+      - table
+    provenance: human
+  - id: tb-captain-manner
+    state:
+      character: Arn, a former shieldwarden
+      situation: The new captain of the guard looks Arn over.
+      question: What's the captain's temperament?
+    expected:
+      kind:
+        answer: table
+      table:
+        answer: descriptor
+    expected_action: descriptor
+    tags:
+      - table
+    provenance: human
+  - id: tb-guard-name
+    state:
+      character: Tovin, a smooth-talking trader
+      situation: A guard in Thornhold's colors blocks the gate.
+      question: What is the guard called?
+    expected:
+      kind:
+        answer: table
+      table:
+        answer: ironlander-name
+    expected_action: ironlander-name
+    tags:
+      - table
+    provenance: human
+  - id: tb-child-name
+    state:
+      character: Sefa, a ritualist and healer
+      situation: Sefa finds a lost child in the woods near the village.
+      question: What's the child's name?
+    expected:
+      kind:
+        answer: table
+      table:
+        answer: ironlander-name
+    expected_action: ironlander-name
+    tags:
+      - table
+    provenance: human
+  - id: tb-elf-name
+    state:
+      character: Kira, a hunter of the Deepwilds
+      situation: An elf steps from the trees, bow lowered.
+      question: What is the elf's name?
+    expected:
+      kind:
+        answer: table
+      table:
+        answer: elf-name
+    expected_action: elf-name
+    tags:
+      - table
+    provenance: human
+  - id: tb-giant-name
+    state:
+      character: Arn, a former shieldwarden
+      situation: A giant herds her goats along the ridge.
+      question: What is the giant called?
+    expected:
+      kind:
+        answer: table
+      table:
+        answer: giant-name
+    expected_action: giant-name
+    tags:
+      - table
+    provenance: human
+  - id: tb-varou-name
+    state:
+      character: Kira, a hunter of the Deepwilds
+      situation: A varou hunter shares Kira's fire, her wolfish eyes catching the light.
+      question: What name does the varou give?
+    expected:
+      kind:
+        answer: table
+      table:
+        answer: varou-name
+    expected_action: varou-name
+    tags:
+      - table
+    provenance: human
+  - id: tb-troll-name
+    state:
+      character: Tovin, a smooth-talking trader
+      situation: A troll lives under the old stone bridge and demands a toll.
+      question: What is the troll's name?
+    expected:
+      kind:
+        answer: table
+      table:
+        answer: troll-name
+    expected_action: troll-name
+    tags:
+      - table
+    provenance: human
+  - id: tb-region
+    state:
+      character: Sefa, a ritualist and healer
+      situation: Sefa's vow leads her to seek the hidden grove the old songs tell of.
+      question: Which region of the Ironlands is the grove in?
+    expected:
+      kind:
+        answer: table
+      table:
+        answer: region
+    expected_action: region
+    tags:
+      - table
+    provenance: human
+  - id: tb-tracks-lead
+    state:
+      character: Kira, a hunter of the Deepwilds
+      situation: The beast's tracks lead off into the hills.
+      question: What kind of place do the tracks lead to?
+    expected:
+      kind:
+        answer: table
+      table:
+        answer: location
+        acceptable:
+          - place-descriptor
+    expected_action: location
+    tags:
+      - table
+    provenance: human
+  - id: tb-what-find
+    state:
+      character: Arn, a former shieldwarden
+      situation: Arn crests the hill after a long day of travel.
+      question: What do I find over the hill?
+    expected:
+      kind:
+        answer: table
+      table:
+        answer: location
+        acceptable:
+          - action
+          - place-descriptor
+    expected_action: location
+    tags:
+      - table
+    provenance: human
+  - id: tb-coast
+    state:
+      character: Tovin, a smooth-talking trader
+      situation: Tovin's boat drifts toward the coast in the fog.
+      question: What's on the shore where the boat lands?
+    expected:
+      kind:
+        answer: table
+      table:
+        answer: coastal-location
+        acceptable:
+          - location
+    expected_action: coastal-location
+    tags:
+      - table
+    provenance: human
+  - id: tb-ruin-look
+    state:
+      character: Sefa, a ritualist and healer
+      situation: Sefa reaches the ruined watchtower at dusk.
+      question: What does the ruin look and feel like?
+    expected:
+      kind:
+        answer: table
+      table:
+        answer: place-descriptor
+    expected_action: place-descriptor
+    tags:
+      - table
+    provenance: human
+  - id: tb-settlement-name
+    state:
+      character: Tovin, a smooth-talking trader
+      situation: Tovin comes to a village that isn't on his map.
+      question: What's this village called?
+    expected:
+      kind:
+        answer: table
+      table:
+        answer: settlement-name
+        acceptable:
+          - quick-name-prefix
+    expected_action: settlement-name
+    tags:
+      - table
+    provenance: human
+  - id: tb-quick-prefix
+    state:
+      character: Arn, a former shieldwarden
+      situation: Arn names the hamlet he founds, from two halves.
+      question: What's the first half of the hamlet's name?
+    expected:
+      kind:
+        answer: table
+      table:
+        answer: quick-name-prefix
+        acceptable:
+          - settlement-name
+    expected_action: quick-name-prefix
+    tags:
+      - table
+    provenance: human
+  - id: tb-quick-suffix
+    state:
+      character: Arn, a former shieldwarden
+      situation: Arn has the first half of the hamlet's name, Raven.
+      question: What's the ending of the hamlet's name?
+    expected:
+      kind:
+        answer: table
+      table:
+        answer: quick-name-suffix
+        acceptable:
+          - settlement-name
+    expected_action: quick-name-suffix
+    tags:
+      - table
+    provenance: human
+  - id: tb-village-trouble
+    state:
+      character: Sefa, a ritualist and healer
+      situation: The villagers of Redwater won't meet Sefa's eyes.
+      question: What trouble is the village facing?
+    expected:
+      kind:
+        answer: table
+      table:
+        answer: settlement-trouble
+    expected_action: settlement-trouble
+    tags:
+      - table
+    provenance: human
+  - id: tb-town-wrong
+    state:
+      character: Tovin, a smooth-talking trader
+      situation: The market in Ironhold is half empty on trade day.
+      question: What's wrong in this town?
+    expected:
+      kind:
+        answer: table
+      table:
+        answer: settlement-trouble
+        acceptable:
+          - action
+    expected_action: settlement-trouble
+    tags:
+      - table
+    provenance: human
+  - id: tb-twist
+    state:
+      character: Kira, a hunter of the Deepwilds
+      situation: Kira has the cultist cornered at the end of the long hunt.
+      question: What twist upends everything?
+    expected:
+      kind:
+        answer: table
+      table:
+        answer: plot-twist
+    expected_action: plot-twist
+    tags:
+      - table
+    provenance: human
+  - id: tb-big-surprise
+    state:
+      character: Arn, a former shieldwarden
+      situation: Arn finally reaches the keep he swore to defend.
+      question: What surprise is waiting for me inside?
+    expected:
+      kind:
+        answer: table
+      table:
+        answer: plot-twist
+        acceptable:
+          - action
+    expected_action: plot-twist
+    tags:
+      - table
+    provenance: human
+  - id: tb-foe-move
+    state:
+      character: Arn, a former shieldwarden
+      situation: Arn fights the raider chief on the frozen river. The chief has the initiative.
+      question: What does the chief do next?
+    expected:
+      kind:
+        answer: table
+      table:
+        answer: combat-action
+        acceptable:
+          - action
+    expected_action: combat-action
+    tags:
+      - table
+    provenance: human
+  - id: tb-beast-attack
+    state:
+      character: Kira, a hunter of the Deepwilds
+      situation: The wyvern circles above Kira in the clearing, screeching.
+      question: How does the wyvern attack?
+    expected:
+      kind:
+        answer: table
+      table:
+        answer: combat-action
+    expected_action: combat-action
+    tags:
+      - table
+    provenance: human
+  - id: tb-ritual-fails
+    state:
+      character: Sefa, a ritualist and healer
+      situation: Sefa's ritual to commune with the dead fails, and the candles gutter.
+      question: What goes wrong with the ritual?
+    expected:
+      kind:
+        answer: table
+      table:
+        answer: mystic-backlash
+    expected_action: mystic-backlash
+    tags:
+      - table
+    provenance: human
+  - id: tb-foe-rank
+    state:
+      character: Kira, a hunter of the Deepwilds
+      situation: A bear the size of a hut blocks the path.
+      question: How tough is this bear?
+    expected:
+      kind:
+        answer: table
+      table:
+        answer: challenge-rank
+    expected_action: challenge-rank
+    tags:
+      - table
+    provenance: human
+  - id: amb-friend-or-foe
+    state:
+      character: Kira, a hunter of the Deepwilds
+      situation: Riders approach Kira's camp under no banner.
+      question: Are the riders friend or foe?
+    expected:
+      kind:
+        answer: yes_no
+        acceptable:
+          - table
+      likelihood:
+        answer: fifty_fifty
+      table:
+        answer: role
+        acceptable:
+          - goal
+          - descriptor
+    expected_action: fifty_fifty
+    tags:
+      - yes_no
+      - ambiguous
+    provenance: human
+  - id: amb-how-many
+    state:
+      character: Arn, a former shieldwarden
+      situation: Arn watches the raider camp from the treeline.
+      question: How many raiders are in the camp?
+    expected:
+      kind:
+        answer: table
+        acceptable:
+          - cannot_tell
+    expected_action: escalate
+    tags:
+      - table
+      - no-table
+    provenance: human
+  - id: cant-rules
+    state:
+      character: Tovin, a smooth-talking trader
+      situation: Tovin is in the market of Ironhold.
+      question: How does burning momentum work again?
+    expected:
+      kind:
+        answer: cannot_tell
+    expected_action: escalate
+    tags:
+      - cannot_tell
+      - out-of-character
+    provenance: human
+  - id: cant-note
+    state:
+      character: Sefa, a ritualist and healer
+      situation: Sefa rests at the inn in Bleakhold.
+      question: Remember to buy rope before leaving town.
+    expected:
+      kind:
+        answer: cannot_tell
+    expected_action: escalate
+    tags:
+      - cannot_tell
+      - out-of-character
+    provenance: human

@@ -1,4 +1,5 @@
-"""The recognizer experiment: hand-written phrasings turned into jevtester suites."""
+"""The recognizer experiments: hand-written player messages and oracle questions turned into
+jevtester suites."""
 
 import io
 from pathlib import Path
@@ -7,13 +8,18 @@ from typing import Any, Literal
 from pydantic import BaseModel, ConfigDict, model_validator
 from ruamel.yaml import YAML
 
-from ironsworn_tui.cases import play_suite_name
-from ironsworn_tui.criteria import CriteriaStyle
+from ironsworn_tui.cases import ORACLE_SUITE, play_suite_name
+from ironsworn_tui.criteria import TABLE, YES_NO, CriteriaStyle, likelihood_criteria, table_criteria
 from ironsworn_tui.decide import (
     ACTS_QUESTION,
+    KIND_QUESTION,
+    LIKELIHOOD_QUESTION,
     MOVE_QUESTION,
+    TABLE_QUESTION,
+    OracleState,
     RequestShape,
     TurnState,
+    build_oracle_request,
     build_request,
 )
 from ironsworn_tui.moves import (
@@ -29,7 +35,15 @@ from ironsworn_tui.rules.datasworn import Datasworn
 PHRASINGS_FILE = (
     Path(__file__).resolve().parent.parent / "experiments" / "recognizer-phrasings.yaml"
 )
+ORACLE_PHRASINGS_FILE = (
+    Path(__file__).resolve().parent.parent / "experiments" / "oracle-phrasings.yaml"
+)
 SUITES_DIR = Path(__file__).resolve().parent.parent / "suites"
+ORACLE_QUESTION_SET = "oracle"
+ORACLE_POLICY = "oracle"
+ORACLE_RECOGNIZER = "recognizer-oracle"
+# The oracle policy's action when no table or likelihood should be preselected.
+ESCALATE = "escalate"
 TARGETS = ("decision-1@foundry", "clef-flash@workers-ai")
 # Claude wrote the phrasings, and the user approved them on 2026-10-24. jevtester ignores
 # `claude-draft` cases.
@@ -141,6 +155,148 @@ def load_phrasings(path: Path = PHRASINGS_FILE) -> Phrasings:
     """Read and validate the phrasings file."""
     loader: Any = YAML(typ="safe", pure=True)
     return Phrasings.model_validate(loader.load(path))
+
+
+type Kind = Literal["yes_no", "table", "cannot_tell"]
+
+
+class OracleQuestion(_Strict):
+    """One question typed after `/oracle`, and the answers it should get.
+
+    Attributes:
+        id: The case id.
+        character: The key of a character in the file's `characters`.
+        situation: The scene line.
+        asks: What the player types after `/oracle`.
+        kind: `yes_no`, `table`, or `cannot_tell`.
+        also_kind: Other kinds that count as correct.
+        likelihood: The expected `likelihood` option, for a yes or no question.
+        also_likelihood: Other likelihoods that count as correct.
+        table: The expected `table` option, for a table question. A table question without one
+            is a question no table fits, which the policy should escalate.
+        also_table: Other tables that count as correct.
+        tags: Labels for grouping results.
+    """
+
+    id: str
+    character: str
+    situation: str
+    asks: str
+    kind: Kind
+    also_kind: tuple[Kind, ...] = ()
+    likelihood: str | None = None
+    also_likelihood: tuple[str, ...] = ()
+    table: str | None = None
+    also_table: tuple[str, ...] = ()
+    tags: tuple[str, ...] = ()
+
+    @model_validator(mode="after")
+    def _check_answers(self) -> OracleQuestion:
+        if self.kind == YES_NO and self.likelihood is None:
+            raise ValueError(f"{self.id}: a yes_no question needs a likelihood")
+        likelihoods = likelihood_criteria()
+        for likelihood in (*([self.likelihood] if self.likelihood else []), *self.also_likelihood):
+            if likelihood not in likelihoods:
+                raise ValueError(f"{self.id}: unknown likelihood {likelihood}")
+        tables = table_criteria()
+        for table in (*([self.table] if self.table else []), *self.also_table):
+            if table not in tables:
+                raise ValueError(f"{self.id}: unknown table {table}")
+        return self
+
+    @property
+    def action(self) -> str:
+        """The action the oracle policy should choose: the likelihood, the table, or
+        `escalate`."""
+        if self.kind == YES_NO and self.likelihood is not None:
+            return self.likelihood
+        if self.kind == TABLE and self.table is not None:
+            return self.table
+        return ESCALATE
+
+
+class OraclePhrasings(_Strict):
+    """The oracle questions file: the characters, and the questions."""
+
+    characters: dict[str, Character]
+    questions: tuple[OracleQuestion, ...]
+
+    @model_validator(mode="after")
+    def _check_references(self) -> OraclePhrasings:
+        ids = [question.id for question in self.questions]
+        if len(set(ids)) != len(ids):
+            raise ValueError("oracle question ids repeat")
+        for question in self.questions:
+            if question.character not in self.characters:
+                raise ValueError(f"{question.id}: unknown character {question.character}")
+        return self
+
+
+def load_oracle_phrasings(path: Path = ORACLE_PHRASINGS_FILE) -> OraclePhrasings:
+    """Read and validate the oracle questions file."""
+    loader: Any = YAML(typ="safe", pure=True)
+    return OraclePhrasings.model_validate(loader.load(path))
+
+
+def oracle_state(phrasings: OraclePhrasings, question: OracleQuestion) -> OracleState:
+    """Return the oracle state for a question, as play would build it."""
+    return OracleState(
+        character=phrasings.characters[question.character].character,
+        situation=question.situation,
+        question=question.asks,
+    )
+
+
+def oracle_question_set() -> dict[str, Any]:
+    """Return the question set play sends for a question typed after `/oracle`."""
+    state = OracleState(character="", situation="", question="")
+    return {"name": ORACLE_QUESTION_SET, "questions": build_oracle_request(state)["questions"]}
+
+
+def _expect(answer: str, acceptable: tuple[str, ...]) -> dict[str, Any]:
+    expected: dict[str, Any] = {"answer": answer}
+    if acceptable:
+        expected["acceptable"] = list(acceptable)
+    return expected
+
+
+def _oracle_case(phrasings: OraclePhrasings, question: OracleQuestion) -> dict[str, Any]:
+    expected = {KIND_QUESTION: _expect(question.kind, question.also_kind)}
+    if question.likelihood is not None:
+        expected[LIKELIHOOD_QUESTION] = _expect(question.likelihood, question.also_likelihood)
+    if question.table is not None:
+        expected[TABLE_QUESTION] = _expect(question.table, question.also_table)
+    return {
+        "id": question.id,
+        "state": oracle_state(phrasings, question).to_json(),
+        "expected": expected,
+        "expected_action": question.action,
+        "tags": [question.kind, *question.tags],
+        "provenance": PROVENANCE,
+    }
+
+
+def oracle_suite(phrasings: OraclePhrasings) -> dict[str, Any]:
+    """Return the oracle recognizer suite: every hand-written oracle question."""
+    return {
+        "name": ORACLE_RECOGNIZER,
+        "question_set": ORACLE_QUESTION_SET,
+        "policy": ORACLE_POLICY,
+        "targets": list(TARGETS),
+        "cases": [_oracle_case(phrasings, question) for question in phrasings.questions],
+    }
+
+
+def play_oracle_suite() -> dict[str, Any]:
+    """Return an empty play suite for oracle questions, which play adds a case to after each
+    answered question."""
+    return {
+        "name": ORACLE_SUITE,
+        "question_set": ORACLE_QUESTION_SET,
+        "policy": ORACLE_POLICY,
+        "targets": list(TARGETS),
+        "cases": [],
+    }
 
 
 def turn_state(phrasings: Phrasings, context: Context, phrasing: Phrasing) -> TurnState:
@@ -258,9 +414,14 @@ def play_suite(context: Context) -> dict[str, Any]:
     }
 
 
-def generated_files(data: Datasworn, phrasings: Phrasings) -> dict[Path, str]:
+def generated_files(
+    data: Datasworn, phrasings: Phrasings, oracle: OraclePhrasings
+) -> dict[Path, str]:
     """Return every generated question set and suite, by path relative to `suites/`."""
-    files: dict[Path, str] = {}
+    files: dict[Path, str] = {
+        Path("question-sets") / f"{ORACLE_QUESTION_SET}.yaml": dump_yaml(oracle_question_set()),
+        Path(f"{ORACLE_RECOGNIZER}.yaml"): dump_yaml(oracle_suite(oracle)),
+    }
     for context in Context:
         for variant in VARIANTS:
             name = question_set_name(context, variant)

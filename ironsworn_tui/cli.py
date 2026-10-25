@@ -11,7 +11,7 @@ from typing import get_args
 
 from ironsworn_tui.app import IronswornApp
 from ironsworn_tui.campaign import Campaign, asset_catalog, create_character, new_campaign
-from ironsworn_tui.cases import play_suite_name
+from ironsworn_tui.cases import ORACLE_SUITE, play_suite_name
 from ironsworn_tui.commands import parse_rank
 from ironsworn_tui.criteria import CriteriaStyle
 from ironsworn_tui.decide import DecideError, TurnState, build_request, jevtester_server
@@ -19,7 +19,9 @@ from ironsworn_tui.experiment import (
     SUITES_DIR,
     dump_yaml,
     generated_files,
+    load_oracle_phrasings,
     load_phrasings,
+    play_oracle_suite,
     play_suite,
 )
 from ironsworn_tui.moves import CANNOT_TELL, NO_MOVE, Context, Initiative
@@ -168,18 +170,20 @@ def play(args: argparse.Namespace) -> int:
 
 
 def write_suites(args: argparse.Namespace) -> int:
-    """Write the recognizer question sets and suites from the phrasings file."""
-    files = generated_files(datasworn(), load_phrasings())
+    """Write the recognizer question sets and suites from the phrasings files."""
+    files = generated_files(datasworn(), load_phrasings(), load_oracle_phrasings())
     for relative, text in files.items():
         path = SUITES_DIR / relative
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(text)
         print(path.relative_to(SUITES_DIR.parent))
     # The play suites hold cases from play, so they're created once and never rewritten.
-    for context in Context:
-        path = SUITES_DIR / f"{play_suite_name(context)}.yaml"
+    play_suites = {play_suite_name(context): play_suite(context) for context in Context}
+    play_suites[ORACLE_SUITE] = play_oracle_suite()
+    for name, suite in play_suites.items():
+        path = SUITES_DIR / f"{name}.yaml"
         if not path.exists():
-            path.write_text(dump_yaml(play_suite(context)))
+            path.write_text(dump_yaml(suite))
             print(path.relative_to(SUITES_DIR.parent))
     return 0
 
@@ -361,8 +365,9 @@ def make_parser() -> argparse.ArgumentParser:
         help="Write the recognizer suites, and create missing play suites.",
         description=(
             "Write the decision model's question sets and recognizer suites under suites/ from "
-            "experiments/recognizer-phrasings.yaml, replacing the files there, and print each "
-            "path. Then create suites/play-<context>.yaml for each context that has none. "
+            "experiments/recognizer-phrasings.yaml and experiments/oracle-phrasings.yaml, "
+            "replacing the files there, and print each path. Then create "
+            "suites/play-<context>.yaml for each context, and suites/play-oracle.yaml, if missing. "
             "Existing play suites are never changed, because they hold the cases saved in play. "
             "Calls no model."
         ),

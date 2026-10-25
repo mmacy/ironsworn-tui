@@ -5,8 +5,19 @@ from pathlib import Path
 import pytest
 
 from ironsworn_tui.campaign import Lasting
-from ironsworn_tui.commands import ORACLES, REGISTRY, run_command
-from ironsworn_tui.registry import CommandError, Completion, filter_options, ghost_pieces
+from ironsworn_tui.commands import REGISTRY, run_command
+from ironsworn_tui.oracles import ORACLES
+from ironsworn_tui.registry import (
+    Arg,
+    Command,
+    CommandError,
+    CommandResult,
+    Completion,
+    Registry,
+    Values,
+    filter_options,
+    ghost_pieces,
+)
 from ironsworn_tui.rules.datasworn import datasworn
 from ironsworn_tui.rules.progress import Rank
 from ironsworn_tui.turn import MoveInputs, TurnEngine
@@ -279,8 +290,8 @@ def test_a_missing_argument_lists_its_options(tmp_path: Path):
         run_command(turn, "/vow swear")
     assert "troublesome, dangerous, formidable, extreme, epic" in str(raised.value)
     with pytest.raises(CommandError) as raised:
-        run_command(turn, "/oracle")
-    assert "such as action or theme" in str(raised.value)
+        run_command(turn, "/asset buy")
+    assert "such as archer or berserker" in str(raised.value)
 
 
 def test_help_says_how_to_play_and_how_to_quit(tmp_path: Path):
@@ -288,3 +299,43 @@ def test_help_says_how_to_play_and_how_to_quit(tmp_path: Path):
     text = "\n".join(run_command(turn, "/help").help)
     assert "Type what your character does" in text
     assert "/quit" in text
+
+
+def _echo(_: TurnEngine, values: Values) -> CommandResult:
+    return CommandResult(lines=values)
+
+
+SKIPPING = Registry(
+    (
+        Command(
+            "pick",
+            "Pick a color, or ask",
+            _echo,
+            (
+                Arg("color", ("red", "green"), optional=True, skip=True),
+                Arg("question", free=True, rest=True, optional=True),
+            ),
+        ),
+    )
+)
+
+
+def test_text_that_is_no_option_skips_a_skippable_argument(tmp_path: Path):
+    turn, _, _ = engine(tmp_path)
+    assert SKIPPING.parse(turn, "/pick red Is it ripe?").values == ("red", "Is it ripe?")
+    assert SKIPPING.parse(turn, "/pick Is it ripe?").values == ("", "Is it ripe?")
+    assert SKIPPING.parse(turn, "/pick").values == ()
+
+
+def test_completion_moves_past_a_skipped_argument(tmp_path: Path):
+    turn, _, _ = engine(tmp_path)
+    assert options(turn, "/oracle Do I") == ()
+    completion = SKIPPING.complete(turn, "/pick Is it ")
+    assert completion is not None
+    assert completion.options == ()
+
+
+def test_the_oracle_usage_shows_the_table_is_optional():
+    oracle = REGISTRY.find("oracle")
+    assert oracle is not None
+    assert REGISTRY.usages([oracle]) == ("/oracle [<table>] [<question>]",)

@@ -1,4 +1,8 @@
-"""Builds decision requests, sends them to jevtester, and parses the answers."""
+"""Builds decision requests, sends them to jevtester, and parses the answers.
+
+There are two requests: the turn's, which asks which move a message triggers, and the oracle's,
+which asks how to answer a question typed after `/oracle`.
+"""
 
 import http.client
 import json
@@ -17,7 +21,13 @@ from typing import Annotated, Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
-from ironsworn_tui.criteria import CriteriaStyle, move_criteria
+from ironsworn_tui.criteria import (
+    ORACLE_KIND_CRITERIA,
+    CriteriaStyle,
+    likelihood_criteria,
+    move_criteria,
+    table_criteria,
+)
 from ironsworn_tui.moves import (
     CANNOT_TELL,
     Context,
@@ -37,6 +47,12 @@ STAT_INSTRUCTIONS = "How does the character go about the action in `player_says`
 ACTS_QUESTION = "acts"
 ACTS_INSTRUCTIONS = "Does `player_says` describe something the character does?"
 STAT_CANNOT_TELL = "The player names the action but not the manner of doing it"
+KIND_QUESTION = "kind"
+KIND_INSTRUCTIONS = "What kind of answer does `question` ask for?"
+LIKELIHOOD_QUESTION = "likelihood"
+LIKELIHOOD_INSTRUCTIONS = "How likely is a yes to `question`, given `character` and `situation`?"
+TABLE_QUESTION = "table"
+TABLE_INSTRUCTIONS = "Which oracle table gives the answer that `question` asks for?"
 # jevtester gives up on the target after this long and returns a result with `ok` False. The
 # client waits longer, so that result arrives instead of a socket timeout.
 TARGET_TIMEOUT_S = 30.0
@@ -164,6 +180,58 @@ def build_request(
             "instructions": STAT_INSTRUCTIONS,
             "criteria": criteria,
         }
+    return {"state": state.to_json(), "questions": questions}
+
+
+@dataclass(frozen=True)
+class OracleState:
+    """The state the decision model sees for a question typed after `/oracle`.
+
+    Attributes:
+        character: The character's name and a few words about them.
+        situation: The scene, as the player last described it with `/scene`.
+        question: The question the player typed.
+    """
+
+    character: str
+    situation: str
+    question: str
+
+    def to_json(self) -> JsonObject:
+        """Return the state the model sees."""
+        return {"character": self.character, "situation": self.situation, "question": self.question}
+
+
+def build_oracle_request(state: OracleState) -> JsonObject:
+    """Build the decide request for an oracle question.
+
+    It asks three questions in one request: `kind`, whether a yes or no answers the question
+    or a table does; `likelihood`, how likely a yes is; and `table`, which table gives the
+    answer. The caller reads `likelihood` or `table`, as the `kind` answer says.
+
+    Args:
+        state: The question and what it depends on.
+
+    Returns:
+        The request body, with `state` and `questions`.
+    """
+    questions: JsonObject = {
+        KIND_QUESTION: {
+            "type": "choice",
+            "instructions": KIND_INSTRUCTIONS,
+            "criteria": dict(ORACLE_KIND_CRITERIA),
+        },
+        LIKELIHOOD_QUESTION: {
+            "type": "choice",
+            "instructions": LIKELIHOOD_INSTRUCTIONS,
+            "criteria": likelihood_criteria(),
+        },
+        TABLE_QUESTION: {
+            "type": "choice",
+            "instructions": TABLE_INSTRUCTIONS,
+            "criteria": table_criteria(),
+        },
+    }
     return {"state": state.to_json(), "questions": questions}
 
 
@@ -295,6 +363,31 @@ def _usable_choice(
     return answer if answer.choice in asked.criteria else None
 
 
+def _target_result(response: JsonObject, target: str) -> tuple[_DecideResponse, _TargetResult]:
+    try:
+        parsed = _DecideResponse.model_validate(response)
+    except ValidationError as error:
+        raise DecideError(f"jevtester's response doesn't parse: {error}") from error
+    result = next((r for r in parsed.results if r.target == target), None)
+    if result is None:
+        raise DecideError(f"jevtester's response has no result for {target}")
+    return parsed, result
+
+
+def _warnings(result: _TargetResult) -> tuple[str, ...]:
+    return tuple(f"{w.code}: {w.message}" for w in result.warnings)
+
+
+def _problem(result: _TargetResult, answer: ChoiceAnswer | None, question: str) -> str | None:
+    """Return why there's no usable answer to the question that decides, or None."""
+    if result.error is not None:
+        return f"{result.error.code}: {result.error.message}"
+    if answer is None:
+        warnings = _warnings(result)
+        return f"no usable {question} answer" + (f" ({'; '.join(warnings)})" if warnings else "")
+    return None
+
+
 def parse_decision(response: JsonObject, target: str) -> Decision:
     """Parse a decide response into one target's answers.
 
@@ -313,20 +406,10 @@ def parse_decision(response: JsonObject, target: str) -> Decision:
     Raises:
         DecideError: If the response is malformed or has no result for the target.
     """
-    try:
-        parsed = _DecideResponse.model_validate(response)
-    except ValidationError as error:
-        raise DecideError(f"jevtester's response doesn't parse: {error}") from error
-    result = next((r for r in parsed.results if r.target == target), None)
-    if result is None:
-        raise DecideError(f"jevtester's response has no result for {target}")
-    warnings = tuple(f"{w.code}: {w.message}" for w in result.warnings)
+    parsed, result = _target_result(response, target)
+    warnings = _warnings(result)
     move = _usable_choice(parsed, result.answers, MOVE_QUESTION) if result.ok else None
-    problem: str | None = None
-    if result.error is not None:
-        problem = f"{result.error.code}: {result.error.message}"
-    elif move is None:
-        problem = "no usable move answer" + (f" ({'; '.join(warnings)})" if warnings else "")
+    problem = _problem(result, move, MOVE_QUESTION)
     prefix = "stat_"
     stats: dict[str, ChoiceAnswer] = {}
     for question in result.answers:
@@ -343,6 +426,68 @@ def parse_decision(response: JsonObject, target: str) -> Decision:
         move=move,
         stats=stats,
         warnings=warnings,
+        response=response,
+    )
+
+
+@dataclass(frozen=True)
+class OracleDecision:
+    """One target's answers to an oracle question.
+
+    Attributes:
+        target: The target that answered.
+        ok: True when there's a usable `kind` answer.
+        latency_ms: How long the target took, or None when nothing was sent.
+        error: Why there's no usable `kind` answer, when `ok` is False.
+        kind: The `kind` answer: `yes_no`, `table`, or `cannot_tell`.
+        likelihood: The `likelihood` answer, or None when it isn't usable.
+        table: The `table` answer, or None when it isn't usable.
+        warnings: jevtester's warnings, as `code: message`.
+        response: The whole decide response, which case logging saves.
+    """
+
+    target: str
+    ok: bool
+    latency_ms: float | None
+    error: str | None
+    kind: ChoiceAnswer | None
+    likelihood: ChoiceAnswer | None
+    table: ChoiceAnswer | None
+    warnings: tuple[str, ...]
+    response: JsonObject = field(repr=False)
+
+
+def parse_oracle_decision(response: JsonObject, target: str) -> OracleDecision:
+    """Parse a decide response to an oracle request into one target's answers.
+
+    An answer that names an option its question doesn't have is left out. Without a usable
+    `kind` answer, the decision has `ok` False.
+
+    Args:
+        response: The decide response.
+        target: The target to read.
+
+    Returns:
+        The target's answers.
+
+    Raises:
+        DecideError: If the response is malformed or has no result for the target.
+    """
+    parsed, result = _target_result(response, target)
+
+    def usable(question: str) -> ChoiceAnswer | None:
+        return _usable_choice(parsed, result.answers, question) if result.ok else None
+
+    kind = usable(KIND_QUESTION)
+    return OracleDecision(
+        target=target,
+        ok=kind is not None,
+        latency_ms=result.latency_ms,
+        error=_problem(result, kind, KIND_QUESTION),
+        kind=kind,
+        likelihood=usable(LIKELIHOOD_QUESTION),
+        table=usable(TABLE_QUESTION),
+        warnings=_warnings(result),
         response=response,
     )
 
@@ -379,6 +524,32 @@ class JevtesterClient:
             DecideError: If jevtester can't be reached, rejects the request, or sends a reply
                 that doesn't parse.
         """
+        return parse_decision(self.send(request, target), target)
+
+    def decide_oracle(self, request: JsonObject, target: str) -> OracleDecision:
+        """Send an oracle request to one target and parse its answers.
+
+        Args:
+            request: A body from
+                [`build_oracle_request`][ironsworn_tui.decide.build_oracle_request].
+            target: The target to send it to.
+
+        Returns:
+            The answers. A target that failed or timed out gives a decision with `ok` False.
+
+        Raises:
+            DecideError: If jevtester can't be reached, rejects the request, or sends a reply
+                that doesn't parse.
+        """
+        return parse_oracle_decision(self.send(request, target), target)
+
+    def send(self, request: JsonObject, target: str) -> JsonObject:
+        """Send a request to one target and return jevtester's decide response.
+
+        Raises:
+            DecideError: If jevtester can't be reached, rejects the request, or sends a reply
+                that isn't JSON.
+        """
         body = {**request, "targets": [target], "timeout_s": TARGET_TIMEOUT_S}
         http_request = urllib.request.Request(
             f"{self.base_url}/api/decide",
@@ -395,7 +566,7 @@ class JevtesterClient:
             raise DecideError(f"jevtester isn't reachable at {self.base_url}: {error}") from error
         except (ValueError, http.client.HTTPException) as error:
             raise DecideError(f"jevtester's reply isn't valid JSON: {error}") from error
-        return parse_decision(response, target)
+        return response
 
     def add_case(self, suite: str, case: JsonObject, timeout_s: float = 5.0) -> None:
         """Add a case to the end of a suite's file.
