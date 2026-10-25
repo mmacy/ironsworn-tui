@@ -896,8 +896,14 @@ def _create_elixir(hit: Hit, details: MoveDetails) -> tuple[Effect, ...]:
     options = tuple(
         _option(f"{name} ({stat})", AddLasting("elixir", stat)) for stat, name in _ELIXIRS.items()
     )
-    # Alchemist's second ability: two effects in one dose, or two doses of one.
-    count = 2 if details.upgraded else 1
+    count = 1
+    if details.upgraded:
+        # Alchemist's second ability: two effects in one dose, or two doses of one.
+        count = 2
+        options += tuple(
+            _option(f"Two doses of {name} ({stat})", *[AddLasting("elixir", stat)] * 2)
+            for stat, name in _ELIXIRS.items()
+        )
     choose = Choose(options, count=count, minimum=1)
     if hit is Hit.WEAK:
         return (MeterChange("supply", -1), choose)

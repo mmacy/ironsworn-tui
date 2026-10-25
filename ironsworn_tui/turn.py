@@ -300,6 +300,9 @@ class TurnEngine:
         self.path = path
         self.style = style
         self.cases = cases
+        unknown = [lasting.kind for lasting in campaign.lasting if lasting.kind not in LASTING]
+        if unknown:
+            raise ValueError(f"unknown lasting effects: {', '.join(unknown)}")
         self._pending: _Pending | None = None
         self._initiative_set = False
         self._harm = 0
@@ -540,6 +543,9 @@ class TurnEngine:
         if ref.lasting is not None:
             return None
         owned = campaign.character.asset(ref.asset)
+        needed = boost.needs_asset
+        if needed is not None and campaign.character.asset_or_none(needed) is None:
+            return f"{label} needs {self.data.asset(needed).name}"
         if any(not owned.marked[number - 1] for number in boost.needs):
             return f"{label} needs ability {', '.join(map(str, boost.needs))} marked"
         if boost.limit == "fight" and _use_key(ref) in campaign.fight_uses:
@@ -621,6 +627,13 @@ class TurnEngine:
                 raise TurnError(reason)
             chosen.append(available)
         abilities = [(a.ref.asset, a.ref.ability, a.ref.lasting) for a in chosen]
+        kinds = [
+            (self.campaign.lasting[a.ref.lasting].kind, self.campaign.lasting[a.ref.lasting].stat)
+            for a in chosen
+            if a.ref.lasting is not None
+        ]
+        if len(set(kinds)) != len(kinds):
+            raise TurnError("turn on one of each kind of lasting effect")
         if len(set(abilities)) != len(abilities):
             raise TurnError("turn on one variant of each ability")
         if sum(a.boost.roll is not None for a in chosen) > 1:
@@ -975,6 +988,8 @@ class TurnEngine:
         effects = adjust_outcome(outcome(move, hit, details), boosts, hit)
         if move == "heal" and pending.companion is not None and hit is not Hit.MISS:
             effects = (CompanionHealth(2, every=False), *effects)
+        if move == "companion_endure_harm" and pending.companion is not None:
+            effects += self._companion_death(pending.companion, hit, action)
         facts = RollFacts(
             hit=hit,
             match=match,
@@ -1499,7 +1514,16 @@ class TurnEngine:
         ):
             self._next_follow_up(set(ROLLED_FOLLOW_UPS))
         move = follow_ups[0].move
-        companion = self._owed_companion(follow_ups[0]) if move == "companion_endure_harm" else None
+        companion: str | None = None
+        if move == "companion_endure_harm":
+            companion = self._owed_companion(follow_ups[0])
+            if companion is None:
+                gone = follow_ups.pop(0)
+                self.campaign.add_log(
+                    "note", f"No Companion Endure Harm: {gone.asset} is no longer with you"
+                )
+                self.save()
+                return None
         chosen = self._check_boosts(move, boosts)
         override: tuple[str, int] | None = None
         rolling = [a for a in chosen if a.boost.roll is not None]
@@ -1560,8 +1584,6 @@ class TurnEngine:
             lost = ""
         pending.value = value
         card = self._card(owed.move, rolled_with, roll, None, pending)
-        if owed.move == "companion_endure_harm" and companion is not None:
-            card = self._companion_death(card, companion)
         pending.card = card
         self._pending = pending
         self.campaign.add_log("roll", _describe(card) + lost)
@@ -1598,11 +1620,12 @@ class TurnEngine:
             self.campaign.add_log("note", _setback_note(endurance.setback))
         return endurance
 
-    def _owed_companion(self, owed: OwedMove) -> str:
-        """Return the companion an owed Companion Endure Harm is for."""
+    def _owed_companion(self, owed: OwedMove) -> str | None:
+        """Return the companion an owed Companion Endure Harm is for, or None when the
+        character no longer has it, as after it died or was discarded."""
         if owed.asset is not None:
             if self.campaign.character.asset_or_none(owed.asset) is None:
-                raise TurnError(f"{self.campaign.character.name} doesn't own {owed.asset}")
+                return None
             return owed.asset
         companions = self._companions()
         if len(companions) != 1:
@@ -1637,21 +1660,21 @@ class TurnEngine:
             return f"{name}'s health", after, f" ({amount} harm to {name} first)"
         return "heart", character.stats.heart, f" ({amount} harm to {name} first)"
 
-    def _companion_death(self, card: RollCard, companion: str) -> RollCard:
+    def _companion_death(
+        self, companion: str, hit: Hit, action: ActionRoll | None
+    ) -> tuple[Effect, ...]:
         """On a miss with a 1 on the action die at 0 health, the companion dies."""
-        owned = self.campaign.character.asset(companion)
-        action = card.action
-        if card.hit is not Hit.MISS or action is None or action.action_die != 1:
-            return card
+        owned = self.campaign.character.asset_or_none(companion)
+        if owned is None or hit is not Hit.MISS or action is None or action.action_die != 1:
+            return ()
         if owned.meters["health"] != 0:
-            return card
+            return ()
         name = self.data.asset(companion).name
-        death = (
+        return (
             Note(f"{name} is dead."),
             ExperiencePerAbility(companion, 1),
             DiscardAsset(companion),
         )
-        return dataclasses.replace(card, effects=(*card.effects, *death))
 
     def _lasting_of(self, chosen: tuple[AvailableBoost, ...]) -> list[Lasting]:
         """The lasting effects among the chosen boosts."""
@@ -1742,13 +1765,21 @@ class TurnEngine:
             spent += [
                 lasting for lasting in pending.lasting if LASTING[lasting.kind].expires == "one"
             ]
-        character = campaign.character
-        if min(character.health, character.spirit, character.momentum) < 1:
-            spent += [
-                lasting for lasting in campaign.lasting if LASTING[lasting.kind].expires == "low"
-            ]
+        groups = {LASTING[lasting.kind].group for lasting in spent} - {None}
+        spent += [lasting for lasting in campaign.lasting if LASTING[lasting.kind].group in groups]
         for lasting in spent:
             self._end_lasting(lasting)
+        self.expire_low()
+
+    def expire_low(self) -> None:
+        """End the lasting effects that last only while health, spirit, and momentum are
+        above 0, such as an elixir, if one of them isn't."""
+        campaign = self.campaign
+        character = campaign.character
+        if min(character.health, character.spirit, character.momentum) < 1:
+            low = [each for each in campaign.lasting if LASTING[each.kind].expires == "low"]
+            for lasting in low:
+                self._end_lasting(lasting)
 
     def mark_vow(self, name: str) -> ProgressTrack:
         """Reach a Milestone: mark progress on a vow.
@@ -1811,6 +1842,7 @@ class TurnEngine:
             )
         else:
             self.campaign.add_log("outcome", "Pay the Price: the most obvious negative outcome")
+        self.expire_low()
         self.save()
         return result
 
@@ -1835,7 +1867,12 @@ _EMPTY_CARD = RollCard(
 def _only_changes_the_action_roll(boost: Boost) -> bool:
     """True when a boost does nothing but change an action roll: an add, a stat, or a late add."""
     changes_roll = bool(
-        boost.add or boost.add_meter or boost.roll or boost.stat_field or boost.late_add
+        boost.add
+        or boost.add_meter
+        or boost.roll
+        or boost.stat_field
+        or boost.only_stat
+        or boost.late_add
     )
     rest = dataclasses.replace(
         boost,
@@ -1843,6 +1880,7 @@ def _only_changes_the_action_roll(boost: Boost) -> bool:
         add_meter=None,
         roll=None,
         stat_field=None,
+        only_stat=None,
         late_add=0,
         late_cost=(),
         before=(),

@@ -6,6 +6,8 @@ import pytest
 
 from ironsworn_tui.abilities import BoostRef
 from ironsworn_tui.campaign import Campaign, Lasting, OwedMove
+from ironsworn_tui.commands import run_command
+from ironsworn_tui.outcomes import Choose, DiscardAsset
 from ironsworn_tui.rules.dice import Hit
 from ironsworn_tui.rules.progress import Rank
 from ironsworn_tui.turn import MoveInputs, TurnEngine, TurnError
@@ -268,3 +270,96 @@ def test_end_a_lasting_effect_by_hand(tmp_path: Path):
     assert turn.campaign.lasting == []
     with pytest.raises(TurnError, match="no lasting"):
         turn.end_lasting(0)
+
+
+def test_harm_owed_to_a_dead_companion_is_dropped(tmp_path: Path):
+    turn, dice, _ = engine(tmp_path)
+    turn.harm_companion("hawk", 5)
+    turn.harm_companion("hawk", 1)
+    dice.load(1, 9, 10)
+    turn.roll_follow_up()
+    turn.resolve()
+    assert turn.campaign.character.asset_or_none("hawk") is None
+    assert turn.roll_follow_up() is None
+    assert turn.follow_ups == ()
+
+
+def test_rider_push_needs_the_horse(tmp_path: Path):
+    turn, _, _ = engine(tmp_path)
+    give(turn, "rider", 2)
+    assert not any(a.ref.asset == "rider" for a in turn.boosts_for("undertake_a_journey"))
+    give(turn, "horse", 1)
+    assert any(a.ref.asset == "rider" for a in turn.boosts_for("undertake_a_journey"))
+
+
+def test_companion_death_survives_a_reroll(tmp_path: Path):
+    turn, dice, _ = engine(tmp_path)
+    give(turn, "animal_kin", 3)
+    turn.harm_companion("hawk", 3)
+    dice.load(2, 9, 10)
+    card = turn.roll_follow_up(boosts=[BoostRef("animal_kin", 3)])
+    assert card is not None
+    assert not any(isinstance(e, DiscardAsset) for e in card.effects)
+    dice.load(1)
+    card = turn.reroll([0])
+    assert DiscardAsset("hawk") in card.effects
+
+
+def test_two_doses_of_one_elixir(tmp_path: Path):
+    turn, dice, _ = engine(tmp_path)
+    give(turn, "alchemist", 2)
+    dice.load(6, 1, 1)
+    card = turn.make_move("create_elixir")
+    assert card is not None
+    choose = card.effects[0]
+    assert isinstance(choose, Choose)
+    two = [i for i, o in enumerate(choose.options) if o.label == "Two doses of Clarity (wits)"]
+    turn.resolve([two])
+    assert turn.campaign.lasting == [Lasting(kind="elixir", stat="wits")] * 2
+
+
+def test_two_of_one_lasting_effect_dont_stack(tmp_path: Path):
+    turn, _, _ = engine(tmp_path)
+    turn.campaign.lasting += [Lasting(kind="talisman_2"), Lasting(kind="talisman_2")]
+    with pytest.raises(TurnError, match="one"):
+        turn.make_move(
+            "face_danger",
+            stat="edge",
+            boosts=[BoostRef("", 0, lasting=0), BoostRef("", 0, lasting=1)],
+        )
+
+
+def test_blood_rune_is_for_attacks(tmp_path: Path):
+    turn, _, _ = engine(tmp_path)
+    turn.campaign.lasting.append(Lasting(kind="blood_rune"))
+    assert turn.boosts_for("gather_information") == ()
+
+
+def test_pelts_arent_offered_on_progress_moves(tmp_path: Path):
+    turn, _, _ = engine(tmp_path)
+    turn.campaign.lasting.append(Lasting(kind="pelt", stat="iron"))
+    assert turn.boosts_for("fulfill_your_vow") == ()
+
+
+def test_spent_visage_ends_both_parts(tmp_path: Path):
+    turn, dice, _ = engine(tmp_path)
+    turn.campaign.lasting += [Lasting(kind="visage"), Lasting(kind="visage_attack")]
+    fight(turn, dice)
+    dice.load(1, 9, 10)
+    turn.make_move("attack", stat="iron", boosts=[BoostRef("", 0, lasting=1)])
+    turn.resolve()
+    assert turn.campaign.lasting == []
+
+
+def test_elixir_ends_when_a_command_lowers_health(tmp_path: Path):
+    turn, _, _ = engine(tmp_path)
+    turn.campaign.lasting.append(Lasting(kind="elixir", stat="wits"))
+    run_command(turn, "/adjust health -5")
+    assert turn.campaign.lasting == []
+
+
+def test_unknown_lasting_kind_is_refused(tmp_path: Path):
+    turn, _, _ = engine(tmp_path)
+    turn.campaign.lasting.append(Lasting(kind="rubber_chicken"))
+    with pytest.raises(ValueError, match="rubber_chicken"):
+        TurnEngine(turn.campaign, turn.data, turn.rng, turn.thresholds)

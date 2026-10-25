@@ -122,6 +122,7 @@ class Boost:
         only_stat: A stat the move must roll, as an elixir's or a pelt's.
         rolled: A stat the roll must use for the boost to apply, as "Endure Stress +heart".
         needs: Other abilities of the same asset, from 1 to 3, that must be marked.
+        needs_asset: Another asset the character must own, as Rider needs the horse.
         unleash: An asset meter the player spends an amount of, as Lightbearer's light.
         burn_initiative: Take initiative when burning improves a miss to a weak hit, once
             per fight.
@@ -168,6 +169,7 @@ class Boost:
     only_stat: Stat | None = None
     rolled: Stat | None = None
     needs: tuple[int, ...] = ()
+    needs_asset: str | None = None
     unleash: str | None = None
     burn_initiative: bool = False
     burn_progress: bool = False
@@ -858,6 +860,7 @@ ABILITIES: dict[tuple[str, int], Entry] = {
             (JOURNEY,),
             late_add=1,
             late_cost=(FollowUp(COMPANION_HARM, 1, "horse"),),
+            needs_asset="horse",
         ),
     ),
     ("rider", 3): (
@@ -1293,10 +1296,12 @@ class LastingKind:
         boost: What it does when the player turns it on, like an ability's boost. Its label
             names the effect.
         expires: When it ends.
+        group: Kinds that end together, as a visage's two parts do when its magic is spent.
     """
 
     boost: Boost
     expires: Expiry
+    group: str | None = None
 
 
 _MAGIC_SPENT = "The magic is spent."
@@ -1319,7 +1324,7 @@ LASTING: dict[str, LastingKind] = {
     "blood_rune": LastingKind(
         Boost(
             "Blood rune",
-            None,
+            ATTACKS,
             reroll="any",
             harm=2,
             on_hit=(Note("Take +1 health or +1 momentum for each point of harm inflicted."),),
@@ -1366,12 +1371,15 @@ LASTING: dict[str, LastingKind] = {
     "visage": LastingKind(
         Boost("Visage", (SAA, COMPEL), add=2, momentum_on_hit=1, on_one=(Note(_MAGIC_SPENT),)),
         "one",
+        "visage",
     ),
     "visage_attack": LastingKind(
-        Boost("Visage", (STRIKE, CLASH, BATTLE), add=1, on_one=(Note(_MAGIC_SPENT),)), "one"
+        Boost("Visage", (STRIKE, CLASH, BATTLE), add=1, on_one=(Note(_MAGIC_SPENT),)),
+        "one",
+        "visage",
     ),
-    "ward_harm": LastingKind(Boost("Ward", None, harm=1), "use"),
-    "ward_harm_2": LastingKind(Boost("Ward", None, harm=2), "use"),
+    "ward_harm": LastingKind(Boost("Ward", ATTACKS, harm=1), "use"),
+    "ward_harm_2": LastingKind(Boost("Ward", ATTACKS, harm=2), "use"),
     "trophy_ritual": LastingKind(Boost("Trophy", RITUALS, reroll="any"), "use"),
     "trophy_sojourn": LastingKind(Boost("Trophy", (SOJOURN,), reroll="any"), "use"),
     "audience": LastingKind(Boost("Your audience", None, add=2), "use"),

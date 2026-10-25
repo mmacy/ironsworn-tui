@@ -314,6 +314,7 @@ def _adjust(engine: TurnEngine, rest: str) -> CommandResult:
     else:
         raise CommandError(usage)
     campaign.add_log("command", f"Adjust: {line}")
+    engine.expire_low()
     engine.save()
     return CommandResult()
 
