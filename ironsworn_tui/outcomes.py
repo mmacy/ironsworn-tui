@@ -11,6 +11,7 @@ from typing import Literal
 
 from ironsworn_tui.campaign import Debility, Meter
 from ironsworn_tui.moves import Initiative
+from ironsworn_tui.rules.datasworn import Stat
 from ironsworn_tui.rules.dice import Hit
 
 type Track = Literal["vow", "journey", "target", "bonds"]
@@ -125,6 +126,98 @@ class Note:
 
 
 @dataclass(frozen=True)
+class InflictHarm:
+    """Inflict harm on the targeted foe: mark progress on its track once per point.
+
+    Attributes:
+        amount: The harm, or None for the character's usual harm.
+    """
+
+    amount: int | None = None
+
+
+@dataclass(frozen=True)
+class AssetMeterChange:
+    """Add to or take from an asset's meter, such as a warband's strength."""
+
+    asset: str
+    meter: str
+    amount: int
+
+
+@dataclass(frozen=True)
+class AssetMeterFromRank:
+    """Add the vow's rank to an asset's meter, as Fortune Hunter's payment does."""
+
+    asset: str
+    meter: str
+
+
+@dataclass(frozen=True)
+class GainExperience:
+    """Take experience."""
+
+    amount: int
+
+
+@dataclass(frozen=True)
+class ExperiencePerAbility:
+    """Take experience for each marked ability of an asset, as Spirit-bound's release does."""
+
+    asset: str
+    amount: int
+
+
+@dataclass(frozen=True)
+class MomentumFromMeter:
+    """Take momentum equal to a meter: the character's health, or an asset's meter.
+
+    Attributes:
+        meter: The meter, such as `health`.
+        asset: The asset whose meter it is, or None for the character's.
+    """
+
+    meter: str
+    asset: str | None = None
+
+
+@dataclass(frozen=True)
+class AssetDebility:
+    """Make an asset count as a debility, or stop it counting."""
+
+    asset: str
+    on: bool
+
+
+@dataclass(frozen=True)
+class RaiseStat:
+    """Raise a stat by 1."""
+
+    stat: Stat
+
+
+@dataclass(frozen=True)
+class DiscardAsset:
+    """Remove an asset from the character."""
+
+    asset: str
+
+
+@dataclass(frozen=True)
+class MaxSpirit:
+    """Raise or lower the character's maximum spirit, as Honorbound does."""
+
+    amount: int
+
+
+@dataclass(frozen=True)
+class MaskTrack:
+    """Take from the meter a Masked character's mask is tied to: health or spirit."""
+
+    amount: int
+
+
+@dataclass(frozen=True)
 class Option:
     """One choice on the roll card, with its effects."""
 
@@ -158,6 +251,17 @@ type Effect = (
     | RemoveTarget
     | Note
     | Choose
+    | InflictHarm
+    | AssetMeterChange
+    | AssetMeterFromRank
+    | GainExperience
+    | ExperiencePerAbility
+    | MomentumFromMeter
+    | AssetDebility
+    | RaiseStat
+    | DiscardAsset
+    | MaxSpirit
+    | MaskTrack
 )
 
 PAY_THE_PRICE = FollowUp("pay_the_price")
