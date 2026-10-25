@@ -86,6 +86,7 @@ def _endure(
     action_die: int,
     challenge_dice: ChallengeDice,
     fate_table_id: str,
+    adds: int,
 ) -> Endurance:
     _check_range(meter_value, METER_MAX, meter)
     _check_range(stat_value, STAT_MAX, stat)
@@ -99,7 +100,7 @@ def _endure(
     use_meter = meter_after >= stat_value
     roll = evaluate_action(
         value=meter_after if use_meter else stat_value,
-        adds=0,
+        adds=adds,
         momentum=change.momentum,
         action_die=action_die,
         challenge_dice=challenge_dice,
@@ -123,6 +124,7 @@ def evaluate_endure_harm(
     momentum: int,
     action_die: int,
     challenge_dice: ChallengeDice,
+    adds: int = 0,
 ) -> Endurance:
     """Work out Endure Harm from dice that are already rolled.
 
@@ -133,6 +135,7 @@ def evaluate_endure_harm(
         momentum: Momentum before the harm.
         action_die: The d6 result.
         challenge_dice: The two d10 results.
+        adds: The bonus added to the roll, such as an asset's.
 
     Returns:
         The damage and the roll.
@@ -150,6 +153,7 @@ def evaluate_endure_harm(
         action_die,
         challenge_dice,
         ENDURE_HARM_TABLE,
+        adds,
     )
 
 
@@ -168,6 +172,7 @@ def evaluate_endure_stress(
     momentum: int,
     action_die: int,
     challenge_dice: ChallengeDice,
+    adds: int = 0,
 ) -> Endurance:
     """Work out Endure Stress from dice that are already rolled.
 
@@ -178,6 +183,7 @@ def evaluate_endure_stress(
         momentum: Momentum before the stress.
         action_die: The d6 result.
         challenge_dice: The two d10 results.
+        adds: The bonus added to the roll, such as an asset's.
 
     Returns:
         The damage and the roll.
@@ -195,6 +201,7 @@ def evaluate_endure_stress(
         action_die,
         challenge_dice,
         ENDURE_STRESS_TABLE,
+        adds,
     )
 
 
