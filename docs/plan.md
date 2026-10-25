@@ -27,27 +27,34 @@ The app has no LLM narrator. In solo Ironsworn the player writes the fiction, so
 | Play constitution | Which choices belong to the player, and how initiative works | `references/constitution.md` in the same folder |
 | jevtester | The `decide`, `run`, and `report` commands, the `serve` API for adding cases, the suite, question set, and policy formats, and the targets | `~/repos/jevtester` |
 
-`iron.py` is a CLI, not a library. Only `action_roll()` and `build_indices()` return values. Progress rolls, suffer moves, oracles, and momentum bounds exist only as `cmd_*` functions that print JSON, and its error helper calls `sys.exit(2)`. It also fails this project's gates: ruff and pyright both report findings, and `test_iron.py` uses `# noqa` and runs `iron.py` as a subprocess. So build step 1 ports the rules into typed functions in `ironsworn_tui/rules/` and ports the tests to call them, using `iron.py` as the reference for the math.
+`iron.py` is a CLI, not a library. Only `action_roll()` and `build_indices()` return values. Progress rolls, suffer moves, oracles, and momentum bounds exist only as `cmd_*` functions that print JSON, and its error helper calls `sys.exit(2)`. It also fails this project's gates: ruff and pyright both report findings, and `test_iron.py` uses `# noqa` and runs `iron.py` as a subprocess. So `ironsworn_tui/rules/` holds the rules as typed functions, with the tests ported to call them, and uses `iron.py` as the reference for the math.
 
 The Datasworn move data contains the stat choices. Each move's `trigger.conditions` lists its approaches, and each condition has a `method` (`player_choice`, `lowest`, or `highest`) and the stats it rolls with. For example, Face Danger lists five `player_choice` approaches ("With speed, agility, or precision" uses edge). Single-stat moves have a condition with no text. Each move also has a `roll_type`: `action_roll`, `progress_roll`, `special_track`, or `no_roll`.
 
 ## Licensing
 
-The Datasworn files are CC BY 4.0 or CC BY-NC-SA 4.0, file by file. `iron.py` and the plugin's guides are CC BY-NC-SA 4.0, and the port is a derived work. Vendor the Datasworn data with its `LICENSE.md`, and license this repository under CC BY-NC-SA 4.0 to match. The repository is private for now.
+The Datasworn files are CC BY 4.0 or CC BY-NC-SA 4.0, file by file. `iron.py` and the plugin's guides are CC BY-NC-SA 4.0, and the port is a derived work. The Datasworn data is vendored with its `LICENSE.md`, and this repository is licensed under CC BY-NC-SA 4.0 to match.
 
 ## Architecture
 
 ```text
 ironsworn_tui/
-  rules/       # typed port of iron.py: action and progress rolls, momentum, suffer moves, oracles, Datasworn models
-  outcomes.py  # the effect of each chat move's outcome on the campaign
-  moves.py     # which moves the chat can trigger in the current context
-  decide.py    # builds the request, calls jevtester, parses the answers
-  campaign.py  # pydantic models for the character, vows, foes, and journeys; JSON persistence
-  turn.py      # one chat message from text to applied outcome, with no UI code
-  cases.py     # saves each turn as a jevtester case
-  app.py       # the Textual app
+  rules/        # typed port of iron.py: action and progress rolls, momentum, suffer moves, oracles, Datasworn models
+  outcomes.py   # the effect of each move's outcome on the campaign
+  moves.py      # which moves the chat can trigger in the current context
+  criteria.py   # the descriptions of the `move` question's options
+  decide.py     # builds the request, calls jevtester, parses the answers
+  policy.py     # turns the answers into a suggestion with the policy's thresholds
+  campaign.py   # pydantic models for the character, assets, vows, foes, and journeys; JSON persistence
+  assets.py     # buying and upgrading assets
+  abilities.py  # the hand-written table of what each asset ability and lasting effect does
+  turn.py       # one chat message from text to applied outcome, with no UI code
+  commands.py   # the `/` commands, with no UI code
+  cases.py      # saves each turn as a jevtester case
+  app.py        # the Textual app
 ```
+
+[`architecture.md`](architecture.md) describes every module.
 
 `turn.py` contains the game loop and doesn't import Textual, so tests can run the loop without a terminal. The TUI is a thin layer over it.
 
@@ -71,7 +78,7 @@ uv run --project ~/repos/jevtester jevtester --config ~/repos/ironsworn-tui/jevt
 The app sorts the 35 moves into four groups:
 
 - **Triggered from the fiction**, which go in the `move` question's options: Face Danger, Secure an Advantage, Gather Information, Heal, Resupply, Make Camp, Undertake a Journey, Reach Your Destination, Compel, Sojourn, Draw the Circle, Forge a Bond, Test Your Bond, Swear an Iron Vow, Fulfill Your Vow, Forsake Your Vow, Enter the Fray, Strike, Clash, Battle, and Write Your Epilogue.
-- **Offered after a result**, which the app offers as a key on the roll card: End the Fight, after a strong hit on Strike or Clash when the targeted foe's track then has at least one full box (4 ticks). The rulebook (page 82) allows any decisive move as the setup; limiting it to attacks is this app's choice, and `/adjust` covers the rest.
+- **Offered after a result**, which the app offers as a key on the roll card: End the Fight, after a strong hit on any move made in a fight when the targeted foe's track then has at least one full box (4 ticks). The rulebook (page 82) allows any decisive move as the setup. The app doesn't offer it after Enter the Fray, Draw the Circle, Battle, a progress move, or a rolled suffer move, and the player declines the offer when the move wasn't decisive.
 - **Triggered by an outcome**, which the app runs when a result calls for one: Pay the Price, Endure Harm, Endure Stress, Companion Endure Harm, Face Death, Face Desolation, Out of Supply, and Face a Setback.
 - **Started by the player with a command**: Turn the Tide, Ask the Oracle, Reach a Milestone, and Advance.
 
@@ -100,14 +107,14 @@ One request contains every question for the turn:
 | Id | Type | What it asks | Options from |
 |---|---|---|---|
 | `move` | choice | Which move the action triggers | The context's move list, each move described by a short criterion written from the disambiguation guide |
-| `stat_<move>` | choice | Which approach the action takes, for that move | That move's `player_choice` conditions with text, each condition's text as the description. Build step 4 dropped a `cannot_tell` option, which won too often. |
+| `stat_<move>` | choice | Which approach the action takes, for that move | That move's `player_choice` conditions with text, each condition's text as the description. There's no `cannot_tell` option, because one won too often in the recognizer experiment. |
 
 Stat questions go only to moves with two or more `player_choice` conditions that have text: Face Danger, Secure an Advantage, Battle, Compel, Enter the Fray, and `attack`. Because the move isn't known until the answer comes back, the request contains a `stat_<move>` question for each of those moves in the context. The app reads the one for the move the player confirms. Other moves have one stat, and code handles the rest:
 
 - **Heal** rolls wits when the character treats someone else, and the lower of iron and wits when they mend their own wounds (`method: lowest`). The roll card asks the player which with a key.
 - **Moves with `method: highest`** (Endure Harm, Endure Stress, Companion Endure Harm) use the higher value, which code computes.
 
-The build step 4 experiment compares two kinds of `move` criteria: the short ones from the guide, and the Datasworn trigger text ("When you attempt something risky..."). The plan uses whichever scores better.
+`criteria.py` has two kinds of `move` criteria: the short ones from the guide, and the Datasworn trigger text ("When you attempt something risky..."). The guide criteria scored better in the recognizer experiment, so play uses them.
 
 The state is JSON with the character's situation and the player's text:
 
@@ -126,11 +133,11 @@ The state is JSON with the character's situation and the player's text:
 
 `decide.py` starts `jevtester serve --port <free port>` once, with `--config` set to this repository's `jevtester.toml`, and sends each request to `POST /api/decide`. jevtester handles the Foundry, Workers AI, Ollama, and MLX targets and their sign-ins, so this app stores no credentials. A target that fails returns a result with `ok: false`, and the app then shows the full move list.
 
-Build step 3 measured the alternative, a `jevtester decide` subprocess per call: it added 0.72 to 0.75 seconds to each call, over the half-second limit. Through the server, a warm call added about 13 milliseconds.
+A `jevtester decide` subprocess per call adds 0.72 to 0.75 seconds to each call, over the half-second limit. Through the server, a warm call adds about 13 milliseconds.
 
 ## Acting on the answers
 
-The thresholds are a jevtester policy, `suites/policies/moves.yaml`, so `jevtester run` measures them along with accuracy. The policy has a band for `move` with `act` and `confirm` thresholds, a `per_target` section, and one rule per option that maps the answer to an action with the move's id. jevtester's confidence for a choice is `(p_max - 1/n) / (1 - 1/n)`, where `n` is the number of options.
+The thresholds are a jevtester policy, `suites/policies/moves.yaml`, so `jevtester run` measures them along with accuracy. The policy has a band for `move` with `act` and `confirm` thresholds, and one rule per option that maps the answer to an action with the move's id. jevtester's confidence for a choice is `(p_max - 1/n) / (1 - 1/n)`, where `n` is the number of options.
 
 The app reads the same policy file:
 
@@ -139,11 +146,11 @@ The app reads the same policy file:
 - **Below `confirm`, or no usable answer:** the bar shows the full list for the context. That covers a target that failed or timed out, a missing or unknown `move` answer, and a `DecideError` when jevtester can't be reached.
 - **`no_move` or `cannot_tell` wins:** the message goes into the log with no roll. The player can still pick a move from the list.
 
-Start with `act = 0.7` and `confirm = 0.4`, then tune them per target from the cases.
+`act` is 0.7 and `confirm` is 0.4. Tune them per target from the cases.
 
 ## Applying outcomes
 
-`outcomes.py` describes, for each chat move and each hit (strong, weak, miss), what changes on the campaign. Datasworn's outcome text is prose, so this table is written by hand for the 21 chat moves, End the Fight, and the suffer moves, and tests check each entry against the move text. Each outcome is a list of effects:
+`outcomes.py` describes, for each chat move and each hit (strong, weak, miss), what changes on the campaign. Datasworn's outcome text is prose, so this table is written by hand for the 21 chat moves, End the Fight, the suffer moves, and the asset moves, and tests check each entry against the move text. Each outcome is a list of effects:
 
 - A change to momentum, health, spirit, or supply, limited by the meter's range and by debilities. A debility stops its meter from increasing, and the momentum maximum is 10 minus the number of debilities. The momentum reset is +2 with no debilities, +1 with one, and 0 with two or more.
 - Progress marked on a vow, a journey, or a foe. A foe's progress per harm depends on its rank: 12 ticks for troublesome, 8 for dangerous, 4 for formidable, 2 for extreme, and 1 for epic. Harm is 2 for a character armed with a deadly weapon and 1 without one (rulebook page 19), stored on the character. Strike's strong hit and Clash's "find an opening" option add +1.
@@ -176,8 +183,8 @@ Use Textual. The screen has four parts:
 Focus moves between the input line and the suggestion bar, so plain keys work in both:
 
 - In the input line, Enter sends the message, and focus moves to the suggestion bar when the answers arrive. The input line is disabled while the model answers, so keys typed then can't reach the bar. Text that starts with `/` is a command, not a message. While a roll card is waiting, the input line takes nothing until the card is applied.
-- In the suggestion bar, Enter rolls, 1 to 9 picks a move, e, h, i, s, and w change the stat, + and - change the add, and Escape returns to the input line without rolling.
-- On the roll card, number keys pick an outcome choice, Enter confirms each choice and then applies the card, and b burns momentum. After a strong hit on an attack that leaves the target with a full box, the bar offers End the Fight with f.
+- In the suggestion bar, Enter rolls, 1 to 9 and then A to Z pick a move, e, h, i, s, and w change the stat, + and - change the add, and Escape returns to the input line without rolling.
+- On the roll card, number keys pick an outcome choice, Enter confirms each choice and then applies the card, and b burns momentum. After a strong hit in a fight that leaves the target with a full box, the bar offers End the Fight with f, and Escape declines it.
 
 Commands:
 
@@ -200,7 +207,7 @@ Run the decision call in a Textual worker, so the screen stays responsive. Decis
 
 A campaign is one JSON file in `campaigns/<name>.json`, written after every turn. It contains the character (stats, meters, momentum, debilities, assets, experience), vows and their progress, bonds, any active foes and journey, initiative, whether Turn the Tide was used, the situation text, and the turn log. Pydantic models define it, and the file has a `schema_version`.
 
-Character creation is a short form: a name, stats assigned from 3, 2, 2, 1, 1, three assets picked from the list, and a background vow. Your Truths worldbuilding is out of scope for the first version.
+`ironsworn-tui new` creates a character: a name, stats assigned from 3, 2, 2, 1, 1, three assets, up to three bonds, and a background vow. Your Truths worldbuilding is out of scope.
 
 ## jevtester cases
 
@@ -212,7 +219,7 @@ The engine saves each turn's case through the running `jevtester serve`, with `P
 - `stat_<move>`: the stat the player rolled with, for the move they rolled, when that move has a stat question.
 - `expected_action`: the policy action for that move.
 
-A case gets the `corrected` tag when the player overrode the model's top move, and the `abstained` tag instead when the model's top answer was `cannot_tell`. A turn where the request failed has no `decide` output, so it isn't saved. The play suites are tracked in git: the repository is private, and the user chose to keep them. `ironsworn-tui write-suites` creates them once and never rewrites them, because they hold the cases.
+A case gets the `corrected` tag when the player overrode the model's top move, and the `abstained` tag instead when the model's top answer was `cannot_tell`. A turn where the request failed has no `decide` output, so it isn't saved. The play suites are tracked in git, because the user chose to keep them. `ironsworn-tui write-suites` creates them once and never rewrites them, because they hold the cases.
 
 To measure accuracy, run a suite and then report on the run:
 
@@ -225,7 +232,7 @@ uv run --project ~/repos/jevtester jevtester --config jevtester.toml report <run
 
 ## Assets
 
-The user asked for every asset, not a subset. There are 78 assets with 234 abilities. Datasworn gives each ability's text, the moves it enhances, any stat or asset meter it lets a move roll instead, and the moves a ritual adds. It doesn't encode the bonuses themselves, such as +1, +1 momentum on a hit, +2 harm, or a reroll. Those come from a hand-written table in `assets.py`, keyed by asset id and ability index, and a test checks every marked-ability text against its entry.
+The user asked for every asset, not a subset. There are 78 assets with 234 abilities. Datasworn gives each ability's text, the moves it enhances, any stat or asset meter it lets a move roll instead, and the moves a ritual adds. It doesn't encode the bonuses themselves, such as +1, +1 momentum on a hit, +2 harm, or a reroll. Those come from a hand-written table in `abilities.py`, keyed by asset id and ability index, and a test checks every marked-ability text against its entry.
 
 ### Owning assets
 
@@ -252,11 +259,11 @@ The user asked for every asset, not a subset. There are 78 assets with 234 abili
 
 ### Asking the model
 
-The model still sees only the core moves. Adding asset moves or ability conditions to its questions changes every question set, so it needs its own experiment first. That's the last part of step 8, and it starts only after the user agrees.
+The model still sees only the core moves. Adding asset moves or ability conditions to its questions changes every question set, so it needs its own experiment first. That's the last part of build step 8, and it starts only after the user agrees.
 
 ## Build order
 
-Each step ends with a command that shows it works. Every step also passes the gates in the handoff.
+Each step ends with a command that shows it works. Every step also passes the gates in the handoff. Steps 1 through 8.3 are built, and step 8.4 is open.
 
 1. **Scaffold and rules port.** Python 3.14 with uv, Textual, pydantic v2, and ruamel.yaml. Vendor the Datasworn data from osr-plugins commit `7e2e4a8` with its license file. Port `iron.py` into typed functions in `rules/` that return values and raise exceptions, and port `test_iron.py` to call them. Done when the gates pass and the ported tests cover action rolls, burning momentum, progress rolls, momentum bounds, suffer moves, and oracle rolls.
 2. **Catalog and contexts.** A typed catalog over the moves, the four move groups, and the three context lists. Done when tests show each context's options, that every option is a real move id, and that the largest list has at most 26 options.
@@ -273,7 +280,7 @@ Each step ends with a command that shows it works. Every step also passes the ga
 
 ## Risks
 
-- **Move recognition may be too weak.** Step 4 measures it before most of the app is built. The fallback is a full move list, so the app stays playable either way.
+- **Move recognition may be too weak.** The recognizer experiment measures it. The fallback is a full move list, so the app stays playable either way.
 - **The outcome table is large.** 21 moves with three hits each, plus the follow-up moves. `/adjust` lets play continue when an entry is wrong, and tests compare each entry with the move text.
 - **Answers may depend on option order.** Ollama gives ties to the first option. `jevtester probe` measures this.
 - **The situation text may go stale.** If it doesn't reflect the scene, the model can't tell Face Danger from Secure an Advantage. The player updates it with `/scene`, and the log shows what was sent.

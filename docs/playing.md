@@ -313,6 +313,6 @@ The app can't tell when your companion is hurt in the fiction. When it is, use `
 - Abilities that change something once, when you mark them, like Shadow-kin's stat change. The app applies the change at that point.
 - A few abilities that you apply yourself with `/adjust`. Fated's second ability is one. The app logs a reminder when it applies.
 
-## Known gaps
+## When the app can't apply a result
 
-The app has no known gaps in the rules it applies. When a result needs something the app doesn't do, the app logs a note. [How-to guides](how-to.md) shows how to fix a mistake with `/adjust`.
+When a result needs something the app doesn't do, the app logs a note. [How-to guides](how-to.md) shows how to fix a mistake with `/adjust`.

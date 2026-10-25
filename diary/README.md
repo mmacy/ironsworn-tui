@@ -17,3 +17,4 @@
 | [13](13-fixing-what-the-docs-found.md) | Fixing what the docs found | 25 October 2026, 06:58 to 07:16 PDT | Claude Opus 5.5 |
 | [14](14-the-docs-site-and-going-public.md) | The docs site and going public | 25 October 2026, 06:59 to 07:32 PDT | Claude Opus 5.5 |
 | [15](15-architecture-blarg-and-jevtester.md) | The architecture doc, Blarg, and jevtester going public | 25 October 2026, 07:32 to 09:09 PDT | Claude Opus 5.5 |
+| [16](16-fixing-the-reported-bugs.md) | Fixing the reported bugs | 25 October 2026, 09:10 to 09:57 PDT | Claude Opus 5.5 |

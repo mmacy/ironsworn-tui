@@ -50,7 +50,7 @@ The app works without a server. `ironsworn-tui play --no-model` starts none, and
 | `policy.py` | Turns a decision into a suggestion, with the confidence thresholds in `suites/policies/moves.yaml`. |
 | `cases.py` | Builds the jevtester case for an answered turn, labeled with what the player did. |
 | `settings.py` | Reads `ironsworn-tui.toml`: the jevtester checkout, the target, and the campaigns folder. |
-| `experiment.py` | The recognizer experiment from build step 4. It turns hand-written player messages into jevtester question sets and suites. |
+| `experiment.py` | The recognizer experiment. It turns hand-written player messages into jevtester question sets and suites. |
 
 ### The `ironsworn_tui/rules` package
 
@@ -286,7 +286,7 @@ To add a screenshot, add a drive function to `SCREENS` in the script.
 
 ## Where to read next
 
-- [`handoff.md`](handoff.md): the project's status, known gaps, gates, and working rules.
+- [`handoff.md`](handoff.md): the project's status, what's open, gates, and working rules.
 - [`plan.md`](plan.md): the build plan, the design decisions, and the build order.
 - [`decision-model-guidance.md`](decision-model-guidance.md): how to write requests for decision models, and what this project measured.
 - [`diary/`](https://github.com/mmacy/ironsworn-tui/tree/main/diary): the dev diary, one entry per milestone, with the reasons behind each decision.
