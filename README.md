@@ -4,6 +4,16 @@ A terminal app for solo Ironsworn. A decision model suggests which move your act
 
 The app is under construction. See [`docs/plan.md`](docs/plan.md) for the plan and [`docs/handoff.md`](docs/handoff.md) to start work.
 
+## Play
+
+```sh
+uv sync
+uv run ironsworn-tui new Kira --description "a hunter" --stats edge=2,heart=2,iron=1,shadow=1,wits=3 --assets archer,hawk,wright --vow "Avenge my village"
+uv run ironsworn-tui play Kira
+```
+
+Type what your character does and press Enter. The app asks the decision model in `ironsworn-tui.toml` which move it triggers, through jevtester. Press Enter on the suggestion bar to roll, then pick any choices on the roll card. Text that starts with `/` is a command: `/oracle`, `/ask`, `/vow`, `/scene`, `/target`, `/tide`, `/adjust`, and `/moves`. Add `--no-model` to `play` to pick every move from the list yourself.
+
 ## Development
 
 ```sh

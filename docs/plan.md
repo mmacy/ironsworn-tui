@@ -176,9 +176,9 @@ Use Textual. The screen has four parts:
 
 Focus moves between the input line and the suggestion bar, so plain keys work in both:
 
-- In the input line, Enter sends the message, and focus moves to the suggestion bar when the answers arrive. Text that starts with `/` is a command, not a message.
+- In the input line, Enter sends the message, and focus moves to the suggestion bar when the answers arrive. The input line is disabled while the model answers, so keys typed then can't reach the bar. Text that starts with `/` is a command, not a message. While a roll card is waiting, the input line takes nothing until the card is applied.
 - In the suggestion bar, Enter rolls, 1 to 9 picks a move, e, h, i, s, and w change the stat, + and - change the add, and Escape returns to the input line without rolling.
-- On the roll card, number keys pick an outcome choice, b burns momentum, and f offers End the Fight.
+- On the roll card, number keys pick an outcome choice, Enter confirms each choice and then applies the card, and b burns momentum. After a strong hit on an attack that leaves the target with a full box, the bar offers End the Fight with f.
 
 Commands:
 
@@ -189,7 +189,7 @@ Commands:
 | `/vow` | Swear, mark progress on, fulfill, or forsake a vow |
 | `/scene <text>` | Replace the situation text |
 | `/target <foe>` | Select the foe an attack targets |
-| `/tide` | Arm Turn the Tide for the next move |
+| `/tide` | Arm Turn the Tide for the next move. `/tide off` disarms it. |
 | `/adjust <meter> <amount>` | Change a meter, a debility, or a progress track by hand |
 | `/moves` | Show the full move list for the context |
 

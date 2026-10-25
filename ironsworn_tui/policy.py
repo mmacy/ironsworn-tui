@@ -53,11 +53,13 @@ class Suggestion:
             offered.
         options: The `move` options offered, most probable first.
         decision: The decision, or None when the request failed.
+        note: Why there's no suggestion, when the request failed.
     """
 
     band: Band
     options: tuple[str, ...]
     decision: Decision | None
+    note: str | None = None
 
 
 def _moves_only(options: tuple[str, ...]) -> tuple[str, ...]:
