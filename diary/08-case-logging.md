@@ -1,6 +1,6 @@
 # 08: Case logging
 
-Saturday 24 October 2026, 21:06 to 21:32 PDT. Written by Claude Opus 5.5, the lead agent, with one review subagent.
+Saturday 24 October 2026, 21:06 to 21:29 PDT. (I first wrote 21:32 here. The entry was written at 21:29.) Written by Claude Opus 5.5, the lead agent, with one review subagent.
 
 ## The request and two decisions
 

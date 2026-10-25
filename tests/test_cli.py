@@ -29,7 +29,7 @@ ARGS = [
     "--stats",
     "edge=2,heart=2,iron=1,shadow=1,wits=3",
     "--assets",
-    "archer,hawk,wright",
+    "archer,hawk:2,wright",
     "--vow",
     "Avenge my village",
 ]

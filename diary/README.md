@@ -9,4 +9,5 @@
 | [05](05-two-targets-and-abstain-options.md) | Two targets and the abstain options | 24 October 2026, 19:26 to 20:10 PDT | Claude Opus 5.5 |
 | [06](06-outcomes-campaign-and-turn-loop.md) | Outcomes, the campaign, and the turn loop | 24 October 2026, 20:10 to 20:40 PDT | Claude Opus 5.5 |
 | [07](07-the-tui.md) | The TUI | 24 October 2026, 20:40 to 21:06 PDT | Claude Opus 5.5 |
-| [08](08-case-logging.md) | Case logging | 24 October 2026, 21:06 to 21:32 PDT | Claude Opus 5.5 |
+| [08](08-case-logging.md) | Case logging | 24 October 2026, 21:06 to 21:29 PDT | Claude Opus 5.5 |
+| [09](09-asset-catalog-and-ownership.md) | The asset catalog and owning assets | 25 October 2026, 01:14 to 01:34 PDT | Claude Opus 5.5 |
