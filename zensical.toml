@@ -24,6 +24,7 @@ nav = [
     { "Playing Ironsworn" = "playing.md" },
   ] },
   { "Development" = [
+    { "Architecture" = "architecture.md" },
     { "Handoff" = "handoff.md" },
     { "Build plan" = "plan.md" },
     { "Decision model guidance" = "decision-model-guidance.md" },

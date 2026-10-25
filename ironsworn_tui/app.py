@@ -466,7 +466,7 @@ class IronswornApp(App[None]):
             case "idle":
                 commands = (
                     "/moves · /oracle · /ask · /vow · /scene · /target · /tide · /adjust · "
-                    "/asset · /effects"
+                    "/endure · /asset · /effects"
                 )
                 return f"[dim]Enter send · {commands}[/dim]"
             case "thinking":

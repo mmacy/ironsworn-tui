@@ -61,11 +61,18 @@ uv run pytest
 
 To build the documentation site, run `uv run zensical build`, which writes the site to `site/`. Run `uv run zensical serve` to preview it while you edit. To redraw the screenshots in `docs/images/`, run `uv run python -m scripts.screenshots`.
 
-The developer documentation is in three files:
+The developer documentation is in four files:
 
+- [`docs/architecture.md`](docs/architecture.md) explains how the code fits together.
 - [`docs/handoff.md`](docs/handoff.md) is where to start work on the project.
 - [`docs/plan.md`](docs/plan.md) is the build plan.
 - [`docs/decision-model-guidance.md`](docs/decision-model-guidance.md) covers the decision model's questions, criteria, and state.
+
+## Thanks
+
+*Ironsworn* is written and published by Shawn Tomkin. Learn about the game on its [home page at Tomkin Press](https://tomkinpress.com/pages/ironsworn), and get the free digital edition or a print copy from [Tomkin Press](https://tomkinpress.com/products/ironsworn-digital-edition) or [DriveThruRPG](https://www.drivethrurpg.com/en/product/238369/Ironsworn). Thanks to Shawn Tomkin for the game and for releasing it under an open license.
+
+The moves, assets, and oracles come from [Datasworn](https://github.com/rsek/datasworn), the Ironsworn rules in machine-readable form.
 
 ## License
 
