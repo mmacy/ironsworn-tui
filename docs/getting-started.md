@@ -11,7 +11,7 @@ You need Python 3.14, [uv](https://docs.astral.sh/uv/), and a checkout of jevtes
 Clone the repository:
 
 ```sh
-git clone git@github.com:mmacy/ironsworn-tui.git
+git clone https://github.com/mmacy/ironsworn-tui.git
 cd ironsworn-tui
 ```
 

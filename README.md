@@ -16,7 +16,7 @@ If you don't have jevtester or a sign-in, you can still play. Start the game wit
 ## Install
 
 ```sh
-git clone git@github.com:mmacy/ironsworn-tui.git
+git clone https://github.com/mmacy/ironsworn-tui.git
 cd ironsworn-tui
 ```
 
@@ -68,4 +68,4 @@ The developer documentation is in three files:
 
 ## License
 
-This repository is licensed under [CC BY-NC-SA 4.0](LICENSE). The rules in `ironsworn_tui/rules/` are ported from the Ironsworn referee plugin's `iron.py`, which has the same license. *Ironsworn* is by Shawn Tomkin. The Datasworn data in `ironsworn_tui/data/datasworn/` is CC BY 4.0 or CC BY-NC-SA 4.0, file by file, as its [`LICENSE.md`](ironsworn_tui/data/datasworn/LICENSE.md) lists.
+This repository is licensed under [CC BY-NC-SA 4.0](LICENSE). The rules in `ironsworn_tui/rules/` are ported from the Ironsworn referee plugin's `iron.py`, which has the same license. *Ironsworn* is by Shawn Tomkin. Ironsworn is a trademark of Shawn Tomkin. This is not an official Ironsworn product. The Datasworn data in `ironsworn_tui/data/datasworn/` is CC BY 4.0 or CC BY-NC-SA 4.0, file by file, as its [`LICENSE.md`](ironsworn_tui/data/datasworn/LICENSE.md) lists.
