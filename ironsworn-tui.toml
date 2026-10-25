@@ -1,0 +1,10 @@
+# Settings for ironsworn-tui. Relative paths are relative to this file.
+
+# The jevtester checkout the app runs with `uv run --project`.
+jevtester_project = "~/repos/jevtester"
+
+# The jevtester target that answers the decision questions.
+target = "decision-1@foundry"
+
+# Where campaign JSON files are saved.
+campaigns_dir = "campaigns"
