@@ -59,10 +59,10 @@ The repository root has two config files:
 - `ironsworn-tui.toml` has the app's settings: `jevtester_project` (the path of the jevtester checkout, default `~/repos/jevtester`), `target` (default `decision-1@foundry`), and `campaigns_dir` (default `campaigns`).
 - `jevtester.toml` is a jevtester config for this repository. It copies the target entries the app uses from `~/repos/jevtester/jevtester.toml` and sets `paths.suites = "suites"`.
 
-jevtester finds suites, question sets, and policies relative to its config file: `suites/<name>.yaml`, `suites/question-sets/<name>.yaml`, and `suites/policies/<name>.yaml`. It also writes its run database to `.jevtester/`, which `.gitignore` lists. `uv run --project` doesn't change the working directory, and jevtester reads `./jevtester.toml` by default. So every jevtester call from the app passes the config path explicitly:
+jevtester finds suites, question sets, and policies relative to its config file: `suites/<name>.yaml`, `suites/question-sets/<name>.yaml`, and `suites/policies/<name>.yaml`. It also writes its run database to `.jevtester/`, which `.gitignore` lists. `uv run --project` doesn't change the working directory, and jevtester reads `./jevtester.toml` by default. So every jevtester command the app runs passes the config path explicitly, as the server the app starts does:
 
 ```sh
-uv run --project ~/repos/jevtester jevtester --config ~/repos/ironsworn-tui/jevtester.toml decide --request - --format json
+uv run --project ~/repos/jevtester jevtester --config ~/repos/ironsworn-tui/jevtester.toml serve --port <free port>
 ```
 
 ## Moves
@@ -115,20 +115,19 @@ The state is JSON with the character's situation and the player's text:
 ```json
 {
   "character": "Kira, a hunter",
+  "circumstances": "Kira is on a journey, and no fight is under way.",
   "situation": "Pinned behind a cart. Two raiders with bows hold the ridge above the road.",
-  "context": "journey",
-  "initiative": null,
   "player_says": "I creep along the ditch to get behind the ridge where they can't see me."
 }
 ```
 
-`situation` is a scene line the player keeps up to date with `/scene`, plus the names of any active foes and journey. `initiative` is `"character"`, `"foe"`, or `null` outside a fight.
+`situation` is a scene line the player keeps up to date with `/scene`, plus the names of any active foes and journey. `circumstances` is a sentence code writes from the context and initiative. The model never sees the context id or a null initiative, because decision models read field names and do better with sentences than with coded values. [Decision model guidance](decision-model-guidance.md) gives the sources for this and for the question wording.
 
 ## Calling the decision model
 
-`decide.py` runs the `decide` command shown in [Configuration](#configuration) as a subprocess, writes the request to stdin, and reads the JSON from stdout. jevtester handles the Foundry, Workers AI, Ollama, and MLX targets and their sign-ins, so this app stores no credentials. jevtester exits 3 when the target fails, and the app then shows the full move list.
+`decide.py` starts `jevtester serve --port <free port>` once, with `--config` set to this repository's `jevtester.toml`, and sends each request to `POST /api/decide`. jevtester handles the Foundry, Workers AI, Ollama, and MLX targets and their sign-ins, so this app stores no credentials. A target that fails returns a result with `ok: false`, and the app then shows the full move list.
 
-The subprocess adds startup time to each call. Build step 3 measures it. If it's more than half a second, the app starts `jevtester serve` once and calls its HTTP API instead.
+Build step 3 measured the alternative, a `jevtester decide` subprocess per call: it added 0.72 to 0.75 seconds to each call, over the half-second limit. Through the server, a warm call added about 13 milliseconds.
 
 ## Acting on the answers
 
@@ -138,7 +137,7 @@ The app reads the same policy file:
 
 - **At or above `act`:** the suggestion bar preselects the move, and Enter rolls.
 - **Between `confirm` and `act`:** the bar shows the top two moves, and the player picks one.
-- **Below `confirm`, or the request failed:** the bar shows the full list for the context.
+- **Below `confirm`, or no usable answer:** the bar shows the full list for the context. That covers a target that failed or timed out, a missing or unknown `move` answer, and a `DecideError` when jevtester can't be reached.
 - **`no_move` or `cannot_tell` wins:** the message goes into the log with no roll. The player can still pick a move from the list.
 
 Start with `act = 0.7` and `confirm = 0.4`, then tune them per target from the cases.

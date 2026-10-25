@@ -1,0 +1,64 @@
+# jevtester config for ironsworn-tui. The target entries are copied from ~/repos/jevtester/jevtester.toml.
+#
+# Credentials never go in this file: Foundry uses the `az` sign-in, and Workers AI uses the Wrangler sign-in or
+# CLOUDFLARE_API_TOKEN.
+
+[defaults]
+targets = ["decision-1@foundry"]
+timeout_s = 60.0
+repeats = 1
+
+[paths]
+suites = "suites"
+
+[cloudflare]
+account_id = "<your Cloudflare account ID>"
+
+[targets."decision-1@foundry"]
+label = "Microsoft-Decision-1, Azure Foundry"
+provider = "systemone"
+runtime = "foundry"
+model = "decision-1"
+base_url = "https://<your Foundry resource>.services.ai.azure.com/providers/microsoft"
+auth = "azure-cli"
+
+[targets."decision-1@foundry".capabilities]
+probabilities = true
+max_questions = 64
+concurrency = 8
+requests_per_minute = 100
+tokens_per_minute = 100_000
+
+[targets."clef-flash@workers-ai"]
+label = "Clef-flash, Workers AI"
+provider = "workers-ai"
+runtime = "workers-ai"
+model = "clef-flash"
+
+[targets."clef-flash@workers-ai".capabilities]
+probabilities = true
+images = true
+max_images = 4
+max_image_bytes = 4_194_304
+max_total_image_bytes = 8_388_608
+image_formats = ["png", "jpeg", "webp"]
+# The model page and the Workers AI catalog list 24,576 tokens. The launch changelog says 64K.
+context_window = 24_576
+truncates_state = true
+concurrency = 4
+input_cost_per_mtok_usd = 0.038
+
+[targets."clef-flash@ollama"]
+label = "Clef-flash, Ollama"
+provider = "systemone"
+runtime = "ollama"
+model = "clef-flash"
+base_url = "http://localhost:11434"
+
+[targets."clef-flash@ollama".capabilities]
+probabilities = true
+max_questions = 64
+min_options = 2
+max_options = 26
+max_request_bytes = 65_536
+concurrency = 1
