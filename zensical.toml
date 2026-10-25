@@ -1,0 +1,60 @@
+[project]
+site_name = "ironsworn-tui"
+site_description = "A terminal app for solo Ironsworn that suggests the triggered move with a decision model."
+site_author = "Marsh Macy"
+repo_url = "https://github.com/mmacy/ironsworn-tui"
+repo_name = "mmacy/ironsworn-tui"
+edit_uri = "edit/main/docs/"
+docs_dir = "docs"
+site_dir = "site"
+copyright = "Licensed under CC BY-NC-SA 4.0. Ironsworn is by Shawn Tomkin."
+
+nav = [
+  { "Home" = "index.md" },
+  { "Tutorial" = [
+    { "Getting started" = "getting-started.md" },
+  ] },
+  { "How-to guides" = [
+    { "How-to guides" = "how-to.md" },
+  ] },
+  { "Reference" = [
+    { "Reference" = "reference.md" },
+  ] },
+  { "Explanation" = [
+    { "Playing Ironsworn" = "playing.md" },
+  ] },
+  { "Development" = [
+    { "Handoff" = "handoff.md" },
+    { "Build plan" = "plan.md" },
+    { "Decision model guidance" = "decision-model-guidance.md" },
+  ] },
+]
+
+extra_css = [
+  "stylesheets/extra.css",
+]
+
+[project.theme]
+features = [
+  "content.action.view",
+  "content.code.copy",
+  "navigation.sections",
+  "navigation.top",
+  "navigation.tracking",
+  "search.highlight",
+  "toc.follow",
+]
+
+# Palette toggle for light mode
+[[project.theme.palette]]
+media = "(prefers-color-scheme: light)"
+scheme = "default"
+toggle.icon = "lucide/sun"
+toggle.name = "Switch to dark mode"
+
+# Palette toggle for dark mode
+[[project.theme.palette]]
+media = "(prefers-color-scheme: dark)"
+scheme = "slate"
+toggle.icon = "lucide/moon"
+toggle.name = "Switch to light mode"

@@ -19,6 +19,7 @@ dev = [
     "pyright>=1.1.414",
     "pytest>=9.1",
     "ruff>=0.17",
+    "zensical==0.0.69",
 ]
 
 [build-system]
@@ -36,7 +37,7 @@ target-version = "py314"
 select = ["E", "F", "W", "I", "N", "UP", "B", "SIM", "RUF"]
 
 [tool.pyright]
-include = ["ironsworn_tui", "tests"]
+include = ["ironsworn_tui", "scripts", "tests"]
 typeCheckingMode = "strict"
 pythonVersion = "3.14"
 
