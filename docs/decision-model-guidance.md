@@ -28,7 +28,7 @@ Build step 3 applied:
 - Each guide criterion is a concrete situation. Criteria for moves that overlap name the line between them: Face Danger overcomes a danger directly, while Secure an Advantage sets up an edge for an action still to come, and Gather Information learns facts. Make Camp is away from any settlement, and Sojourn is in a community.
 - `no_move` and `cannot_tell` describe situations instead of negations, and they come last in every list.
 
-Build step 4 measured, on Decision-1 and Clef-flash ([results](../experiments/results.md)):
+Build step 4 measured, on Decision-1 and Clef-flash ([results](https://github.com/mmacy/ironsworn-tui/blob/main/experiments/results.md)):
 
 - The guide criteria beat the Datasworn trigger text on both targets, so play uses them.
 - A `cannot_tell` option on the stat questions won most stat misses, so the stat questions have none.

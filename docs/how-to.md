@@ -171,6 +171,8 @@ Use this when your character fights one or more foes.
 
 The panel now shows "Fight", who has initiative, and each foe's progress track. The foe marked `>` is the one your attacks hit.
 
+![A fight in progress. The character panel's Fight section shows "Initiative: foe" and "> Raider (dangerous)" with a progress track that has two filled boxes. The log shows Enter the Fray and Strike rolls, and the suggestion bar suggests Attack with edge.](images/fight.svg)
+
 To attack:
 
 1. Type what your character does, like `I swing my axe`, and press Enter.
@@ -290,6 +292,8 @@ To turn an ability on before you roll:
 3. Press the number of each ability you want. Each one you turn on shows `[x]`.
 4. Press Enter to close the window. The bar shows "Abilities:" and the ones you turned on.
 5. Press Enter to roll. The roll card shows "With" and the abilities you used.
+
+![The abilities picker over the play screen. It is titled "Abilities for Secure an Advantage" and lists "1 [ ] Archer 1: Trust your instincts" and "2 [ ] Archer 1: Line up your shot", with the hint "1-2 turn on or off · Enter done · Esc cancel".](images/abilities.svg)
 
 You can also press a on an owed Endure Harm or Endure Stress roll, and on the End the Fight offer.
 

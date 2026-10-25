@@ -1,0 +1,5 @@
+/* Screenshots are dark terminal images: frame them so they stand out on both palettes. */
+.md-typeset img[src$=".svg"] {
+  border: 1px solid var(--md-default-fg-color--lightest);
+  border-radius: 0.4rem;
+}
