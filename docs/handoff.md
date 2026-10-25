@@ -22,7 +22,8 @@ ironsworn-tui is a terminal app for solo Ironsworn. A decision model reads what 
 
 - Build step 1 is done: the uv project, the vendored Datasworn data in `ironsworn_tui/data/datasworn/`, and the typed rules port in `ironsworn_tui/rules/`.
 - The port fixes two `iron.py` bugs. Burning momentum now cancels only the challenge dice below the momentum, so it can't make a result worse. Sub-rolls now follow the `oracle_rollable:` ids that `iron.py` couldn't resolve. Momentum also stops at -6 now, and any loss past that is reported as `setback` for Face a Setback.
-- Start with build step 2, the catalog. The move YAML is still untyped (`Datasworn.moves`), so step 2 should add a typed move model.
+- Build step 2 is done: typed pydantic move models in `ironsworn_tui/rules/datasworn.py`, and the move groups, contexts, and stat questions in `ironsworn_tui/moves.py`.
+- Start with build step 3, the decision adapter.
 - `diary/` holds the dev diary. Add an entry when a step or decision lands.
 - To check a rule, search the rulebook from `~/repos/shelf-of-holding` with `uv run shelf search "<terms>"`, then `uv run shelf show "DriveThruRPG/Shawn Tomkin/Ironsworn/Ironsworn-Rulebook.pdf" <page>`.
 

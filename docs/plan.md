@@ -40,7 +40,7 @@ The Datasworn files are CC BY 4.0 or CC BY-NC-SA 4.0, file by file. `iron.py` an
 
 ```text
 ironsworn_tui/
-  rules/       # typed port of iron.py: action and progress rolls, momentum, suffer moves, oracles, catalog
+  rules/       # typed port of iron.py: action and progress rolls, momentum, suffer moves, oracles, Datasworn models
   outcomes.py  # the effect of each chat move's outcome on the campaign
   moves.py     # which moves the chat can trigger in the current context
   decide.py    # builds the request, calls jevtester, parses the answers
