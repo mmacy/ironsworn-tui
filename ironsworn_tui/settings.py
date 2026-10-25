@@ -44,9 +44,15 @@ def load_settings(path: Path = SETTINGS_FILE) -> Settings:
         The settings.
 
     Raises:
+        OSError: If the file can't be read.
+        tomllib.TOMLDecodeError: If the file isn't valid TOML.
         pydantic.ValidationError: If the file has an unknown key or a value of the wrong type.
+        ValueError: If the file sets `jevtester_config`.
     """
     raw: dict[str, Any] = tomllib.loads(path.read_text())
+    # jevtester_config is always the jevtester.toml beside this file, never a setting.
+    if "jevtester_config" in raw:
+        raise ValueError(f"{path}: jevtester_config isn't a setting")
     base = path.parent
     defaults = {
         "jevtester_project": "~/repos/jevtester",

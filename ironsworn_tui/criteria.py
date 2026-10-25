@@ -16,32 +16,65 @@ class CriteriaStyle(StrEnum):
     """The move's trigger text from the Datasworn data."""
 
 
+# Each description is a concrete situation, so the model has something to match the state against.
+# Where two moves get confused, the description names the line between them.
 _SPECIAL = {
-    NO_MOVE: "Nothing risky or uncertain happens, so no move triggers",
-    CANNOT_TELL: "The player's words don't show what the character does",
+    NO_MOVE: (
+        "The character does something with no risk and no doubt about the outcome, such as "
+        "small talk with a friend over a meal in a safe place"
+    ),
+    CANNOT_TELL: (
+        "The player only asks something out of character, or describes the scene or a feeling, "
+        "and the character takes no action"
+    ),
 }
 
 _GUIDE = {
-    "face_danger": "Attempt something risky now, or react to an imminent threat",
-    "secure_an_advantage": "Prepare, assess the situation, or gain leverage before acting",
-    "gather_information": "Search, investigate, ask questions, study, or follow a track",
-    "heal": "Treat an injury or ailment, your own or someone else's",
-    "resupply": "Hunt, forage, or scavenge for food, gear, or ammunition",
-    "make_camp": "Rest and recover for several hours in the wild",
-    "undertake_a_journey": "Travel across hazardous or unfamiliar lands toward a destination",
-    "reach_your_destination": "Arrive at the end of the current journey",
-    "compel": "Persuade, bargain, intimidate, threaten, or lie to make someone do something",
-    "sojourn": "Rest and seek help or recovery within a community",
-    "draw_the_circle": "Challenge someone to a formal duel, or accept a challenge",
-    "forge_a_bond": "Make a lasting bond with a person or community after time or hardship shared",
-    "test_your_bond": "A bond is tested by conflict, betrayal, or circumstance",
-    "swear_an_iron_vow": "Swear upon iron to complete a quest",
-    "fulfill_your_vow": "Achieve what the character believes fulfills a vow",
-    "forsake_your_vow": "Renounce a quest, break a promise, or give up on a goal that is lost",
-    "enter_the_fray": "Start a fight: face off, ambush a foe, or get ambushed",
-    "battle": "Fight a whole battle as one blur of action",
-    "write_your_epilogue": "Retire from life as Ironsworn and tell how the story ends",
-    ATTACK: "Attack a foe in the current fight, in close quarters or at range",
+    "face_danger": (
+        "The character tries to overcome a danger or obstacle directly, or reacts to a threat "
+        "about to hit"
+    ),
+    "secure_an_advantage": (
+        "The character sizes up a threat or sets up an edge for an action still to come"
+    ),
+    "gather_information": (
+        "The character searches, investigates, or questions people to learn facts about a "
+        "mystery, place, or quest"
+    ),
+    "heal": "The character treats a wound or illness, their own or a companion's",
+    "resupply": "The character hunts, forages, or scavenges for food and gear",
+    "make_camp": (
+        "The character camps away from any settlement, to rest and recover for the night"
+    ),
+    "undertake_a_journey": (
+        "The character sets out or travels on through dangerous or unknown lands"
+    ),
+    "reach_your_destination": "The character arrives at the end of the journey under way",
+    "compel": (
+        "The character persuades, bargains with, threatens, or lies to someone to make them act"
+    ),
+    "sojourn": (
+        "The character spends time in a community to recover, resupply, or get its people's help"
+    ),
+    "draw_the_circle": "The character challenges someone to a formal duel, or accepts a challenge",
+    "forge_a_bond": (
+        "The character seals a lasting bond with a person or community after time or hardship "
+        "together"
+    ),
+    "test_your_bond": "A bond the character has made is strained by conflict, betrayal, or events",
+    "swear_an_iron_vow": "The character swears upon iron to complete a quest",
+    "fulfill_your_vow": "The character believes they have done what a sworn vow demands",
+    "forsake_your_vow": (
+        "The character abandons a vow, breaks a promise, or accepts its goal is lost"
+    ),
+    "enter_the_fray": (
+        "A fight starts: the character faces off with a foe, ambushes one, or is ambushed"
+    ),
+    "battle": "The character fights a whole battle, told as one blur of action",
+    "write_your_epilogue": (
+        "The character retires from adventuring, and the player tells how their life ends"
+    ),
+    ATTACK: "The character attacks a foe in the fight under way, up close or at range",
 }
 
 _ATTACK_TRIGGER = "When you attack a foe in a fight..."

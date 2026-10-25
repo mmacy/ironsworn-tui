@@ -1,6 +1,9 @@
 """Builds decision requests, sends them to jevtester, and parses the answers."""
 
+import http.client
 import json
+import os
+import signal
 import socket
 import subprocess
 import time
@@ -10,13 +13,12 @@ from collections.abc import Generator, Mapping
 from contextlib import contextmanager
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any
+from typing import Annotated, Any, Literal
 
-from pydantic import BaseModel, ConfigDict, ValidationError
+from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 from ironsworn_tui.criteria import CriteriaStyle, move_criteria
 from ironsworn_tui.moves import (
-    ATTACK,
     CANNOT_TELL,
     Context,
     Initiative,
@@ -28,9 +30,16 @@ from ironsworn_tui.rules.datasworn import Datasworn
 from ironsworn_tui.settings import Settings
 
 MOVE_QUESTION = "move"
-MOVE_INSTRUCTIONS = "Which move does the player's action trigger?"
-STAT_CANNOT_TELL = "The action doesn't show which approach the character takes"
-REQUEST_TIMEOUT_S = 60.0
+MOVE_INSTRUCTIONS = (
+    "Which move does the action in `player_says` trigger, given `circumstances` and `situation`?"
+)
+STAT_INSTRUCTIONS = "How does the character go about the action in `player_says`?"
+STAT_CANNOT_TELL = "The player names the action but not the manner of doing it"
+# jevtester gives up on the target after this long and returns a result with `ok` False. The
+# client waits longer, so that result arrives instead of a socket timeout.
+TARGET_TIMEOUT_S = 30.0
+CLIENT_TIMEOUT_S = TARGET_TIMEOUT_S + 15.0
+SERVER_STARTS = 3
 
 type JsonObject = dict[str, Any]
 
@@ -41,38 +50,59 @@ class DecideError(Exception):
 
 @dataclass(frozen=True)
 class TurnState:
-    """What the decision model knows about the turn.
+    """What the app knows about the turn, and the part of it the decision model sees.
 
     Attributes:
-        character: The character's name and a few words about them.
-        situation: The scene, as the player last described it with `/scene`, plus any active
-            foes and journey.
-        context: The context, which decides the `move` options.
+        name: The character's name, such as "Kira".
+        character: The character's name and a few words about them, such as "Kira, a hunter".
+        situation: The scene, as the player last described it with `/scene`.
+        context: The context, which decides the `move` options. The model sees it as a sentence
+            in `circumstances`.
         initiative: Who has initiative in a fight, or None outside one.
         player_says: What the player typed.
     """
 
+    name: str
     character: str
     situation: str
     context: Context
     initiative: Initiative | None
     player_says: str
 
+    def __post_init__(self) -> None:
+        """Check that initiative is set exactly when there's a fight.
+
+        Raises:
+            ValueError: If initiative and the context disagree.
+        """
+        if (self.initiative is None) == (self.context is Context.FIGHT):
+            raise ValueError(f"initiative {self.initiative} doesn't fit context {self.context}")
+
+    @property
+    def circumstances(self) -> str:
+        """The context and initiative as a sentence, such as "Kira is exploring"."""
+        match self.context, self.initiative:
+            case Context.FIGHT, "character":
+                return f"{self.name} is in a fight and has initiative."
+            case Context.FIGHT, _:
+                return f"{self.name} is in a fight, and the foe has initiative."
+            case Context.JOURNEY, _:
+                return f"{self.name} is on a journey, and no fight is under way."
+            case _:
+                return f"{self.name} is exploring, and no fight or journey is under way."
+
     def to_json(self) -> JsonObject:
-        """Return the state as the JSON object sent to the model."""
+        """Return the state the model sees.
+
+        Decision models read the field names, and do better with sentences than with coded
+        values, so the context and initiative go in as the `circumstances` sentence.
+        """
         return {
             "character": self.character,
+            "circumstances": self.circumstances,
             "situation": self.situation,
-            "context": self.context.value,
-            "initiative": self.initiative,
             "player_says": self.player_says,
         }
-
-
-def _stat_instructions(data: Datasworn, option: str) -> str:
-    if option == ATTACK:
-        return "How does the character attack?"
-    return f"Which approach does the character take for {data.move(option).name}?"
 
 
 def build_request(data: Datasworn, state: TurnState, style: CriteriaStyle) -> JsonObject:
@@ -102,7 +132,7 @@ def build_request(data: Datasworn, state: TurnState, style: CriteriaStyle) -> Js
         criteria[CANNOT_TELL] = STAT_CANNOT_TELL
         questions[stat_question_id(option)] = {
             "type": "choice",
-            "instructions": _stat_instructions(data, option),
+            "instructions": STAT_INSTRUCTIONS,
             "criteria": criteria,
         }
     return {"state": state.to_json(), "questions": questions}
@@ -116,11 +146,12 @@ class ChoiceAnswer(_Response):
     """A choice question's answer.
 
     Attributes:
-        choice: The most probable option.
-        probabilities: Each option's probability, in the question's option order.
+        choice: The option the server chose, normally the most probable one.
+        probabilities: The probability of each option the server sent, in option order.
         confidence: jevtester's confidence, `(p_max - 1/n) / (1 - 1/n)` for `n` options.
     """
 
+    type: Literal["choice"]
     choice: str
     probabilities: dict[str, float]
     confidence: float
@@ -130,7 +161,37 @@ class ChoiceAnswer(_Response):
         return sorted(self.probabilities.items(), key=lambda item: item[1], reverse=True)
 
 
+class NoulAnswer(_Response):
+    """A yes/no question's answer.
+
+    Attributes:
+        probability: The probability of yes.
+    """
+
+    type: Literal["noul"]
+    probability: float
+
+
+class ScoreAnswer(_Response):
+    """A score question's answer.
+
+    Attributes:
+        level: The most probable level, from 0.
+    """
+
+    type: Literal["score"]
+    level: int
+
+
+type Answer = Annotated[ChoiceAnswer | NoulAnswer | ScoreAnswer, Field(discriminator="type")]
+
+
 class _ResultError(_Response):
+    code: str
+    message: str
+
+
+class _ResultWarning(_Response):
     code: str
     message: str
 
@@ -139,11 +200,26 @@ class _TargetResult(_Response):
     target: str
     ok: bool
     latency_ms: float | None
+    warnings: list[_ResultWarning]
     error: _ResultError | None
-    answers: dict[str, ChoiceAnswer]
+    answers: dict[str, Answer]
+
+
+class _ChoiceQuestion(_Response):
+    type: Literal["choice"]
+    criteria: dict[str, str]
+
+
+class _OtherQuestion(_Response):
+    type: Literal["noul", "score"]
+
+
+class _Request(_Response):
+    questions: dict[str, Annotated[_ChoiceQuestion | _OtherQuestion, Field(discriminator="type")]]
 
 
 class _DecideResponse(_Response):
+    request: _Request
     results: list[_TargetResult]
 
 
@@ -153,11 +229,13 @@ class Decision:
 
     Attributes:
         target: The target that answered.
-        ok: False when the request failed, so the app shows the full move list.
+        ok: True when there's a usable `move` answer. When it's False, the app shows the full
+            move list.
         latency_ms: How long the target took, or None when nothing was sent.
-        error: The error code and message when the request failed.
-        move: The `move` answer, or None when the request failed.
-        stats: The stat answers, by `move` option.
+        error: Why there's no usable `move` answer, when `ok` is False.
+        move: The `move` answer, or None when `ok` is False.
+        stats: The usable stat answers, by `move` option.
+        warnings: jevtester's warnings, as `code: message`.
         response: The whole decide response, which case logging saves.
     """
 
@@ -167,15 +245,31 @@ class Decision:
     error: str | None
     move: ChoiceAnswer | None
     stats: Mapping[str, ChoiceAnswer]
+    warnings: tuple[str, ...]
     response: JsonObject = field(repr=False)
 
     def stat_for(self, option: str) -> ChoiceAnswer | None:
-        """Return the stat answer for a `move` option, or None if it has no stat question."""
+        """Return the stat answer for a `move` option, or None if it has no usable one."""
         return self.stats.get(option)
+
+
+def _usable_choice(
+    parsed: _DecideResponse, answers: dict[str, Answer], question: str
+) -> ChoiceAnswer | None:
+    """Return a choice answer when it names one of its question's options."""
+    answer = answers.get(question)
+    asked = parsed.request.questions.get(question)
+    if not isinstance(answer, ChoiceAnswer) or not isinstance(asked, _ChoiceQuestion):
+        return None
+    return answer if answer.choice in asked.criteria else None
 
 
 def parse_decision(response: JsonObject, target: str) -> Decision:
     """Parse a decide response into one target's answers.
+
+    A result can be `ok` in jevtester's terms and still lack a usable `move` answer, when the
+    model left it out or chose an option the question doesn't have. Both give a decision with
+    `ok` False. A stat answer with an unknown option is left out of `stats`.
 
     Args:
         response: The decide response, as `POST /api/decide` or `jevtester decide --format
@@ -195,31 +289,45 @@ def parse_decision(response: JsonObject, target: str) -> Decision:
     result = next((r for r in parsed.results if r.target == target), None)
     if result is None:
         raise DecideError(f"jevtester's response has no result for {target}")
+    warnings = tuple(f"{w.code}: {w.message}" for w in result.warnings)
+    move = _usable_choice(parsed, result.answers, MOVE_QUESTION) if result.ok else None
+    problem: str | None = None
+    if result.error is not None:
+        problem = f"{result.error.code}: {result.error.message}"
+    elif move is None:
+        problem = "no usable move answer" + (f" ({'; '.join(warnings)})" if warnings else "")
     prefix = "stat_"
+    stats: dict[str, ChoiceAnswer] = {}
+    for question in result.answers:
+        stat = _usable_choice(parsed, result.answers, question)
+        if question.startswith(prefix) and stat is not None:
+            stats[question.removeprefix(prefix)] = stat
     return Decision(
         target=target,
-        ok=result.ok,
+        ok=move is not None,
         latency_ms=result.latency_ms,
-        error=f"{result.error.code}: {result.error.message}" if result.error else None,
-        move=result.answers.get(MOVE_QUESTION) if result.ok else None,
-        stats={
-            question.removeprefix(prefix): answer
-            for question, answer in result.answers.items()
-            if question.startswith(prefix)
-        },
+        error=problem,
+        move=move,
+        stats=stats,
+        warnings=warnings,
         response=response,
     )
+
+
+# The app talks to a server on 127.0.0.1, so it never goes through a proxy.
+_OPENER = urllib.request.build_opener(urllib.request.ProxyHandler({}))
 
 
 class JevtesterClient:
     """Sends decide requests to a running `jevtester serve`."""
 
-    def __init__(self, base_url: str, timeout_s: float = REQUEST_TIMEOUT_S) -> None:
+    def __init__(self, base_url: str, timeout_s: float = CLIENT_TIMEOUT_S) -> None:
         """Create a client.
 
         Args:
             base_url: The server's root, such as `http://127.0.0.1:8641`.
-            timeout_s: Seconds to wait for an answer.
+            timeout_s: Seconds to wait for an answer. It must be longer than
+                `TARGET_TIMEOUT_S`, which the request asks jevtester to wait for the target.
         """
         self.base_url = base_url
         self.timeout_s = timeout_s
@@ -232,25 +340,28 @@ class JevtesterClient:
             target: The target to send it to.
 
         Returns:
-            The answers. A target that failed gives a decision with `ok` False.
+            The answers. A target that failed or timed out gives a decision with `ok` False.
 
         Raises:
-            DecideError: If jevtester can't be reached or rejects the request.
+            DecideError: If jevtester can't be reached, rejects the request, or sends a reply
+                that doesn't parse.
         """
-        body = json.dumps({**request, "targets": [target]}).encode()
+        body = {**request, "targets": [target], "timeout_s": TARGET_TIMEOUT_S}
         http_request = urllib.request.Request(
             f"{self.base_url}/api/decide",
-            data=body,
+            data=json.dumps(body).encode(),
             headers={"Content-Type": "application/json"},
             method="POST",
         )
         try:
-            with urllib.request.urlopen(http_request, timeout=self.timeout_s) as reply:
+            with _OPENER.open(http_request, timeout=self.timeout_s) as reply:
                 response: JsonObject = json.load(reply)
         except urllib.error.HTTPError as error:
             raise DecideError(_error_message(error)) from error
         except (urllib.error.URLError, TimeoutError, ConnectionError) as error:
             raise DecideError(f"jevtester isn't reachable at {self.base_url}: {error}") from error
+        except (ValueError, http.client.HTTPException) as error:
+            raise DecideError(f"jevtester's reply isn't valid JSON: {error}") from error
         return parse_decision(response, target)
 
 
@@ -292,37 +403,69 @@ def jevtester_server(
     """Start `jevtester serve` on a free port, and stop it on exit.
 
     A subprocess per call adds about 0.7 seconds, so the app starts one server and sends every
-    request to it. The server's log goes to `.jevtester/serve.log` beside the jevtester config.
+    request to it. The server runs in its own process group, so stopping it also stops the
+    jevtester process that `uv run` starts. Its log goes to `.jevtester/serve.log` beside the
+    jevtester config. If the port is taken before the server binds it, startup tries another.
 
     Args:
         settings: The app's settings, for the jevtester checkout and config.
-        startup_timeout_s: Seconds to wait for the server to answer.
+        startup_timeout_s: Seconds to wait for the server to answer, on each try.
 
     Yields:
         A client for the server.
 
     Raises:
-        DecideError: If the server exits or doesn't answer in time.
+        DecideError: If the server can't be started or doesn't answer in time.
     """
-    port = _free_port()
-    base_url = f"http://127.0.0.1:{port}"
     root = settings.jevtester_config.parent
     log_path = root / ".jevtester" / "serve.log"
     log_path.parent.mkdir(exist_ok=True)
-    with log_path.open("wb") as log:
-        process = subprocess.Popen(
-            serve_command(settings, port), stdout=log, stderr=subprocess.STDOUT, cwd=root
-        )
-    try:
-        _wait_until_ready(process, base_url, startup_timeout_s, log_path)
-        yield JevtesterClient(base_url)
-    finally:
-        process.terminate()
+    last_error = DecideError("jevtester serve wasn't started")
+    for _ in range(SERVER_STARTS):
+        port = _free_port()
+        base_url = f"http://127.0.0.1:{port}"
+        process = _start(serve_command(settings, port), root, log_path)
         try:
-            process.wait(timeout=5)
+            _wait_until_ready(process, base_url, startup_timeout_s, log_path)
+        except DecideError as error:
+            _stop(process)
+            last_error = error
+            continue
+        try:
+            yield JevtesterClient(base_url)
+        finally:
+            _stop(process)
+        return
+    raise last_error
+
+
+def _start(command: list[str], root: Path, log_path: Path) -> subprocess.Popen[bytes]:
+    try:
+        with log_path.open("ab") as log:
+            return subprocess.Popen(
+                command,
+                stdin=subprocess.DEVNULL,
+                stdout=log,
+                stderr=subprocess.STDOUT,
+                cwd=root,
+                start_new_session=True,
+            )
+    except OSError as error:
+        raise DecideError(f"can't start jevtester serve: {error}") from error
+
+
+def _stop(process: subprocess.Popen[bytes]) -> None:
+    """Stop the server's whole process group: politely, then by force after 5 seconds."""
+    for sig, wait_s in ((signal.SIGTERM, 5.0), (signal.SIGKILL, None)):
+        try:
+            os.killpg(process.pid, sig)
+        except ProcessLookupError:
+            break
+        try:
+            process.wait(timeout=wait_s)
+            break
         except subprocess.TimeoutExpired:
-            process.kill()
-            process.wait()
+            continue
 
 
 def _wait_until_ready(
@@ -334,8 +477,13 @@ def _wait_until_ready(
             log = log_path.read_text(errors="replace")[-2000:]
             raise DecideError(f"jevtester serve exited with {process.returncode}: {log}")
         try:
-            with urllib.request.urlopen(f"{base_url}/api/targets", timeout=1):
-                return
-        except urllib.error.URLError, ConnectionError, TimeoutError:
+            with _OPENER.open(f"{base_url}/api/targets", timeout=1) as reply:
+                targets: JsonObject = json.load(reply)
+        except urllib.error.URLError, ConnectionError, TimeoutError, ValueError:
             time.sleep(0.1)
+            continue
+        # Another server could answer on a port taken in a race, so check that this one
+        # is jevtester and that the process started here is still running.
+        if "targets" in targets and process.poll() is None:
+            return
     raise DecideError(f"jevtester serve didn't answer within {timeout_s} seconds")

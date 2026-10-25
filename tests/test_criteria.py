@@ -29,9 +29,11 @@ def test_trigger_style_uses_datasworn_trigger_text():
     )
 
 
-def test_guide_style_is_short():
-    criteria = move_criteria(datasworn(), Context.JOURNEY, CriteriaStyle.GUIDE)
-    assert max(len(text) for text in criteria.values()) <= 100
+@pytest.mark.parametrize("context", list(Context))
+def test_guide_style_is_one_short_line(context: Context):
+    criteria = move_criteria(datasworn(), context, CriteriaStyle.GUIDE)
+    assert max(len(text) for text in criteria.values()) <= 140
+    assert all("\n" not in text for text in criteria.values())
 
 
 def test_special_options_read_the_same_in_both_styles():

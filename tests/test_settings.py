@@ -38,6 +38,13 @@ def test_unknown_keys_rejected(tmp_path: Path):
         load_settings(path)
 
 
+def test_jevtester_config_is_not_a_setting(tmp_path: Path):
+    path = tmp_path / "ironsworn-tui.toml"
+    path.write_text('jevtester_config = "other.toml"\n')
+    with pytest.raises(ValueError, match="jevtester_config"):
+        load_settings(path)
+
+
 def test_repository_settings_file_loads():
     root = Path(__file__).resolve().parent.parent
     settings = load_settings(root / "ironsworn-tui.toml")
