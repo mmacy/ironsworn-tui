@@ -1,4 +1,4 @@
-"""Descriptions of the `move` question's options, in two styles for the step 4 experiment."""
+"""Descriptions of the `move` question's options, in the recognizer experiment's two styles."""
 
 from enum import StrEnum
 

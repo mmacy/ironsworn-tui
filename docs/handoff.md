@@ -1,6 +1,6 @@
 # Handoff
 
-If you're starting work on ironsworn-tui with no earlier context, read this page, then [`plan.md`](plan.md). Then start at the first unfinished step in the plan's build order.
+If you're starting work on ironsworn-tui with no earlier context, read this page, then [`plan.md`](plan.md).
 
 If you're new to the code, read [`architecture.md`](architecture.md) for how it's organized and how to make a first change.
 
@@ -22,33 +22,33 @@ ironsworn-tui is a terminal app for solo Ironsworn. A decision model reads what 
 
 ## Status
 
-- Build step 1 is done: the uv project, the vendored Datasworn data in `ironsworn_tui/data/datasworn/`, and the typed rules port in `ironsworn_tui/rules/`.
-- The port fixes two `iron.py` bugs. Burning momentum now cancels only the challenge dice below the momentum, so it can't make a result worse. Sub-rolls now follow the `oracle_rollable:` ids that `iron.py` couldn't resolve. Momentum also stops at -6 now, and any loss past that is reported as `setback` for Face a Setback.
-- Build step 2 is done: typed pydantic move models in `ironsworn_tui/rules/datasworn.py`, and the move groups, contexts, and stat questions in `ironsworn_tui/moves.py`.
-- Build step 3 is done: `ironsworn_tui/decide.py` builds the request, starts one `jevtester serve`, and parses the answers. `ironsworn_tui/criteria.py` has the two criteria styles. Read [`decision-model-guidance.md`](decision-model-guidance.md) before changing a question, the criteria, or the state.
-- Build step 4 is done. The user approved the 120 cases on 2026-10-24. Both targets clear the 80 percent bar on `exploring`: `decision-1@foundry` at 95 percent and `clef-flash@workers-ai` at 87.5 percent. Play uses the guide criteria, stat questions without a `cannot_tell` option, and the `move` question's `cannot_tell` option. [`experiments/results.md`](https://github.com/mmacy/ironsworn-tui/blob/main/experiments/results.md) has the numbers and what's unmeasured.
-- Clef-flash's confidence is less calibrated than Decision-1's, so the policy needs per-target thresholds before play relies on it.
-- Build step 5 is done: `campaign.py` (the saved campaign), `outcomes.py` (each move's effects per result), `policy.py` (thresholds to a suggestion), and `turn.py` (the game loop, with no UI). The module docstring of `turn.py` gives the order the TUI calls it in.
-- The step 5 rules gaps are fixed. Sojourn asks whether you share a bond, and a bond adds +1 and one more choice (rulebook page 71). Draw the Circle offers up to three boasts, as the rulebook says (page 73), not two as the vendored Datasworn says. "Bare yourself" adds 1 to the foes' harm and "Hold no iron" sets the character's harm to 1, both until the fight ends (`Campaign.foe_harm_bonus`, `Campaign.harm_after_fight`). End the Fight is offered after a strong hit on any move made in a fight, except the moves that start or settle a fight and the suffer moves (page 82). A rolled card that isn't resolved is saved in the campaign (`Campaign.pending_card`) and shown again on restart.
-- Build step 6 is done: `app.py` (the Textual app), `commands.py` (the `/` commands, with no UI), and the `ironsworn-tui new` and `ironsworn-tui play` commands. The README shows how to play.
+The app is playable. It covers every core move, all 78 assets and their abilities, the 23 asset moves, lasting effects, companions, fights, journeys, vows, and oracles. Each answered message is saved as a jevtester case in `suites/play-<context>.yaml`. [`architecture.md`](architecture.md) describes each module.
+
+On the 120 hand-written recognizer cases, `decision-1@foundry` picks the right move 95 percent of the time on `exploring`, and `clef-flash@workers-ai` 87.5 percent. Play uses the guide criteria, stat questions without a `cannot_tell` option, and the `move` question's `cannot_tell` option. [`experiments/results.md`](https://github.com/mmacy/ironsworn-tui/blob/main/experiments/results.md) has the numbers and what's unmeasured.
+
+What's open:
+
+- The decision model sees only the core moves. Adding asset moves and ability conditions to its questions needs its own experiment, and that starts only after the user agrees. It's the last part of build step 8 in the plan.
+- Clef-flash's confidence is less calibrated than Decision-1's, so the policy needs per-target thresholds before play relies on Clef-flash.
+- [`decision-model-guidance.md`](decision-model-guidance.md) lists what's still to test about the requests.
+
+Rules for working on the project:
+
+- Read [`decision-model-guidance.md`](decision-model-guidance.md) before changing a question, the criteria, or the state.
+- Campaign files have a `schema_version`, and a file with any other version doesn't load. Raise `SCHEMA_VERSION` in `campaign.py` when the format changes, with no migration.
+- The user documentation follows the Diataxis framework: the tutorial `getting-started.md`, the task guides `how-to.md`, the reference `reference.md`, and the explanation `playing.md`, all in `docs/`. Update them with any change to a command, key, or rule the app applies.
 - `tests/test_style.py` fails on any `noqa`, `type: ignore`, or `pyright: ignore` in the package or tests.
 - Never use the phrase "What do you do?" in UI text or prose; the user asked for that explicitly.
-- Build step 7 is done: each answered message becomes a case in `suites/play-<context>.yaml`, saved through the running jevtester server. `n` on the suggestion bar saves a `no_move` case, and Escape saves nothing.
-- Build step 8, assets, is in progress. The user asked for every asset, not a subset (2026-10-25). The plan splits it into four pull requests. Part 1, the catalog and ownership, is done: typed asset models in `rules/datasworn.py`, owned assets in `campaign.py`, buying and upgrading in `assets.py`, and the `/asset` commands. Part 2 is done: `abilities.py` holds the hand-written ability table and the helpers that apply a boost to a result, and the turn engine and TUI apply them. Part 3 is done: the 23 asset moves have outcomes and join the full move list, lasting effects (`Campaign.lasting`, `abilities.LASTING`) work like boosts and end on their own rules, Companion Endure Harm, Face Death, Face Desolation, and Scrape By are rolled follow-ups (`TurnEngine.roll_follow_up`), and the Endure tables' "The harm is mortal" and "You are overwhelmed" results owe Face Death or Face Desolation. Part 4, the decision model and assets, starts only after the user agrees.
-- Campaign files are schema version 3. Files with any other version don't load.
-- The user documentation follows the Diataxis framework: the tutorial `getting-started.md`, the task guides `how-to.md`, the reference `reference.md`, and the explanation `playing.md`, all in `docs/`. Update them with any change to a command, key, or rule the app applies.
-- The issues found while writing the docs are fixed: `/endure harm|stress <n>` owes Endure Harm or Endure Stress for harm from the fiction, Escape declines the End the Fight offer, `new` refuses a duplicate asset and takes up to three `--bond`s, a bad settings file prints `Error:`, and Aid Your Ally is on the full move list (`MoveGroup.LIST`), rolled as Secure an Advantage, with the benefits noted for the ally.
 - The user said to use `decision-1@foundry` for live calls. The Ollama models aren't downloaded, and won't be while the user is on a hotspot. The user approved `clef-flash@workers-ai` as the second target for the recognizer suites.
 - The user allowed changing `~/repos/jevtester` if it makes sense, for example to send structured criteria.
-- `diary/` holds the dev diary. Add an entry when a step or decision lands.
+- `diary/` holds the dev diary. Add an entry when a piece of work or a decision lands.
 - To check a rule, search the rulebook from `~/repos/shelf-of-holding` with `uv run shelf search "<terms>"`, then `uv run shelf show "DriveThruRPG/Shawn Tomkin/Ironsworn/Ironsworn-Rulebook.pdf" <page>`.
 
 ## How to work
 
-- Write a step's tests before its implementation. Each build step ends with a command that shows it works, so run it before you call the step done.
+- Write a change's tests before its implementation, and run the command that shows it works before you call it done.
 - Don't call a hosted model in the default test run. Record jevtester's JSON output into `tests/fixtures/` and test against that. Put live calls behind `-m live`.
 - Keep rules decisions in code and mechanical choices with the player. The model only suggests a move and a stat.
-- After build step 4, stop and give the user the accuracy numbers from `jevtester report` before you start step 5.
 - Refactor freely and update every call site. Don't keep aliases or deprecated code.
 
 ## Gates
@@ -60,6 +60,7 @@ uv run ruff format --check
 uv run ruff check
 uv run pyright
 uv run pytest
+uv run zensical build --clean
 ```
 
 Fix a finding in the code. Don't add `noqa`, `type: ignore`, or ignore lists.
@@ -86,7 +87,7 @@ To add a screenshot, add a drive function to `SCREENS` in the script, run it, an
 
 ## Decision model targets
 
-`~/repos/jevtester/jevtester.toml` lists the targets. Build step 3 copies the ones this app uses into this repository's `jevtester.toml`. Check them with `uv run --project ~/repos/jevtester jevtester --config jevtester.toml targets check`.
+`~/repos/jevtester/jevtester.toml` lists the targets. This repository's `jevtester.toml` copies the ones this app uses. Check them with `uv run --project ~/repos/jevtester jevtester --config jevtester.toml targets check`.
 
 - `decision-1@foundry` (Microsoft-Decision-1) answered in about 1 second when tested on 2026-10-24, and in about 0.4 seconds on a warm `jevtester serve`.
 - `clef-flash@workers-ai` answered in 2 to 3 seconds and was less confident on the same inputs.

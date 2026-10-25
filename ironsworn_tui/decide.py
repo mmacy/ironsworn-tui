@@ -109,10 +109,10 @@ class TurnState:
 
 @dataclass(frozen=True)
 class RequestShape:
-    """How a request handles messages that don't fit an option, for the step 4 experiments.
+    """How a request handles messages that don't fit an option, for the recognizer experiment.
 
-    The defaults are what play sends. On 2026-10-24, a `cannot_tell` option on the stat
-    questions won 12 of 14 stat misses, and dropping it raised stat accuracy on both targets.
+    The defaults are what play sends. In the experiment, a `cannot_tell` option on the stat
+    questions won 12 of 14 stat misses, and stat accuracy is higher on both targets without it.
     The `acts` question lowered move accuracy on both. `experiments/results.md` has the numbers.
 
     Attributes:

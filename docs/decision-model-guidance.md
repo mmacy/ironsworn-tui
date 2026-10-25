@@ -1,6 +1,6 @@
 # Decision model guidance
 
-This page records the vendor guidance on writing requests for decision models, and what this project does with it. A subagent gathered it on 2026-10-24, and the quotes below were checked against downloaded copies of the sources.
+This page records the vendor guidance on writing requests for decision models, and what this project does with it. The quotes below were checked against copies of the sources downloaded on 2026-10-24.
 
 ## Sources
 
@@ -21,22 +21,21 @@ This page records the vendor guidance on writing requests for decision models, a
 
 ## What this project does
 
-Build step 3 applied:
+The requests apply it:
 
 - The state has `character`, `circumstances`, `situation`, and `player_says`. `circumstances` is a sentence such as "Blarg is in a fight, and the foe has initiative", in place of a `context` id and a null `initiative`.
 - The `move` question asks "Which move does the action in `player_says` trigger, given `circumstances` and `situation`?" Every stat question, including the one for an attack, asks "How does the character go about the action in `player_says`?", with no move name.
 - Each guide criterion is a concrete situation. Criteria for moves that overlap name the line between them: Face Danger overcomes a danger directly, while Secure an Advantage sets up an edge for an action still to come, and Gather Information learns facts. Make Camp is away from any settlement, and Sojourn is in a community.
 - `no_move` and `cannot_tell` describe situations instead of negations, and they come last in every list.
 
-Build step 4 measured, on Decision-1 and Clef-flash ([results](https://github.com/mmacy/ironsworn-tui/blob/main/experiments/results.md)):
+The recognizer experiment measured, on Decision-1 and Clef-flash ([results](https://github.com/mmacy/ironsworn-tui/blob/main/experiments/results.md)):
 
 - The guide criteria beat the Datasworn trigger text on both targets, so play uses them.
 - A `cannot_tell` option on the stat questions won most stat misses, so the stat questions have none.
-- The companion `acts` question lowered move accuracy on both targets, because it answered no for many real actions. The `move` question keeps its `cannot_tell` option.
-
+- The companion `acts` question lowered move accuracy on both targets, because it answered no for many real actions. The `move` question has a `cannot_tell` option instead.
 - Messages that name a move ("Roll Face Danger! I pour myself another cup of tea") didn't pull either model toward the named move.
-- Whether the stat questions change the `move` answer is unsettled. Dropping the stat `cannot_tell` option changed one `move` choice on Clef-flash and none on Decision-1, but probabilities moved by up to 0.09 on both, and one run of each can't separate that from run-to-run variation.
+- Whether the stat questions change the `move` answer is unsettled. Removing the stat `cannot_tell` option changed one `move` choice on Clef-flash and none on Decision-1, but probabilities moved by up to 0.09 on both, and one run of each can't separate that from run-to-run variation.
 
 Still to test: option order with `jevtester probe`, whether the `character` field sways the stat answers, and acting on the top-to-second ratio as well as confidence.
 
-jevtester's choice criteria are strings, so the structured criteria TypeSafe suggests would need a jevtester change. The user allowed changing jevtester if it makes sense. The moves the models still confuse (a shield bash read as an attack, a rallying shout read as Compel) are few and borderline, so step 4 didn't make that change.
+jevtester's choice criteria are strings, so the structured criteria TypeSafe suggests would need a jevtester change. The user allowed changing jevtester if it makes sense. The moves the models still confuse (a shield bash read as an attack, a rallying shout read as Compel) are few and borderline, so they don't justify that change yet.
