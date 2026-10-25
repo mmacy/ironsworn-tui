@@ -225,7 +225,7 @@ def test_endure_harm_with_a_boost(tmp_path: Path):
     set_field(turn.campaign.character, datasworn(), "ironclad", "equipped", "lightly_armored")
     turn.campaign.follow_ups.append(OwedMove(move="endure_harm", amount=1))
     dice.load(3, 7, 9)
-    card = turn.endure(boosts=[BoostRef("ironclad", 1, 0)])
+    card = turn.roll_follow_up(boosts=[BoostRef("ironclad", 1, 0)])
     assert card is not None
     assert card.action is not None
     assert (card.action.value, card.action.adds) == (4, 1)
@@ -238,7 +238,7 @@ def test_armor_boost_needs_the_armor(tmp_path: Path):
     give(turn, "ironclad")
     turn.campaign.follow_ups.append(OwedMove(move="endure_harm", amount=1))
     with pytest.raises(TurnError, match="geared for war"):
-        turn.endure(boosts=[BoostRef("ironclad", 1, 1)])
+        turn.roll_follow_up(boosts=[BoostRef("ironclad", 1, 1)])
 
 
 def test_sacrificing_the_shield_skips_endure_harm(tmp_path: Path):
@@ -247,7 +247,7 @@ def test_sacrificing_the_shield_skips_endure_harm(tmp_path: Path):
     fight(turn, dice)
     turn.campaign.initiative = "foe"
     turn.campaign.follow_ups.append(OwedMove(move="endure_harm", amount=3))
-    assert turn.endure(boosts=[BoostRef("shield_bearer", 3)]) is None
+    assert turn.roll_follow_up(boosts=[BoostRef("shield_bearer", 3)]) is None
     assert turn.campaign.character.health == 5
     assert turn.campaign.initiative == "character"
     assert turn.follow_ups == ()
@@ -421,7 +421,7 @@ def test_counted_miss_at_zero_offers_the_fate_choice(tmp_path: Path):
     turn.campaign.follow_ups.append(OwedMove(move="endure_harm", amount=2))
     # Iron 1 + 6 = 7 against 6 and 9: a weak hit on the dice, counted as a miss.
     dice.load(6, 6, 9)
-    card = turn.endure(boosts=[BoostRef("berserker", 3)])
+    card = turn.roll_follow_up(boosts=[BoostRef("berserker", 3)])
     assert card is not None
     assert card.hit is Hit.MISS
     labels = [o.label for e in card.effects if isinstance(e, Choose) for o in e.options]
@@ -434,7 +434,7 @@ def test_endure_adds_an_asset_meter(tmp_path: Path):
     turn.campaign.character.asset("fortune_hunter").meters["wealth"] = 3
     turn.campaign.follow_ups.append(OwedMove(move="endure_harm", amount=1))
     dice.load(1, 9, 10)
-    card = turn.endure(boosts=[BoostRef("fortune_hunter", 1, 2)])
+    card = turn.roll_follow_up(boosts=[BoostRef("fortune_hunter", 1, 2)])
     assert card is not None
     assert card.action is not None
     assert card.action.adds == 3
@@ -448,7 +448,7 @@ def test_endure_checks_the_mask(tmp_path: Path):
     turn.campaign.follow_ups.append(OwedMove(move="endure_harm", amount=1))
     before = turn.campaign.model_copy(deep=True)
     with pytest.raises(TurnError, match="wits"):
-        turn.endure(boosts=[BoostRef("masked", 1)])
+        turn.roll_follow_up(boosts=[BoostRef("masked", 1)])
     assert turn.campaign == before
 
 

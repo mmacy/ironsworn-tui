@@ -125,7 +125,7 @@ def test_weak_hit_can_lead_to_endure_harm(tmp_path: Path):
     assert turn.resolve([[1]]) == (OwedMove(move="endure_harm", amount=1),)
     # Health 5 - 1 = 4, then roll +health: 4 + 2 = 6 against 7 and 8 is a miss, -1 momentum.
     dice.load(2, 7, 8)
-    card = turn.endure()
+    card = turn.roll_follow_up()
     assert card is not None
     assert card.hit is Hit.MISS
     assert card.rolled_with == "health"
@@ -141,7 +141,7 @@ def test_miss_at_zero_health_offers_the_fate_choice(tmp_path: Path):
     kira.momentum = 0
     turn.campaign.follow_ups.append(OwedMove(move="endure_harm", amount=2))
     dice.load(1, 9, 10)
-    card = turn.endure()
+    card = turn.roll_follow_up()
     assert card is not None
     assert kira.health == 0
     assert kira.momentum == -1
@@ -287,7 +287,7 @@ def test_forsake_as_a_follow_up_leads_to_endure_stress(tmp_path: Path):
     assert turn.forsake() == (OwedMove(move="endure_stress", amount=2),)
     assert [vow.name for vow in turn.campaign.vows] == ["Avenge my village"]
     dice.load(6, 1, 1)
-    turn.endure()
+    turn.roll_follow_up()
     turn.resolve([[0]])
     assert turn.follow_ups == ()
 
@@ -338,7 +338,7 @@ def test_strong_hit_on_endure_harm_takes_initiative(tmp_path: Path):
     turn.pay_the_price("obvious")
     turn.campaign.follow_ups.append(OwedMove(move="endure_harm", amount=2))
     dice.load(6, 1, 1)
-    turn.endure()
+    turn.roll_follow_up()
     turn.resolve([[1]])
     assert turn.campaign.initiative == "character"
 
@@ -415,7 +415,7 @@ def test_blocked_options_are_not_offered(tmp_path: Path):
     kira.mark_debility("wounded")
     turn.campaign.follow_ups.append(OwedMove(move="endure_harm", amount=1))
     dice.load(6, 1, 1)
-    card = turn.endure()
+    card = turn.roll_follow_up()
     assert card is not None
     labels = [o.label for e in card.effects if isinstance(e, Choose) for o in e.options]
     assert labels == ["Embrace the pain: +1 momentum"]
@@ -492,7 +492,7 @@ def test_burning_momentum_on_endure_harm_rebuilds_the_card(tmp_path: Path):
     kira.momentum = 9
     turn.campaign.follow_ups.append(OwedMove(move="endure_harm", amount=1))
     dice.load(1, 4, 8)
-    card = turn.endure()
+    card = turn.roll_follow_up()
     assert card is not None
     assert any(
         isinstance(e, Choose) and e.options[-1].label == "Roll on the table" for e in card.effects

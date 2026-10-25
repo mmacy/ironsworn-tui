@@ -281,11 +281,25 @@ class OwedMove(_Model):
         move: The move id, such as `pay_the_price`.
         amount: The harm or stress, for Endure Harm and Endure Stress.
         vow: The vow, for Forsake Your Vow.
+        asset: The companion, for Companion Endure Harm.
     """
 
     move: str
     amount: int | None = None
     vow: str | None = None
+    asset: str | None = None
+
+
+class Lasting(_Model):
+    """A lasting effect from a result, such as a talisman or an elixir.
+
+    Attributes:
+        kind: The kind, a key of [`LASTING`][ironsworn_tui.abilities.LASTING].
+        stat: The stat it's tied to, for an elixir or a pelt.
+    """
+
+    kind: str
+    stat: Stat | None = None
 
 
 type LogKind = Literal["message", "roll", "outcome", "note", "command"]
@@ -318,6 +332,7 @@ class Campaign(_Model):
         end_fight_offered: True when the last result allows End the Fight.
         fight_uses: The once-per-fight boosts used in this fight, as `asset:ability`.
         background_vow: The name of the background vow, which Fated counts.
+        lasting: The lasting effects, such as a talisman, in the order they started.
         log: The turn log.
     """
 
@@ -337,6 +352,7 @@ class Campaign(_Model):
     end_fight_offered: bool = False
     fight_uses: list[str] = Field(default_factory=list[str])
     background_vow: str | None = None
+    lasting: list[Lasting] = Field(default_factory=list[Lasting])
     log: list[LogEntry] = Field(default_factory=list[LogEntry])
 
     @model_validator(mode="after")

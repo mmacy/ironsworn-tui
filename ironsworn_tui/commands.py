@@ -17,7 +17,7 @@ from ironsworn_tui.campaign import AssetError, Debility, Meter, OwnedAsset, Prog
 from ironsworn_tui.rules.datasworn import Asset, Datasworn, Stat, plain_text
 from ironsworn_tui.rules.oracles import Likelihood, ask_yes_no, roll_oracle
 from ironsworn_tui.rules.progress import TRACK_TICKS, Rank
-from ironsworn_tui.turn import MoveInputs, RollCard, TurnEngine
+from ironsworn_tui.turn import MoveInputs, RollCard, TurnEngine, TurnError
 
 LIKELIHOODS = {
     "almost certain": Likelihood.ALMOST_CERTAIN,
@@ -30,11 +30,23 @@ RANKS = {rank.name.lower(): rank for rank in Rank}
 METERS: dict[str, Meter] = {"health": "health", "spirit": "spirit", "supply": "supply"}
 DEBILITIES: dict[str, Debility] = {name: name for name in get_args(Debility.__value__)}
 STATS: dict[str, Stat] = {name: name for name in get_args(Stat.__value__)}
-COMMANDS = ("oracle", "ask", "vow", "scene", "target", "tide", "adjust", "asset", "moves")
+COMMANDS = (
+    "oracle",
+    "ask",
+    "vow",
+    "scene",
+    "target",
+    "tide",
+    "adjust",
+    "asset",
+    "effects",
+    "moves",
+)
 ASSET_USAGE = (
     "usage: /asset [list [category] | show <asset> | buy <asset> [ability] [+stat -stat] | "
     "upgrade <asset> <ability> [+stat -stat] | meter <asset> <meter> <n> | "
-    "set <asset> <field> <value> | debility <asset> on|off | discard <asset>]"
+    "set <asset> <field> <value> | debility <asset> on|off | harm <companion> <n> | "
+    "use lorekeeper | use slayer ritual|sojourn | discard <asset>]"
 )
 
 
@@ -163,6 +175,8 @@ def run_command(engine: TurnEngine, text: str) -> CommandResult:
                 return _asset(engine, rest)
             except AssetError as error:
                 raise CommandError(str(error)) from error
+        case "effects":
+            return _effects(engine, rest)
         case "moves":
             return CommandResult(show_moves=True)
         case _:
@@ -300,6 +314,7 @@ def _adjust(engine: TurnEngine, rest: str) -> CommandResult:
     else:
         raise CommandError(usage)
     campaign.add_log("command", f"Adjust: {line}")
+    engine.expire_low()
     engine.save()
     return CommandResult()
 
@@ -357,6 +372,24 @@ def _asset(engine: TurnEngine, rest: str) -> CommandResult:
             value = " ".join(args[2:])
             set_field(character, data, asset.id, args[1], value)
             line = f"{asset.name} {args[1]} is now {value}"
+        case "harm" if len(args) == 2:
+            try:
+                engine.harm_companion(asset.id, _amount(args[1]))
+            except TurnError as error:
+                raise CommandError(str(error)) from error
+            return CommandResult()
+        case "use" if asset.id == "lorekeeper" and len(args) == 1:
+            try:
+                engine.browse_archive()
+            except TurnError as error:
+                raise CommandError(str(error)) from error
+            return CommandResult()
+        case "use" if asset.id == "slayer" and args[1:] in (["ritual"], ["sojourn"]):
+            try:
+                engine.take_trophy("ritual" if args[1] == "ritual" else "sojourn")
+            except TurnError as error:
+                raise CommandError(str(error)) from error
+            return CommandResult()
         case "debility" if args[1:] in (["on"], ["off"]):
             on = args[1] == "on"
             set_debility(character, asset.id, on=on)
@@ -421,3 +454,18 @@ def _changes(words: list[str]) -> StatChanges:
             )
         changes[stat] = changes.get(stat, 0) + (1 if word[0] == "+" else -1)
     return changes
+
+
+def _effects(engine: TurnEngine, rest: str) -> CommandResult:
+    words = rest.split()
+    if not words:
+        labels = engine.lasting_labels()
+        lines = [f"{number} {label}" for number, label in enumerate(labels, 1)]
+        return CommandResult(tuple(lines) or ("No lasting effects",))
+    if words[0] == "end" and len(words) == 2 and words[1].isdigit():
+        try:
+            engine.end_lasting(int(words[1]) - 1)
+        except TurnError as error:
+            raise CommandError(str(error)) from error
+        return CommandResult()
+    raise CommandError("usage: /effects [end <number>]")

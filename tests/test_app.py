@@ -507,3 +507,62 @@ def test_the_picker_takes_letters_after_nine():
     assert screen.key_for(9) == "a"
     assert screen.index_for("b") == 10
     assert screen.index_for("z") is None
+
+
+def test_companion_harm_from_a_command(tmp_path: Path):
+    turn, dice, _ = engine(tmp_path)
+
+    async def play() -> None:
+        app = IronswornApp(turn)
+        async with app.run_test(size=(120, 40)) as pilot:
+            await pilot.press(*"/asset harm hawk 1", "enter")
+            await pilot.pause()
+            assert app.bar_state.mode == "follow_up"
+            assert "Companion Endure Harm" in app.render_bar()
+            dice.load(6, 1, 1)
+            await pilot.press("enter")
+            await pilot.pause()
+            assert app.bar_state.mode == "card"
+            await pilot.press("enter")
+            await pilot.pause()
+
+    asyncio.run(play())
+    assert turn.campaign.character.asset("hawk").meters["health"] == 3
+
+
+def test_heal_a_companion_from_the_form(tmp_path: Path):
+    turn, dice, _ = engine(tmp_path)
+    turn.campaign.character.asset("hawk").meters["health"] = 1
+
+    async def play() -> None:
+        app = IronswornApp(turn)
+        async with app.run_test(size=(120, 40)) as pilot:
+            await pilot.press(*"/moves", "enter")
+            await pilot.pause()
+            await pilot.press("4", "w", "enter")
+            await pilot.pause()
+            assert isinstance(app.screen, InputsScreen)
+            dice.load(6, 1, 1)
+            await pilot.press(*"hawk", "enter")
+            await pilot.pause()
+            await pilot.press("enter")
+            await pilot.pause()
+
+    asyncio.run(play())
+    assert turn.campaign.character.asset("hawk").meters["health"] == 3
+
+
+def test_asset_moves_show_on_the_full_list(tmp_path: Path):
+    turn, _, _ = engine(tmp_path)
+    character = turn.campaign.character
+    character.experience = 3
+    buy(character, datasworn(), "augur")
+
+    async def play() -> None:
+        app = IronswornApp(turn)
+        async with app.run_test(size=(160, 40)) as pilot:
+            await pilot.press(*"/moves", "enter")
+            await pilot.pause()
+            assert "Augur" in app.render_bar()
+
+    asyncio.run(play())
