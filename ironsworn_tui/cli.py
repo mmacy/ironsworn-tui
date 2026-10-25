@@ -136,16 +136,20 @@ def play(args: argparse.Namespace) -> int:
                 decider = stack.enter_context(jevtester_server(settings))
             except (DecideError, OSError) as error:
                 campaign.add_log("note", f"Playing without move suggestions: {error}")
-        engine = TurnEngine(
-            campaign,
-            datasworn(),
-            random.Random(),
-            load_thresholds(settings.target),
-            decider=decider,
-            target=settings.target,
-            path=path,
-            cases=decider,
-        )
+        try:
+            engine = TurnEngine(
+                campaign,
+                datasworn(),
+                random.Random(),
+                load_thresholds(settings.target),
+                decider=decider,
+                target=settings.target,
+                path=path,
+                cases=decider,
+            )
+        except ValueError as error:
+            print(f"Error: can't play {path}: {error}", file=sys.stderr)
+            return 2
         IronswornApp(engine).run()
     return 0
 

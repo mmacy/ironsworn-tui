@@ -18,7 +18,7 @@ from ironsworn_tui.outcomes import Choose
 from ironsworn_tui.policy import Suggestion
 from ironsworn_tui.rules.datasworn import Datasworn, Stat
 from ironsworn_tui.rules.progress import TICKS_PER_BOX, Rank
-from ironsworn_tui.turn import MoveInputs, RollCard, TurnEngine, TurnError
+from ironsworn_tui.turn import ROLLED_FOLLOW_UPS, MoveInputs, RollCard, TurnEngine, TurnError
 
 STAT_KEYS: dict[str, Stat] = {"e": "edge", "h": "heart", "i": "iron", "s": "shadow", "w": "wits"}
 STATS: dict[str, Stat] = {stat: stat for stat in STAT_KEYS.values()}
@@ -37,7 +37,7 @@ FIELD_HINTS = {
     "rank": "troublesome, dangerous, formidable, extreme, or epic",
     "foes": "Name rank, name rank",
     "destination": "The destination",
-    "treat": "yourself or someone else",
+    "treat": "yourself, someone else, or a companion",
     "amount": "How much to spend",
 }
 DICE_LABELS = ("Action die", "First challenge die", "Second challenge die")
@@ -51,7 +51,7 @@ def option_name(engine: TurnEngine, option: str) -> str:
         return "Attack"
     if option in (NO_MOVE, CANNOT_TELL):
         return option.replace("_", " ").capitalize()
-    return engine.data.move(option).name
+    return engine.move_name(option)
 
 
 def _boost_line(boosts: list[AvailableBoost]) -> str:
@@ -170,11 +170,15 @@ class InputsScreen(ModalScreen[MoveInputs | None]):
     }
     """
 
-    def __init__(self, title: str, fields: tuple[str, ...]) -> None:
-        """Create the form, with a title and one input per field."""
+    def __init__(
+        self, title: str, fields: tuple[str, ...], companions: dict[str, str] | None = None
+    ) -> None:
+        """Create the form, with a title, one input per field, and the companions Heal can
+        treat, by lowercase name to asset id."""
         super().__init__()
         self.title_text = title
         self.fields = fields
+        self.companions = companions or {}
 
     def compose(self) -> ComposeResult:
         """Lay out the title, then a label and an input for each field."""
@@ -202,7 +206,7 @@ class InputsScreen(ModalScreen[MoveInputs | None]):
             name: self.query_one(f"#field-{name}", Input).value.strip() for name in self.fields
         }
         try:
-            self.dismiss(_inputs(values))
+            self.dismiss(_inputs(values, self.companions))
         except CommandError as error:
             self.query_one("#error", Label).update(_sentence(str(error)))
 
@@ -274,11 +278,12 @@ class DiceScreen(PickScreen):
     """Picks the dice to reroll."""
 
 
-def _inputs(values: dict[str, str]) -> MoveInputs:
+def _inputs(values: dict[str, str], companions: dict[str, str]) -> MoveInputs:
     rank: Rank | None = parse_rank(values["rank"]) if "rank" in values else None
     treat = (values.get("treat") or "yourself").lower()
-    if treat not in ("yourself", "someone else", "self", "other"):
-        raise CommandError("treat must be yourself or someone else")
+    companion = companions.get(treat)
+    if treat not in ("yourself", "someone else", "self", "other") and companion is None:
+        raise CommandError("treat must be yourself, someone else, or one of your companions")
     amount = values.get("amount")
     if amount is not None and not amount.isdigit():
         raise CommandError("amount must be a number")
@@ -288,6 +293,7 @@ def _inputs(values: dict[str, str]) -> MoveInputs:
         foes=parse_foes(values["foes"]) if "foes" in values else (),
         destination=values.get("destination") or None,
         heal_self=treat in ("yourself", "self"),
+        companion=companion,
         amount=int(amount) if amount is not None else None,
     )
 
@@ -458,7 +464,10 @@ class IronswornApp(App[None]):
         engine = self.engine
         match state.mode:
             case "idle":
-                commands = "/moves · /oracle · /ask · /vow · /scene · /target · /tide · /adjust"
+                commands = (
+                    "/moves · /oracle · /ask · /vow · /scene · /target · /tide · /adjust · "
+                    "/asset · /effects"
+                )
                 return f"[dim]Enter send · {commands}[/dim]"
             case "thinking":
                 return "Thinking…"
@@ -468,13 +477,14 @@ class IronswornApp(App[None]):
                 return self._render_card()
             case "follow_up":
                 owed = engine.follow_ups[0]
-                name = engine.data.move(owed.move).name
+                name = engine.move_name(owed.move)
                 if owed.move == "pay_the_price":
                     hint = "o obvious outcome · a ask the oracle · t roll the table"
                 elif owed.move == "forsake_your_vow":
                     hint = "Enter forsake"
                 else:
-                    hint = f"Enter roll ({owed.amount})" + self._abilities_hint(owed.move)
+                    amount = f" ({owed.amount})" if owed.amount is not None else ""
+                    hint = f"Enter roll{amount}" + self._abilities_hint(owed.move)
                 lines = [f"[b]{name}[/b]"]
                 if self.bar_state.boosts:
                     lines.append(_boost_line(self.bar_state.boosts))
@@ -706,7 +716,8 @@ class IronswornApp(App[None]):
                 self.note(str(error))
                 self.refresh_all()
 
-        self.push_screen(InputsScreen(option_name(self.engine, option), fields), done)
+        screen = InputsScreen(option_name(self.engine, option), fields, self.engine.companions())
+        self.push_screen(screen, done)
 
     def _make(
         self,
@@ -810,11 +821,11 @@ class IronswornApp(App[None]):
             engine.pay_the_price(PAY_KEYS[character])
         elif key == "enter" and owed.move == "forsake_your_vow":
             engine.forsake()
-        elif character == "a" and owed.move in ("endure_harm", "endure_stress"):
+        elif character == "a" and owed.move in ROLLED_FOLLOW_UPS:
             self._pick_boosts(owed.move)
             return True
-        elif key == "enter" and owed.move in ("endure_harm", "endure_stress"):
-            card = engine.endure(self._refs())
+        elif key == "enter" and owed.move in ROLLED_FOLLOW_UPS:
+            card = engine.roll_follow_up(self._refs())
             self.log_new(before)
             if card is None:
                 self.after_turn()

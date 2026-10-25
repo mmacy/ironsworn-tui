@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from ironsworn_tui.campaign import Campaign
+from ironsworn_tui.campaign import Campaign, Lasting, OwedMove
 from ironsworn_tui.commands import CommandError, find_table, parse_foes, run_command
 from ironsworn_tui.rules.datasworn import datasworn
 from ironsworn_tui.rules.dice import Hit
@@ -237,3 +237,46 @@ def test_asset_debility(tmp_path: Path):
     run_command(turn, "/asset debility hawk on")
     assert turn.campaign.character.asset("hawk").debility
     assert turn.campaign.log[-1].text == "Asset: Hawk counts as a debility"
+
+
+def test_asset_harm_owes_companion_endure_harm(tmp_path: Path):
+    turn, _, _ = engine(tmp_path)
+    run_command(turn, "/asset harm hawk 2")
+    assert turn.follow_ups == (OwedMove(move="companion_endure_harm", amount=2, asset="hawk"),)
+    with pytest.raises(CommandError, match="companion"):
+        run_command(turn, "/asset harm archer 2")
+
+
+def test_effects_list_and_end(tmp_path: Path):
+    turn, _, _ = engine(tmp_path)
+    turn.campaign.lasting.append(Lasting(kind="talisman_2"))
+    turn.campaign.lasting.append(Lasting(kind="pelt", stat="edge"))
+    assert run_command(turn, "/effects").lines == ("1 Talisman", "2 Pelt (edge)")
+    run_command(turn, "/effects end 1")
+    assert turn.campaign.lasting == [Lasting(kind="pelt", stat="edge")]
+    assert run_command(turn, "/effects end 1").lines == ()
+    assert run_command(turn, "/effects").lines == ("No lasting effects",)
+
+
+def test_slayer_trophy(tmp_path: Path):
+    turn, _, _ = engine(tmp_path)
+    with pytest.raises(CommandError, match="Slayer"):
+        run_command(turn, "/asset use slayer ritual")
+    turn.campaign.character.experience = 7
+    run_command(turn, "/asset buy slayer")
+    run_command(turn, "/asset upgrade slayer 3")
+    run_command(turn, "/asset use slayer sojourn")
+    assert turn.campaign.lasting == [Lasting(kind="trophy_sojourn")]
+
+
+def test_lorekeeper_browses_the_archive_once(tmp_path: Path):
+    turn, dice, _ = engine(tmp_path)
+    turn.campaign.character.experience = 7
+    run_command(turn, "/asset buy lorekeeper")
+    run_command(turn, "/asset upgrade lorekeeper 3")
+    dice.load(2)
+    run_command(turn, "/asset use lorekeeper")
+    assert turn.campaign.character.stats.wits == 4
+    assert "corrupted" in turn.campaign.log[-1].text
+    with pytest.raises(CommandError, match="one time"):
+        run_command(turn, "/asset use lorekeeper")

@@ -12,3 +12,4 @@
 | [08](08-case-logging.md) | Case logging | 24 October 2026, 21:06 to 21:29 PDT | Claude Opus 5.5 |
 | [09](09-asset-catalog-and-ownership.md) | The asset catalog and owning assets | 25 October 2026, 01:14 to 01:34 PDT | Claude Opus 5.5 |
 | [10](10-abilities-on-a-roll.md) | Asset abilities on a roll | 25 October 2026, 01:36 to 01:59 PDT | Claude Opus 5.5 |
+| [11](11-asset-moves-lasting-effects-and-companions.md) | Asset moves, lasting effects, and companions | 25 October 2026, 02:00 to 02:24 PDT | Claude Opus 5.5 |
