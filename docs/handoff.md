@@ -10,7 +10,7 @@ ironsworn-tui is a terminal app for solo Ironsworn. A decision model reads what 
 
 | What | Where |
 |---|---|
-| This repository | `~/repos/ironsworn-tui`, remote `mmacy/ironsworn-tui` (private) |
+| This repository | `~/repos/ironsworn-tui`, remote `mmacy/ironsworn-tui` |
 | The plan | `docs/plan.md` |
 | Rules engine and data to vendor | `~/repos/osr-plugins/plugins/ironsworn-referee/skills/referee/` at commit `7e2e4a8`: `scripts/iron.py`, `scripts/test_iron.py`, and `references/datasworn/` |
 | Move disambiguation guide | `references/move_disambiguation.md` in the same folder |
