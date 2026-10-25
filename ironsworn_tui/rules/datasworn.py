@@ -6,9 +6,9 @@ from dataclasses import dataclass
 from functools import cache
 from pathlib import Path
 from types import MappingProxyType
-from typing import Any, Literal, cast
+from typing import Annotated, Any, Literal, cast
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 from ruamel.yaml import YAML
 from ruamel.yaml.error import ReusedAnchorWarning
 
@@ -73,6 +73,155 @@ class OracleTable(_Model):
     rows: tuple[OracleRow, ...]
 
 
+type Stat = Literal["edge", "heart", "iron", "shadow", "wits"]
+type ConditionMeter = Literal["health", "spirit", "supply"]
+type RollType = Literal["action_roll", "progress_roll", "special_track", "no_roll"]
+
+
+class _StrictModel(_Model):
+    """A model that rejects keys it doesn't declare, so a renamed Datasworn key fails to load."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+
+class StatOption(_StrictModel):
+    """A roll with a stat."""
+
+    using: Literal["stat"]
+    stat: Stat
+
+
+class ConditionMeterOption(_StrictModel):
+    """A roll with a condition meter, such as Make Camp's supply."""
+
+    using: Literal["condition_meter"]
+    condition_meter: ConditionMeter
+
+
+class ProgressTrackOption(_StrictModel):
+    """A progress roll on the move's track.
+
+    [`Move`][ironsworn_tui.rules.datasworn.Move]'s `tracks` names the kind of track.
+    """
+
+    using: Literal["progress_track"]
+
+
+class BondsTrackOption(_StrictModel):
+    """A roll on the bonds track, as Write Your Epilogue makes."""
+
+    using: Literal["bonds_track"]
+
+
+class AssetControlOption(_StrictModel):
+    """A roll with an asset's control, such as a companion's health.
+
+    Attributes:
+        control: The control, such as `health`.
+        assets: Patterns for the assets that have the control, such as `asset:*/companion/*`.
+    """
+
+    using: Literal["asset_control"]
+    control: str
+    assets: tuple[str, ...]
+
+
+type RollOption = Annotated[
+    StatOption | ConditionMeterOption | ProgressTrackOption | BondsTrackOption | AssetControlOption,
+    Field(discriminator="using"),
+]
+
+
+class Condition(_StrictModel):
+    """One way a move can be rolled, such as Face Danger "With speed, agility, or precision".
+
+    Attributes:
+        text: The approach, or None for a move with one way to roll.
+        method: How to pick among the roll options. `player_choice` means the player picks
+            this condition; `lowest` and `highest` roll the lowest or highest of its options.
+            Progress rolls have no method.
+        roll_options: The values this condition rolls with.
+    """
+
+    text: str | None = None
+    method: Literal["player_choice", "lowest", "highest"] | None = None
+    roll_options: tuple[RollOption, ...]
+
+
+class Trigger(_StrictModel):
+    """What triggers a move.
+
+    Attributes:
+        text: The trigger, such as "When you attempt something risky...".
+        conditions: The ways the move can be rolled. Moves with no roll have none.
+    """
+
+    text: str
+    conditions: tuple[Condition, ...] = ()
+
+
+class Outcome(_StrictModel):
+    """One result of a move.
+
+    Attributes:
+        text: The result's text, in Markdown with `datasworn:` links.
+    """
+
+    text: str
+
+
+class Outcomes(_StrictModel):
+    """The text of a move's three results."""
+
+    strong_hit: Outcome
+    weak_hit: Outcome
+    miss: Outcome
+
+
+class TrackRef(_StrictModel):
+    """The kind of progress track a progress move rolls on."""
+
+    category: Literal["Journey", "Combat", "Vow"]
+
+
+class Move(_StrictModel):
+    """A move.
+
+    Attributes:
+        id: The move id, such as `face_danger`.
+        category: The move category id, such as `adventure`.
+        name: The move name, such as "Face Danger".
+        roll_type: How the move is rolled.
+        trigger: What triggers it.
+        text: The full move text, in Markdown with `datasworn:` links.
+        outcomes: The text for each result. A move has outcomes exactly when it rolls.
+        tracks: The kind of track a progress move rolls on, or None for other moves.
+    """
+
+    id: str
+    category: str
+    name: str
+    roll_type: RollType
+    trigger: Trigger
+    text: str
+    outcomes: Outcomes | None = None
+    tracks: TrackRef | None = None
+
+    @model_validator(mode="after")
+    def _outcomes_match_roll_type(self) -> Move:
+        if (self.outcomes is None) != (self.roll_type == "no_roll"):
+            raise ValueError(
+                f"{self.id} has roll type {self.roll_type} but outcomes {self.outcomes}"
+            )
+        if (self.tracks is None) == (self.roll_type == "progress_roll"):
+            raise ValueError(f"{self.id} has roll type {self.roll_type} but tracks {self.tracks}")
+        return self
+
+
+# Move keys the app doesn't use. `oracles` are indexed with the other oracle tables.
+_UNUSED_MOVE_KEYS = {"type", "_source", "oracles"}
+
+
 @dataclass(frozen=True)
 class Datasworn:
     """Flat indices over the Datasworn YAML.
@@ -84,23 +233,21 @@ class Datasworn:
     The indices are read-only, because one cached instance is shared.
 
     Attributes:
-        moves: Each move's YAML, by move id.
-        move_categories: Each move's category id, such as `adventure`, by move id.
+        moves: Each move, by move id.
         oracles: Each rollable oracle table, by oracle id.
         assets: Each asset's YAML, by asset id.
         npcs: Each NPC's YAML, by NPC id.
         rules: The ruleset's `rules` section.
     """
 
-    moves: Mapping[str, YamlMap]
-    move_categories: Mapping[str, str]
+    moves: Mapping[str, Move]
     oracles: Mapping[str, OracleTable]
     assets: Mapping[str, YamlMap]
     npcs: Mapping[str, YamlMap]
     rules: YamlMap
 
-    def move(self, move_id: str) -> YamlMap:
-        """Return a move's YAML.
+    def move(self, move_id: str) -> Move:
+        """Return a move.
 
         Raises:
             UnknownIdError: If no move has the id.
@@ -187,13 +334,12 @@ def load_datasworn(directory: Path = DATASWORN_DIR) -> Datasworn:
     Raises:
         ValueError: If two assets or two NPCs share an id.
     """
-    moves: dict[str, YamlMap] = {}
-    move_categories: dict[str, str] = {}
+    moves: dict[str, Move] = {}
     oracles: dict[str, OracleTable] = {}
     for category_id, category in _load(directory / "moves.yaml")["moves"].items():
         for move_id, move in category["contents"].items():
-            moves[move_id] = move
-            move_categories[move_id] = category_id
+            fields = {key: value for key, value in move.items() if key not in _UNUSED_MOVE_KEYS}
+            moves[move_id] = Move.model_validate({**fields, "id": move_id, "category": category_id})
             move_oracles: YamlMap = move.get("oracles") or {}
             for table_id, table in move_oracles.items():
                 table_key = f"classic/{category_id}/{move_id}/{table_id}"
@@ -213,7 +359,6 @@ def load_datasworn(directory: Path = DATASWORN_DIR) -> Datasworn:
 
     return Datasworn(
         moves=MappingProxyType(moves),
-        move_categories=MappingProxyType(move_categories),
         oracles=MappingProxyType(oracles),
         assets=MappingProxyType(assets),
         npcs=MappingProxyType(npcs),
