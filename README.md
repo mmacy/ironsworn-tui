@@ -33,7 +33,7 @@ uv run ironsworn-tui new Blarg --description "the Destructor" --stats edge=2,hea
 uv run ironsworn-tui play Blarg
 ```
 
-Type what Blarg does and press Enter. When the app suggests a move, press Enter to roll it, then Enter again to apply the result. Press Ctrl+Q to quit. The app saves your campaign after every turn, so `play Blarg` picks up where you stopped.
+Type what Blarg does and press Enter. When the app suggests a move, press Enter to roll it, then Enter again to apply the result. Press Ctrl+Q to quit. The app saves your campaign after every turn, so when you run `play Blarg` again, you pick up where you stopped.
 
 When the model answers a message and you make a move or press `n`, the app saves that message as a test case in `suites/play-<context>.yaml`. Those files change as you play.
 

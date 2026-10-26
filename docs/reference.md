@@ -49,7 +49,7 @@ Creates a character and a campaign with one background vow. Saves it as `<name>.
 | `--stats` | Yes | | All five stats (`edge`, `heart`, `iron`, `shadow`, `wits`), given the values 3, 2, 2, 1, and 1 in any order. Write each as `<stat>=<n>` and separate them with commas. Case doesn't matter. |
 | `--assets` | Yes | | Exactly three asset ids, separated by commas with no spaces. Ids are lowercase, such as `archer` or `cave_lion`. An asset that starts with no ability marked, such as a companion, needs the ability to mark after a colon, from 1 to 3, such as `hawk:2`. An asset that starts with an ability marked takes no colon. `--assets help` prints the ids by category, exits with 0, and creates nothing. |
 | `--vow` | Yes | | The background vow's text. |
-| `--bond` | No | None | A person or community the character shares a background bond with. Repeat it for up to three bonds. Each marks one tick on the bonds track and logs `Bond: <text>`. |
+| `--bond` | No | None | A person or community the character shares a background bond with. Repeat it for up to three bonds. For each bond, the app marks one tick on the bonds track and logs `Bond: <text>`. |
 | `--rank` | No | `epic` | The background vow's rank: `troublesome`, `dangerous`, `formidable`, `extreme`, or `epic`. Case doesn't matter. |
 | `--harm` | No | `2` | The harm the character deals: `2` with a deadly weapon, `1` without. |
 | `--overwrite` | No | Off | Replaces an existing campaign with the same name, to start the character over. The old campaign is lost. |
@@ -164,7 +164,7 @@ $ ironsworn-tui suggest "I swing my axe at the raider" --context fight --situati
 ironsworn-tui write-suites
 ```
 
-Writes the decision model's question sets and recognizer suites under `suites/` from `experiments/recognizer-phrasings.yaml` and `experiments/oracle-phrasings.yaml`, replacing the files there. Then it creates `suites/play-<context>.yaml` for each context, and `suites/play-oracle.yaml`, if missing. It never changes an existing play suite, because play suites hold the cases saved in play. It prints the path of each file it writes. It calls no model. Both folders are in the repository, beside the `ironsworn_tui` package.
+Writes the decision model's question sets and recognizer suites under `suites/` from `experiments/recognizer-phrasings.yaml` and `experiments/oracle-phrasings.yaml`, replacing the files there. Then it creates `suites/play-<context>.yaml` for each context, and `suites/play-oracle.yaml`, if missing. It never changes an existing play suite, because play suites contain the cases saved in play. It prints the path of each file it writes. It calls no model. `suites/` and `experiments/` are in the repository, beside the `ironsworn_tui` package.
 
 Example, with output shortened:
 
@@ -196,7 +196,7 @@ A move adds these entries to the log, in this order. The app saves them all in t
 |---|---|
 | Bold | A message you typed. |
 | Dim italic | What the move is for, made from the move's trigger in the rulebook. It appears the first time the campaign makes each move. |
-| Cyan | The roll, such as `Gather Information +wits: 6 + 3 + 0 = 9 vs 3, 4, strong hit`. Burning momentum, a reroll, or a late add adds another roll entry. |
+| Cyan | The roll, such as `Gather Information +wits: 6 + 3 + 0 = 9 vs 3, 4, strong hit`. When you burn momentum, reroll, or take a late add, the log shows another roll entry. |
 | Plain | The result's text from the rulebook, as the roll card showed it. Oracle answers and table results are plain too. |
 | Magenta | Each option you picked on the card, such as `Picked: Sacrifice resources`. |
 | Green | Each change, with its new value: a meter or momentum (`Momentum +2 (now 4)`), experience, a stat, progress (`Foe Raider: progress +2 boxes (now 6 boxes)`), a new or cleared vow, foe, or journey, initiative, a debility, an asset, a lasting effect, or an owed move (`Owed: Pay the Price`). |
@@ -260,17 +260,17 @@ Which moves appear depends on the model's confidence in its top move:
 
 The `act` and `confirm` thresholds in `suites/policies/moves.yaml` set the confidence bands.
 
-Each move shows its key and, when the model answered, its probability. The selected move is highlighted. Below the moves, a dim line says what the selected move is for, from the rulebook's trigger text. It's the same sentence the log shows the first time you make the move. It takes one line, and ends with `…` when the bar is too narrow for all of it. Below that, `Stat <stat>` shows the stat the roll will use, for a move where you choose one. The model's suggested stat is set when you select the move. Until a stat the move takes is set, the bar shows its keys instead, such as `Stat: press h heart, s shadow, or w wits`, and Enter asks for one. Attack shows the move it makes, such as `Attack (Strike)`: Strike with initiative, Clash without. `Add +<n>` shows your add. The hints name the keys for the moves shown, such as `1-9 A-F or arrows move`.
+Each move shows its key and, when the model answered, its probability. The selected move is highlighted. Below the moves, a dim line says what the selected move is for, from the rulebook's trigger text. It's the same sentence the log shows the first time you make the move. It takes one line, and ends with `…` when the bar is too narrow for all of it. Below that, `Stat <stat>` shows the stat the roll will use, for a move where you choose one. The model's suggested stat is set when you select the move. Until a stat the move takes is set, the bar shows its keys instead, such as `Stat: press h heart, s shadow, or w wits`, and if you press Enter, the log says which keys set one. Attack shows the move it makes, such as `Attack (Strike)`: Strike with initiative, Clash without. `Add +<n>` shows your add. The hints name the keys for the moves shown, such as `1-9 A-F or arrows move`.
 
 | Key | Action |
 |---|---|
-| 1 to 9, then `A` to `Z` | Select the move with that key. Moves past the ninth take capital letters, so Shift and a letter selects one, because lowercase letters already set the stat or act. Moves past the 35th show `·` and are reached only with arrows. |
+| 1 to 9, then `A` to `Z` | Select the move with that key. Moves past the ninth use capital letters, so Shift and a letter selects one, because lowercase letters already set the stat or act. Moves past the 35th show `·` and are reached only with arrows. |
 | Left, Up | Select the previous move. |
 | Right, Down | Select the next move. |
 | `e`, `h`, `i`, `s`, `w` | Set the stat to edge, heart, iron, shadow, or wits. |
 | `+`, `-` | Raise or lower the add by 1. |
 | `a` | Open the [abilities picker](#pickers) for the selected move. Shown as `a abilities (<n>)` only when an asset ability applies. |
-| Enter | Roll the selected move. If it needs a stat and none is set, the log says which keys pick one. If the move needs details, the [details form](#details-form) opens. The bar then shows the roll card. |
+| Enter | Roll the selected move. If it needs a stat and none is set, the log says which keys set one. If the move needs details, the [details form](#details-form) opens. The bar then shows the roll card. |
 | `n` | Make no move. The log shows `No move` and a `Next:` line. If the model answered the message, the app saves this as a case. |
 | Escape | Leave the message without a move, and return to the input line. The app saves no case. |
 
@@ -278,7 +278,7 @@ Each move shows its key and, when the model answered, its probability. The selec
 
 The bar shows `Oracle:` and your question, then every oracle table and every likelihood for Ask the Oracle, each with its key. A likelihood shows as `Ask <likelihood>`, such as `Ask likely`.
 
-- **The model answered:** the kind of answer it picked comes first. For a yes or no question, the five likelihoods come first; for a table question, the tables do. Each group is in order of probability, and each option the model gave 0.01 or more shows its probability. When the model is confident, the first option is selected. The thresholds in `suites/policies/oracle.yaml` set when: a confidence of 0.5 or more that the question is a yes or no question or a table question, and a probability of 0.4 or more for the likelihood or table.
+- **The model answered:** the kind of answer it picked comes first. For a yes or no question, the five likelihoods come first. For a table question, the tables do. Each group is in order of probability, and each option the model gave 0.01 or more shows its probability. When the model is confident, the first option is selected. The thresholds in `suites/policies/oracle.yaml` set when: a confidence of 0.5 or more that the question is a yes or no question or a table question, and a probability of 0.4 or more for the likelihood or table.
 - **The model couldn't tell, the request failed, `--no-model`, or `/oracle` alone:** every table in the order `/oracle help` lists them, then the likelihoods, none selected.
 
 | Key | Action |
@@ -286,14 +286,14 @@ The bar shows `Oracle:` and your question, then every oracle table and every lik
 | 1 to 9, then `A` to `Z` | Select the option with that key. |
 | Left, Up | Select the previous option. |
 | Right, Down | Select the next option. |
-| Enter | Roll the selected table, or ask the oracle at the selected likelihood. The log keeps your question with the answer. With nothing selected, the log says `Pick an oracle`. |
+| Enter | Roll the selected table, or ask the oracle at the selected likelihood. The log shows your question with the answer. With nothing selected, the log says `Pick an oracle`. |
 | Escape | Leave the question without a roll. The app saves no case. |
 
 After the roll or Escape, the bar returns to the move suggestion it showed before, if any.
 
 #### Card mode
 
-The card shows `<Move> +<stat>: <result>`, the abilities used, and the outcome text. When the outcome asks you to choose, the card lists numbered options under a prompt such as `Choose one:` or `Choose up to 2:`. The outcome text then leaves out the rulebook's bulleted list of the same options, on the card and in the log, and keeps the rest of the text.
+The card shows `<Move> +<stat>: <result>`, the abilities used, and the outcome text. When the outcome asks you to choose, the card lists numbered options under a prompt such as `Choose one:` or `Choose up to 2:`. The app then leaves the rulebook's bulleted list of the same options out of the outcome text, on the card and in the log, and shows the rest of the text.
 
 | Key | Action |
 |---|---|
@@ -328,7 +328,7 @@ The bar shows the owed move and, for an endure move, the amount.
 
 ### Pickers
 
-The abilities picker (`a`) lists the asset abilities that apply to a move. The dice picker (`r`) lists `Action die`, `First challenge die`, and `Second challenge die`. A progress roll has no action die, so it lists only the challenge dice. `[x]` marks a picked item.
+The abilities picker (`a`) lists the asset abilities that apply to a move. The dice picker (`r`) lists `Action die`, `First challenge die`, and `Second challenge die`. A progress roll has no action die, so the dice picker lists only the challenge dice. `[x]` marks a picked item.
 
 ![The abilities picker, titled "Abilities for Secure an Advantage", with two Archer abilities and their number keys.](images/abilities.svg)
 
@@ -340,7 +340,7 @@ The abilities picker (`a`) lists the asset abilities that apply to a move. The d
 
 ### Details form
 
-Some moves ask for details before they roll. The form shows one field for each detail:
+For some moves, the app asks for details before it rolls. The form shows one field for each detail:
 
 | Field | Moves | Value |
 |---|---|---|
@@ -361,14 +361,14 @@ The form shows these keys on its last line. An error wraps to fit the form.
 
 ## Commands
 
-Type a command in the input line and press Enter. Command and option names don't depend on case. An error appears as a yellow note in the log, and it changes nothing. A mistyped command suggests the closest name. A bad argument shows the command's usage and points to its help. Every command that changes the campaign writes a log entry and saves the campaign file. Lines a command only shows, such as a list or help, aren't saved to the campaign log.
+Type a command in the input line and press Enter. Command and option names don't depend on case. An error appears as a yellow note in the log, and it changes nothing. For a mistyped command, the error suggests the closest name. For a bad argument, the error shows the command's usage and points to its help. Every command that changes the campaign writes a log entry and saves the campaign file. Lines a command only shows, such as a list or help, aren't saved to the campaign log.
 
 Every command takes `help` as its first option, such as `/oracle help`, and so does every subcommand, such as `/vow swear help`. The help says what the command is for, gives its usage and an example, and lists its options. `/help` lists every command with a summary.
 
 Names you type:
 
 - **Vow and foe names** match in any case, and the log uses the name as it was written.
-- **Asset names** can be the id (`cave_lion`), the id with hyphens (`cave-lion`), or the asset's name (`Cave Lion`). An owned companion also answers to its given name (`Kestrel`), set with `/asset set <companion> name <value>`. An asset's id or name wins over a given name that matches it. Case doesn't matter.
+- **Asset names** can be the id (`cave_lion`), the id with hyphens (`cave-lion`), or the asset's name (`Cave Lion`). An owned companion also answers to its given name (`Kestrel`), set with `/asset set <companion> name <value>`. When a given name matches an asset's id or name, the id or name takes precedence. Case doesn't matter.
 - **Ranks** are `troublesome`, `dangerous`, `formidable`, `extreme`, and `epic`.
 - **Stat changes** in `/asset buy` and `/asset upgrade` are `+<stat>` or `-<stat>`, one per stat point.
 
@@ -415,7 +415,7 @@ Errors every command can show:
 /oracle [<table>] [<question>]
 ```
 
-With a table, rolls on it, writes the result to the log, and saves. The question, if you give one, is logged with the result. Some tables roll on other tables, and those results appear indented below. `ironlander-name` rolls on one of the two Ironlander name tables, as the rulebook says. `/oracle help` lists the tables in these groups and says what each gives.
+With a table, rolls on it, writes the result to the log, and saves. The question, if you give one, is logged with the result. Some tables call for a roll on other tables, and those results appear indented below. For `ironlander-name`, the app rolls on one of the two Ironlander name tables, as the rulebook says. `/oracle help` lists the tables in these groups and says what each gives.
 
 | Group | Tables |
 |---|---|
@@ -432,7 +432,7 @@ With a table, rolls on it, writes the result to the log, and saves. The question
 Oracle (location): Where does the trail lead? 18: Ruin
 ```
 
-Without a table, `/oracle <question>` asks the decision model whether a yes or no answers the question, and at which likelihood, or which table answers it. The bar switches to [oracle mode](#oracle-mode) with the suggestion, and Enter rolls it. A question whose first word is a table's name rolls that table, so `/oracle location of the camp?` rolls `location`. `/oracle` alone shows every table and likelihood without asking the model. The model never suggests `pay-the-price`, which the Pay the Price move rolls.
+Without a table, `/oracle <question>` asks the decision model whether the question is a yes or no question, and at which likelihood, or which table to roll for it. The bar switches to [oracle mode](#oracle-mode) with the suggestion, and Enter rolls it. If the question's first word is a table's name, the app rolls that table, so `/oracle location of the camp?` rolls `location`. `/oracle` alone shows every table and likelihood without asking the model. The model never suggests `pay-the-price`, which you roll with the Pay the Price move.
 
 ```text
 /oracle Do I know which castle I'm in?
@@ -563,7 +563,7 @@ Changes a value by hand, without a move. `<n>` and `<ticks>` are whole numbers, 
 
 | Form | What it changes |
 |---|---|
-| `health`, `spirit`, `supply` `<n>` | Adds `<n>` to the meter, within 0 and its maximum. A marked wounded stops health from rising, and a marked shaken stops spirit from rising. |
+| `health`, `spirit`, `supply` `<n>` | Adds `<n>` to the meter, within 0 and its maximum. While wounded is marked, health can't rise, and while shaken is marked, spirit can't rise. |
 | `momentum <n>` | Adds `<n>` to momentum, within -6 and the maximum. A loss past -6 logs a note, `Face a Setback: exchange <n> momentum for health, spirit, supply, or progress on a track.`, as a move's loss does. |
 | `experience <n>` | Adds `<n>` to experience, not below 0. |
 | `bonds <n>` | Adds `<n>` ticks to the bonds track, within 0 and 40. |
@@ -593,7 +593,7 @@ Adjust: Find my brother is now 12 ticks
 /endure stress <n>
 ```
 
-Owes Endure Harm (`harm`) or Endure Stress (`stress`) for `<n>` harm or stress, which must be at least 1. In a fight, `/endure harm` with no amount uses the targeted foe's harm, plus 1 after Draw the Circle's "Bare yourself" boast. Use it when the fiction hurts your character and no move result owed the roll, such as a foe's attack or Pay the Price. The move joins the end of the follow-up list, and the suggestion bar asks you to roll it. Logs `<name> faces <n> harm` or `<name> faces <n> stress`, and saves.
+Owes Endure Harm (`harm`) or Endure Stress (`stress`) for `<n>` harm or stress, which must be at least 1. In a fight, `/endure harm` with no amount uses the targeted foe's harm, plus 1 after Draw the Circle's "Bare yourself" boast. Use it when the fiction hurts your character and no move result owed the roll, such as a foe's attack or Pay the Price. The app adds the move to the end of the follow-up list, and the suggestion bar asks you to roll it. Logs `<name> faces <n> harm` or `<name> faces <n> stress`, and saves.
 
 | Error | Cause |
 |---|---|
@@ -705,7 +705,7 @@ Shows every move in the context, then Aid Your Ally and the moves your assets ad
 /quit
 ```
 
-Leaves the app, as Ctrl+Q does. The campaign is already saved, because the app saves after every change. It runs while a roll card waits too, and the card is there when you play again.
+Leaves the app, as Ctrl+Q does. The campaign is already saved, because the app saves after every change. `/quit` works while a roll card waits too, and the card is there when you play again.
 
 ## Settings
 
@@ -717,7 +717,7 @@ The app reads `ironsworn-tui.toml` in the repository root, beside the `ironsworn
 | `target` | `decision-1@foundry` | The jevtester target that answers the decision questions in `play`, and in `suggest` without `--target`. The app also uses it to look up the confidence thresholds in `suites/policies/moves.yaml`. |
 | `campaigns_dir` | `campaigns` | The folder for campaign files. |
 
-A missing key takes its default. A missing or unreadable file, invalid TOML, an unknown key, a value of the wrong type, or a `jevtester_config` key stops the command with `Error:` and the reason, and exit status 2. jevtester reads its settings, including how it signs in to each target, from `jevtester.local.toml` beside `ironsworn-tui.toml` when that file exists, and otherwise from `jevtester.toml`. `jevtester.toml` has placeholders for your Cloudflare account ID and Foundry resource. `jevtester.local.toml` holds your own values, and git ignores it.
+A missing key takes its default. If the file is missing or unreadable, isn't valid TOML, has an unknown key or a value of the wrong type, or has a `jevtester_config` key, the command stops with `Error:` and the reason, and exit status 2. jevtester reads its settings, including how it signs in to each target, from `jevtester.local.toml` beside `ironsworn-tui.toml` when that file exists, and otherwise from `jevtester.toml`. `jevtester.toml` has placeholders for your Cloudflare account ID and Foundry resource. `jevtester.local.toml` contains your values, and git ignores it.
 
 ```toml
 jevtester_project = "~/repos/jevtester"
@@ -737,7 +737,7 @@ campaigns_dir = "campaigns"
 
 ### Case files
 
-When `play` runs with the model, the app saves a case each time you answer a message the model answered: by rolling a move from the suggestion bar, rolling a move with a `/` command such as `/vow swear`, or pressing `n`. The case goes to the end of `suites/play-<context>.yaml`, for the context the message was asked in. Each case has:
+When `play` runs with the model, the app saves a case each time you respond to a message the model answered: by rolling a move from the suggestion bar, rolling a move with a `/` command such as `/vow swear`, or pressing `n`. The case goes to the end of `suites/play-<context>.yaml`, for the context the message was asked in. Each case has:
 
 - An id made from the character's name and the time, such as `blarg-20261025T143012123456`.
 - The state the model saw, and the move you made, with its stat when the move rolls with a chosen stat.

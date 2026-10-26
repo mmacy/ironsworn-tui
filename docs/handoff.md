@@ -6,7 +6,7 @@ If you're new to the code, read [`architecture.md`](architecture.md) for how it'
 
 ## What this project is
 
-ironsworn-tui is a terminal app for solo Ironsworn. A decision model reads what the player types and suggests the triggered move and stat. The player confirms with a keypress, and the app rolls and shows the outcome. The project is also an experiment: the user is learning where decision models work well, so measuring accuracy matters as much as the app.
+ironsworn-tui is a terminal app for solo Ironsworn. A decision model reads what the player types and suggests the triggered move and stat. The player confirms with a keypress, and the app rolls and shows the outcome. The project is also an experiment: the user is learning where decision models work well, so measuring accuracy is as much a goal as the app.
 
 ## Where things are
 
@@ -22,13 +22,13 @@ ironsworn-tui is a terminal app for solo Ironsworn. A decision model reads what 
 
 ## Status
 
-The app is playable. It covers every core move, all 78 assets and their abilities, the 23 asset moves, lasting effects, companions, fights, journeys, vows, and oracles. Each answered message is saved as a jevtester case in `suites/play-<context>.yaml`. [`architecture.md`](architecture.md) describes each module.
+The app is playable. It covers every core move, all 78 assets and their abilities, the 23 asset moves, lasting effects, companions, fights, journeys, vows, and oracles. The app saves each answered message as a jevtester case in `suites/play-<context>.yaml`. [`architecture.md`](architecture.md) describes each module.
 
 On the 120 hand-written recognizer cases, `decision-1@foundry` picks the right move 95 percent of the time on `exploring`, and `clef-flash@workers-ai` 87.5 percent. Play uses the guide criteria, stat questions without a `cannot_tell` option, and the `move` question's `cannot_tell` option. For a question typed after `/oracle` with no table, `decision-1@foundry` told yes or no questions from table questions for all 56 hand-written questions, picked a fitting table for 30 of 33, and an acceptable likelihood for 19 of 21. [`experiments/results.md`](https://github.com/mmacy/ironsworn-tui/blob/main/experiments/results.md) has the numbers and what's unmeasured.
 
 What's open:
 
-- The decision model sees only the core moves. Adding asset moves and ability conditions to its questions needs its own experiment, and that starts only after the user agrees. It's the last part of build step 8 in the plan.
+- The decision model sees only the core moves. Adding asset moves and ability conditions to its questions needs a separate experiment, and that starts only after the user agrees. It's the last part of build step 8 in the plan.
 - Clef-flash's confidence is less calibrated than Decision-1's, so the policy needs per-target thresholds before play relies on Clef-flash.
 - [`decision-model-guidance.md`](decision-model-guidance.md) lists what's still to test about the requests.
 
@@ -38,10 +38,10 @@ Rules for working on the project:
 - Campaign files have a `schema_version`, and a file with any other version doesn't load. Raise `SCHEMA_VERSION` in `campaign.py` when the format changes, with no migration.
 - The user documentation follows the Diataxis framework: the tutorial `getting-started.md`, the task guides `how-to.md`, the reference `reference.md`, and the explanation `playing.md`, all in `docs/`. Update them with any change to a command, key, or rule the app applies.
 - `tests/test_style.py` fails on any `noqa`, `type: ignore`, or `pyright: ignore` in the package or tests.
-- Never use the phrase "What do you do?" in UI text or prose; the user asked for that explicitly.
+- Never use the phrase "What do you do?" in UI text or prose. The user asked for that explicitly.
 - The user said to use `decision-1@foundry` for live calls. The Ollama models aren't downloaded, and won't be while the user is on a hotspot. The user approved `clef-flash@workers-ai` as the second target for the recognizer suites.
 - The user allowed changing `~/repos/jevtester` if it makes sense, for example to send structured criteria.
-- `diary/` holds the dev diary. Add an entry when a piece of work or a decision lands.
+- `diary/` contains the dev diary. Add an entry when you merge a piece of work or make a decision.
 - To check a rule, search the rulebook from `~/repos/shelf-of-holding` with `uv run shelf search "<terms>"`, then `uv run shelf show "DriveThruRPG/Shawn Tomkin/Ironsworn/Ironsworn-Rulebook.pdf" <page>`.
 
 ## How to work
@@ -67,7 +67,7 @@ Fix a finding in the code. Don't add `noqa`, `type: ignore`, or ignore lists.
 
 ## Documentation site
 
-The docs in `docs/` are published as a site built with [Zensical](https://zensical.org/). `zensical.toml` holds the site's settings and navigation. Add a new page to `nav` there, or it won't appear in the site's navigation. The dev diary in `diary/` isn't part of the site.
+The docs in `docs/` are published as a site built with [Zensical](https://zensical.org/). `zensical.toml` contains the site's settings and navigation. Add a new page to `nav` there, or it won't appear in the site's navigation. The dev diary in `diary/` isn't part of the site.
 
 - Build the site with `uv run zensical build --clean`. It writes to `site/`, which git ignores. The build must finish with "No issues found", so fix any broken link or anchor it reports.
 - Preview the site with `uv run zensical serve`.

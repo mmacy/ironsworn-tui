@@ -2,11 +2,11 @@
 
 If you haven't played yet, start with the [tutorial](getting-started.md). For how a move works in the rules, see [How Ironsworn plays in the app](playing.md). For every option of a command, see the [reference](reference.md).
 
-Run the `uv run` commands from the ironsworn-tui folder. In the app, you type actions and `/` commands on the input line at the bottom, which says "Type what your character does, or / for a command". The keys in these guides work when the suggestion bar above the input line has focus. The app gives it focus whenever it has something for you to pick. Press Tab to move focus between the character panel, the log, the bar, and the input line. With focus, the panel and the log scroll with the arrow keys. After a `/` on the input line, Tab completes the command instead.
+Run the `uv run` commands from the ironsworn-tui folder. In the app, you type actions and `/` commands on the input line at the bottom, which says "Type what your character does, or / for a command". The keys in these guides work when the suggestion bar above the input line has focus. The app gives the bar focus whenever it has something for you to pick. Press Tab to move focus between the character panel, the log, the bar, and the input line. When the panel or the log has focus, the arrow keys scroll it. After a `/` on the input line, Tab completes the command instead.
 
 ## How to set up the model target
 
-Do this before your first `play` without `--no-model`, or when you switch to another model.
+Do this before you first run `play` without `--no-model`, or when you switch to another model.
 
 The decision model suggests which move your action triggers. The app reaches it through jevtester. jevtester uses your Azure or Cloudflare sign-in, and the app stores no keys.
 
@@ -32,7 +32,7 @@ To use `decision-1@foundry`, which is the default:
    az login
    ```
 
-2. Open `ironsworn-tui.toml` in the ironsworn-tui folder, and check that `target` names the model:
+2. Open `ironsworn-tui.toml` in the ironsworn-tui folder, and check that `target` is set to the model:
 
    ```toml
    target = "decision-1@foundry"
@@ -82,7 +82,7 @@ Use this when you have no network, no sign-in, or want to pick every move yourse
 
 You can also type `/moves` to open the full list without typing a message first.
 
-With the model, the app saves each message it answered, with the move you made, as a test case in `suites/play-<context>.yaml`. Without the model, it saves none.
+With the model, the app saves each message the model answered, with the move you made, as a test case in `suites/play-<context>.yaml`. Without the model, it saves none.
 
 ## How to create a character with specific stats and assets
 
@@ -90,7 +90,7 @@ Use this to start a campaign with the character you planned on paper.
 
 Before you start, choose:
 
-- A name. The name also names the campaign file.
+- A name. The campaign file gets the same name.
 - Your stats. Give 3 to one stat, 2 to two stats, and 1 to the other two.
 - Three asset ids. Run `new` with `--assets help` to print every id by category. It creates nothing. In a campaign, `/asset list` shows them too.
 - For a companion, the ability it starts with, from 1 to 3.
@@ -99,7 +99,7 @@ Before you start, choose:
 
 Steps:
 
-1. Run `new`. Write each companion as its id, a colon, and the ability number, such as `hawk:2`:
+1. Run `new`. Write each companion as its id, a colon, and the ability number, like `hawk:2`:
 
    ```sh
    uv run ironsworn-tui new Blarg --description "the Destructor" --stats edge=2,heart=2,iron=1,shadow=1,wits=3 --assets archer,hawk:2,wright --vow "Avenge my village"
@@ -109,22 +109,22 @@ Steps:
 
    - `--rank` sets the background vow's rank. It's `epic` unless you give another rank: `troublesome`, `dangerous`, `formidable`, or `extreme`.
    - `--harm 1` means your character doesn't carry a deadly weapon. The default is 2.
-   - `--bond` names a background bond, such as `--bond "My sister Ash"`. Repeat it for up to three bonds. Each one marks a tick on your bonds track.
+   - `--bond` adds a background bond, like `--bond "My sister Ash"`. Repeat it for up to three bonds. Each one marks a tick on your bonds track.
 
-The command prints the path of the new campaign file, such as `campaigns/Blarg.json`. If something is wrong, it prints an error and creates nothing. For example:
+The command prints the path of the new campaign file, for example `campaigns/Blarg.json`. If something is wrong, it prints an error and creates nothing. For example:
 
 - "Error: Hawk starts with no ability marked; pick one from 1 to 3" means you left off the companion's ability, as in `hawk` instead of `hawk:2`.
 - "Error: give the five stats, edge, heart, iron, shadow, and wits, the values 3, 2, 2, 1, and 1" means the stats don't add up that way.
 - "Error: there's no asset 'wrigt'. Did you mean wright?" means an id is misspelled.
 - "Error: a campaign named Blarg already exists" means you made this character before. See [How to start a character over](#how-to-start-a-character-over).
 
-You can't start with the first ability of Battle-scarred or Shadow-kin, because it changes your stats when you mark it. You can start with either asset's second or third ability, such as `shadow_kin:2`. To get the first ability, buy or upgrade it in play, as [How to spend experience on an asset](#how-to-spend-experience-on-an-asset) shows.
+You can't start with the first ability of Battle-scarred or Shadow-kin, because it changes your stats when you mark it. You can start with either asset's second or third ability, like `shadow_kin:2`. To get the first ability, buy or upgrade it in play, as [How to spend experience on an asset](#how-to-spend-experience-on-an-asset) shows.
 
 To name a companion, see [How to look after a companion](#how-to-look-after-a-companion).
 
 ## How to start a character over
 
-Use this to throw away a campaign and create the character again, such as after a practice session.
+Use this to throw away a campaign and create the character again, for example after a practice session.
 
 Run `new` with the same name and add `--overwrite`:
 
@@ -173,7 +173,7 @@ To fulfill a vow:
 
 2. The bar shows a progress roll. Pick any choice the card asks for, then press Enter.
 
-On a hit, the vow leaves the panel and you get experience. On a miss, the card asks you to recommit or forsake the vow.
+On a hit, the panel no longer shows the vow, and you get experience. On a miss, the card asks you to recommit or forsake the vow.
 
 Type `/vow` alone to list your vows. Type `/vow forsake` and a vow's name to give one up. You need to type the vow's name exactly as you swore it.
 
@@ -198,19 +198,19 @@ The panel now shows "Fight", who has initiative, and each foe's progress track. 
 To attack:
 
 1. Type what your character does, like `I swing my axe`, and press Enter.
-2. Pick "Attack". Attack is Strike when you have initiative and Clash when the foe does, and the bar shows which, such as "Attack (Strike)".
+2. Pick "Attack". Attack is Strike when you have initiative and Clash when the foe does, and the bar shows which, like "Attack (Strike)".
 3. Set the stat with i or e, and press Enter to roll.
 4. Pick any choices on the card, then press Enter.
 
-To attack a different foe, type `/target` and its name, such as `/target Archer`.
+To attack a different foe, type `/target` and its name, like `/target Archer`.
 
 To end the fight:
 
-1. After a strong hit on a move in the fight, such as Strike, Clash, or Face Danger, when the target has at least one full box, the bar shows "End the Fight".
+1. After a strong hit on a move in the fight, like Strike, Clash, or Face Danger, when the target has at least one full box, the bar shows "End the Fight".
 2. If you meant the move as a decisive action, press f to roll End the Fight. Press Escape instead to keep fighting.
 3. Pick any choices on the card, then press Enter.
 
-On a hit, the foe leaves the fight. When no foes are left, the "Fight" section leaves the panel, and the move list goes back to the moves you use outside a fight.
+On a hit, the foe leaves the fight. When no foes are left, the panel no longer shows the "Fight" section, and the move list goes back to the moves you use outside a fight.
 
 To end a fight in another way, like when you flee, lose, or settle it with Battle, type `/adjust fight end`.
 
@@ -234,7 +234,7 @@ To reach your destination:
 3. Press Enter to make the progress roll.
 4. Pick any choices on the card, then press Enter.
 
-On a hit, the journey ends and leaves the panel. On a miss, the card asks whether the journey continues or ends.
+On a hit, the journey ends, and the panel no longer shows it. On a miss, the card asks whether the journey continues or ends.
 
 ## How to ask the oracle or roll on an oracle table
 
@@ -249,19 +249,19 @@ To ask a yes or no question:
    /ask almost certain Do I know which castle I'm in?
    ```
 
-The log shows the answer with your question, such as "Ask (almost certain): Do I know which castle I'm in? 34: yes". When the roll is a match (11, 22, and so on to 99, or 100), it adds "match". `/ask help` explains the odds.
+The log shows the answer with your question, for example "Ask (almost certain): Do I know which castle I'm in? 34: yes". When the roll is a match (11, 22, and so on to 99, or 100), the log adds "match". `/ask help` explains the odds.
 
 To roll on a table:
 
 1. Type `/oracle ` with a space. The input line lists the tables in dim text.
-2. Type part of a name to narrow the list, such as `name`, press Up or Down to pick a table, and press Tab to complete it.
+2. Type part of a name to narrow the list, like `name`, press Up or Down to pick a table, and press Tab to complete it.
 3. Add a question if you like, and press Enter:
 
    ```text
    /oracle location Where does the trail lead?
    ```
 
-The log shows the table, your question, the roll, and the result, such as "Oracle (location): Where does the trail lead? 18: Ruin". `/oracle help` lists the tables in groups and says what each one gives.
+The log shows the table, your question, the roll, and the result, for example "Oracle (location): Where does the trail lead? 18: Ruin". `/oracle help` lists the tables in groups and says what each one gives.
 
 To let the app pick the table or the likelihood:
 
@@ -271,7 +271,7 @@ To let the app pick the table or the likelihood:
    /oracle Do I know which castle I'm in?
    ```
 
-2. The suggestion bar shows the question and the oracles to roll. When the decision model is confident, it selects one: a likelihood, such as `Ask unlikely`, for a yes or no question, or a table, such as `location`.
+2. The suggestion bar shows the question and the oracles to roll. When the decision model is confident, it selects one: a likelihood, like `Ask unlikely`, for a yes or no question, or a table, like `location`.
 3. Press Enter to roll the selected one, or press another option's key first. When nothing is selected, pick one with its key.
 
 The log shows the answer with your question, as if you had typed `/ask` or `/oracle` with the table. Press Escape to leave the question without a roll.
@@ -286,7 +286,7 @@ Use this to record a clue, a name, or a question you want to come back to.
    /note The ferryman is named Oda
    ```
 
-The note appears in the log in bold italic, and it's saved with the campaign.
+The note appears in the log in bold italic, and the app saves it with the campaign.
 
 ## How to find a command or its options
 
@@ -294,10 +294,10 @@ Use this when you don't remember a command's name or what it takes.
 
 1. Type `/`. The input line lists every command in dim text after the cursor.
 2. Type letters to narrow the list. Names that start with the letters come first, then names that contain them.
-3. Press Up or Down to select an option, and press Tab to complete it. When more follows, Tab adds a space and the line lists the next options, such as your vows after `/vow mark `.
+3. Press Up or Down to select an option, and press Tab to complete it. When the command takes more, Tab adds a space, and the input line lists the next options, like your vows after `/vow mark `.
 4. Press Escape to hide the list. Tab shows it again.
 
-Type `/help` for every command with a summary, or add `help` after a command, such as `/asset help`, for what it does and an example.
+Type `/help` for every command with a summary, or add `help` after a command, like `/asset help`, for what it does and an example.
 
 ## How to spend experience on an asset
 
@@ -313,7 +313,7 @@ To buy a new asset:
    /asset show owl
    ```
 
-2. Type `/asset buy` and the asset. For an asset that starts with no ability marked, such as a companion, add the number of the ability to mark:
+2. Type `/asset buy` and the asset. For an asset that starts with no ability marked, like a companion, add the number of the ability to mark:
 
    ```text
    /asset buy owl 3
@@ -345,7 +345,7 @@ Use this when one of your assets helps with the move you're about to make, or wi
 
 To turn an ability on before you roll:
 
-1. Select the move on the bar. When an ability applies, the hint line ends with "a abilities" and a count, such as "a abilities (1)".
+1. Select the move on the bar. When an ability applies, the hint line ends with "a abilities" and a count, like "a abilities (1)".
 2. Press a. A window titled "Abilities for" and the move's name lists the abilities.
 3. Press the number of each ability you want. Each one you turn on shows `[x]`.
 4. Press Enter to close the window. The bar shows "Abilities:" and the ones you turned on.
@@ -368,7 +368,7 @@ To burn momentum:
 
 1. When burning momentum would improve the result, the hints include "b burn momentum". Press b.
 
-Each of these redraws the card. Then pick any choices and press Enter to apply.
+After each of these, the app redraws the card. Then pick any choices and press Enter to apply.
 
 The model doesn't suggest the moves your assets add, like a ritual's. They appear at the end of the `/moves` list. Select one with the arrow keys and press Enter to roll it.
 
@@ -394,7 +394,7 @@ To have a companion take harm:
    /asset harm hawk 2
    ```
 
-2. The bar shows "Companion Endure Harm" and "Enter roll (2)". Press Enter. The companion loses the health first, then rolls.
+2. The bar shows "Companion Endure Harm" and "Enter roll (2)". Press Enter. The companion loses the health before the roll.
 3. Pick any choices on the card, then press Enter.
 
 In `/asset` commands, you can use the companion's asset id, its asset name, or the name you gave it, like `hawk` or `Kestrel`.
@@ -403,7 +403,7 @@ To heal a companion:
 
 1. Type what your character does, like `I bind Kestrel's wing`, and press Enter. If the model doesn't offer Heal, type `/moves` and press 4.
 2. Press Enter. The app picks the stat for Heal, so you don't set one.
-3. A form titled "Heal" asks for "Treat". Type the companion's name, such as `Kestrel` or `hawk`, and press Enter.
+3. A form titled "Heal" asks for "Treat". Type the companion's name, like `Kestrel` or `hawk`, and press Enter.
 4. Pick any choices on the card, then press Enter.
 
 To change a companion's health directly, type `/asset meter hawk health 1` to add 1, or `/asset meter hawk health -1` to take 1 away.
@@ -412,8 +412,8 @@ To change a companion's health directly, type `/asset meter hawk health 1` to ad
 
 Use this when an asset leaves an effect that lasts beyond one roll, like a talisman or a ritual's power.
 
-1. Create the effect. Most effects come from asset moves, such as a ritual's, which you make from the `/moves` list. Slayer's trophy comes from `/asset use slayer ritual` or `/asset use slayer sojourn`. The log shows "Lasting effect:" and the effect's name.
-2. Type `/effects` to list your lasting effects. Each line has a number and a name, such as "1 Talisman".
+1. Create the effect. Most effects come from asset moves, like a ritual's, which you make from the `/moves` list. Slayer's trophy comes from `/asset use slayer ritual` or `/asset use slayer sojourn`. The log shows "Lasting effect:" and the effect's name.
+2. Type `/effects` to list your lasting effects. Each line has a number and a name, like "1 Talisman".
 3. When an effect helps a roll, it appears in the abilities window with your assets' abilities. Turn it on there, as in [How to use an asset ability on a roll](#how-to-use-an-asset-ability-on-a-roll).
 
 Most effects end on their own, as their rules say: when you use them, when the action die shows 1, or when health, spirit, or momentum drops to 0. Some, like Communion's "Speaking with the spirit", last until you say they're done.
@@ -431,35 +431,35 @@ To end an effect yourself:
 
 Use this when a result says you owe another move, like Endure Harm, Pay the Price, or Face Death.
 
-When a move is owed, the bar shows its name in bold, and you can't type a new action until you make it. `/` commands still work.
+When you owe a move, the bar shows its name in bold, and you can't type a new action until you make it. `/` commands still work.
 
 1. Read the hint under the move's name, and press the key it shows:
 
    | The bar shows | Press |
    |---|---|
-   | Endure Harm, Endure Stress, Companion Endure Harm | Enter to roll. The number in "Enter roll (2)" is the harm or stress, which applies before the roll. |
+   | Endure Harm, Endure Stress, Companion Endure Harm | Enter to roll. The number in "Enter roll (2)" is the harm or stress, which you take before the roll. |
    | Face Death, Face Desolation, Scrape By | Enter to roll. |
    | Pay the Price | o for the most obvious outcome, a to ask the oracle, or t to roll on the table. |
    | Forsake Your Vow | Enter to forsake the vow. |
 
 2. If a roll card appears, pick any choices, then press Enter.
 
-The app makes the owed moves one at a time, in order. They're saved with the campaign, so they're still waiting if you quit and come back.
+The app makes the owed moves one at a time, in order. The app saves them with the campaign, so they're still waiting if you quit and come back.
 
 If you press a before an Endure Harm or Endure Stress roll, you can turn on the abilities that help, as on any roll.
 
-Pay the Price only logs what happens. If the price is harm or stress, or a foe's attack hurts you, owe the roll yourself:
+Pay the Price only logs what happens. If the price is harm or stress, or a foe's attack hurts you, add the roll you owe yourself:
 
 1. Type `/endure harm 2` for 2 harm, or `/endure stress 1` for 1 stress. For a foe's attack, type `/endure harm` with no amount, and the app uses the targeted foe's harm, including Draw the Circle's "Bare yourself" boast.
 2. The bar shows Endure Harm or Endure Stress. Press Enter to roll.
 
-For other prices, such as lost supply, use `/adjust`, as the next guide shows.
+For other prices, like lost supply, use `/adjust`, as the next guide shows.
 
 ## How to fix a mistake or apply a rule the app doesn't
 
 Use this when a number is wrong, or when the log tells you to apply something yourself.
 
-`/adjust` changes the campaign directly, with no roll. The log records each change, such as "Adjust: Health -2, now 3".
+`/adjust` changes the campaign directly, with no roll. The log records each change, for example "Adjust: Health -2, now 3".
 
 1. Type `/adjust` and what to change. Common forms:
 
@@ -503,8 +503,8 @@ The app opens with the panel as you left it and the last 200 lines of the log. I
 
 To find the campaign file:
 
-1. The file is `campaigns/<name>.json` in the ironsworn-tui folder, such as `campaigns/Blarg.json`.
-2. If `ironsworn-tui.toml` sets `campaigns_dir`, the file is in that folder instead. A relative path there starts at the ironsworn-tui folder, and `~` means your home folder.
+1. The file is `campaigns/<name>.json` in the ironsworn-tui folder, for example `campaigns/Blarg.json`.
+2. If `ironsworn-tui.toml` sets `campaigns_dir`, the file is in that folder instead. A relative path there is relative to the ironsworn-tui folder, and `~` means your home folder.
 
 The app saves the file after every change, so there's no save command. To quit, type `/quit` or press Ctrl+Q.
 

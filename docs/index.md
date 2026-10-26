@@ -28,7 +28,7 @@ uv run ironsworn-tui play Blarg
 
 There's no separate install step. The first time you run `uv run`, uv installs the app's dependencies.
 
-Type what Blarg does and press Enter. When the app suggests a move, press Enter to roll it, then Enter again to apply the result. Press Ctrl+Q to quit. The app saves your campaign after every turn, so `play Blarg` picks up where you stopped.
+Type what Blarg does and press Enter. When the app suggests a move, press Enter to roll it, then Enter again to apply the result. Press Ctrl+Q to quit. The app saves your campaign after every turn, so when you run `play Blarg` again, you pick up where you stopped.
 
 ## Documentation
 
