@@ -40,14 +40,14 @@ The app works without a server. `ironsworn-tui play --no-model` starts none, and
 | `app.py` | The Textual app: the character panel, the log, the suggestion bar, the input line with its command completion (`CommandInput`), and the pop-up screens for inputs, boosts, and dice. It calls the turn engine and the commands for everything except drawing the screen. |
 | `commands.py` | The `/` commands, like `/oracle`, `/vow`, and `/asset`, and `REGISTRY`, which describes each command's arguments, options, and help. It has no UI code. |
 | `oracles.py` | The oracles the player rolls: the likelihoods for `/ask`, the oracle tables by short name, and `ASKED_TABLES`, the tables the decision model can suggest. |
-| `registry.py` | The registry's building blocks: `Arg`, `Command`, and `Registry`, which parses a command line, completes it, and writes its help and usage. Parsing, completion, and help all read the same registry, so they can't disagree. It has no UI code. |
+| `registry.py` | The registry's building blocks: `Arg`, `Command`, and `Registry`, which parses a command line, completes it, and writes its help and usage. Parsing, completion, and help all come from the same registry, so they can't disagree. It has no UI code. |
 | `turn.py` | The turn engine, `TurnEngine`. It takes one chat message from text to applied outcome, with no UI code. |
 | `campaign.py` | The saved campaign: the character, vows, bonds, foes, journey, follow-ups, lasting effects, and log. The campaign is a set of pydantic models, saved as JSON. |
 | `assets.py` | Owning assets: buying and upgrading them with experience, and changing their meters, fields, and debilities. |
 | `outcomes.py` | What each move's result does to the campaign, as a hand-written table of effects. |
 | `abilities.py` | What each asset ability does to a roll, as a hand-written table of boosts. It also defines the lasting effects. |
 | `moves.py` | Which moves the chat can trigger in each context, and the stat question for each move. |
-| `criteria.py` | The descriptions of the `move` question's options, in two styles, and of the oracle questions' options. Play uses `guide`. `trigger` uses the trigger text from Datasworn, a machine-readable copy of Ironsworn's moves, assets, and oracle tables. The recognizer experiment still uses `trigger`. |
+| `criteria.py` | The descriptions of the `move` question's options, in two styles, and of the oracle questions' options. Play uses the `guide` style. The `trigger` style uses the trigger text from Datasworn, a machine-readable copy of Ironsworn's moves, assets, and oracle tables. The recognizer experiment still uses `trigger`. |
 | `decide.py` | Builds the turn's and the oracle's decision requests, runs `jevtester serve`, sends requests to it, and parses the answers. |
 | `policy.py` | Turns a decision into a suggestion, with the thresholds in `suites/policies/moves.yaml` and `suites/policies/oracle.yaml`. |
 | `cases.py` | Builds the jevtester case for an answered turn or oracle question, labeled with what the player did. |
@@ -73,9 +73,9 @@ The rules package is a typed port of `iron.py` from the Ironsworn referee plugin
 
 | Folder | What it contains |
 |---|---|
-| `ironsworn_tui/data/datasworn/` | The Datasworn data for Ironsworn, copied unchanged from the referee plugin. `datasworn.py` reads `moves.yaml`, `npcs.yaml`, `rules.yaml`, and the YAML files in `assets/` and `oracles/`. No code reads `atlas.yaml` or `truths.yaml` yet. `LICENSE.md` gives the upstream commit and the licenses. |
+| `ironsworn_tui/data/datasworn/` | The Datasworn data for Ironsworn, copied unchanged from the referee plugin. `datasworn.py` reads `moves.yaml`, `npcs.yaml`, `rules.yaml`, and the YAML files in `assets/` and `oracles/`. The code doesn't read `atlas.yaml` or `truths.yaml` yet. `LICENSE.md` gives the upstream commit and the licenses. |
 | `suites/` | jevtester files. `play-<context>.yaml` and `play-oracle.yaml` contain the cases saved in play. `recognizer-*.yaml` are the experiments' suites, `question-sets/` contains the questions each suite asks, and `policies/` contains the thresholds. `write-suites` regenerates the question sets and recognizer suites. It never rewrites a play suite, because play suites contain the cases saved in play. |
-| `experiments/` | `recognizer-phrasings.yaml`, the hand-written player messages the move recognizer suites are built from; `oracle-phrasings.yaml`, the hand-written oracle questions `recognizer-oracle` is built from; and `results.md`, the accuracy results. |
+| `experiments/` | `recognizer-phrasings.yaml` contains the hand-written player messages that the move recognizer suites are built from. `oracle-phrasings.yaml` contains the hand-written oracle questions that `recognizer-oracle` is built from. `results.md` contains the accuracy results. |
 | `scripts/` | `screenshots.py`, which draws the SVG screenshots in `docs/images/`. |
 | `tests/` | The tests. `tests/fixtures/` contains recorded jevtester responses. |
 | `diary/` | The dev diary, one entry per milestone. It isn't part of the docs site. |
@@ -100,25 +100,25 @@ Only `app.py` imports Textual or Rich. Inside the package, only `cli.py` imports
 
 ### Where the code breaks the layering
 
-These imports break the layering. They're still in the code:
+These imports break the layering:
 
 - `outcomes.py` imports the `Meter` and `Debility` types from `campaign.py`. So layer 3 depends on layer 4, though only for two type aliases. There's no import cycle, because `campaign.py` imports neither `outcomes.py` nor `abilities.py`. Moving the two aliases below both modules would fix it.
 - `scripts/screenshots.py` imports `STATS`, `Dice`, `FixtureDecider`, and `engine` from `tests/support.py`. A change to the test helpers can break the script.
 
 ## One turn, end to end
 
-The module docstring of `turn.py` gives the order the app calls the engine in. This section follows one turn through the code.
+The module docstring of `turn.py` gives the order the app calls the engine in.
 
 1. **The player types.** `IronswornApp.submit` refuses every line while a roll card is waiting, and every line but a `/` command while a follow-up is owed. A line that starts with `/` goes to `run_command`. Any other line goes to `TurnEngine.log_message`, which logs and saves it.
 2. **The app asks the decision model.** `IronswornApp.ask` runs `TurnEngine.decide` in a worker thread, so the screen stays responsive. `decide` only reads the campaign. It builds a `TurnState` from the campaign and calls `decide.build_request`. The request has a `move` question and a stat question for each move that offers a choice of stats. The `move` question has one option per move in the context, plus `no_move` and `cannot_tell`. A `JevtesterClient` sends the request, and `parse_decision` returns a `Decision`.
-3. **The policy makes a suggestion.** `policy.suggest` turns the `Decision` into a `Suggestion` with a *band*, a label for how many moves the bar offers. At or above the `act` threshold of 0.7, the bar preselects the one move. At or above the `confirm` threshold of 0.4, it offers the top two. Below that, or when the request failed, the band is `escalate` and the bar offers the full list. When the top answer is `no_move` or `cannot_tell`, the band is `no_roll`. Back on the UI thread, `IronswornApp.answer` calls `TurnEngine.accept`. The engine keeps the decision, so the player's move can label it later.
+3. **The policy makes a suggestion.** `policy.suggest` turns the `Decision` into a `Suggestion` with a *band*, a label for how many moves the bar offers. At or above the `act` threshold of 0.7, the bar preselects the one move. At or above the `confirm` threshold of 0.4, it offers the top two. Below that, or when the request failed, the band is `escalate` and the bar offers the full list. When the top answer is `no_move` or `cannot_tell`, the band is `no_roll`. Back on the UI thread, `IronswornApp.answer` calls `TurnEngine.accept`. The engine keeps the decision, so it can label the case with the player's move later.
 4. **The player confirms.** The bar is in its `suggest` mode. The player picks a move, a stat, an add, and any boosts, then presses Enter. If the move needs inputs, like a vow's name and rank, `InputsScreen` asks for them first.
 5. **The engine rolls.** `TurnEngine.make_move` runs every check first. Then it changes the campaign, rolls, and returns a `RollCard`. The card contains the roll, the result, and the effects from `outcomes.outcome`, changed by the boosts the player turned on. `burn`, `reroll`, and `late_add` can change the card before it resolves.
 6. **The player picks choices.** In `card` mode, the player picks options for each `Choose` effect on the card.
-7. **The engine resolves the card.** `TurnEngine.resolve` checks the choices against the card and applies each effect. In a fight, it updates initiative. It logs the result's text, the picks, each change, and a `next` line, then saves the campaign and returns the follow-ups still owed. The changes come from comparing a snapshot of the campaign, `TurnEngine._state`, before and after, so a new effect kind is logged without its own log code.
+7. **The engine resolves the card.** `TurnEngine.resolve` checks the choices against the card and applies each effect. In a fight, it updates initiative. It logs the result's text, the picks, each change, and a `next` line, then saves the campaign and returns the follow-ups still owed. The changes come from comparing a snapshot of the campaign, `TurnEngine._state`, before and after, so a new effect kind needs no code to log it.
 8. **Follow-ups are owed.** A `FollowUp` effect adds an `OwedMove` to `Campaign.follow_ups`. In `follow_up` mode, the player makes each one in order. Pay the Price goes to `pay_the_price` and Forsake Your Vow to `forsake`. The rolled follow-ups go to `roll_follow_up`: Endure Harm, Endure Stress, Companion Endure Harm, Face Death, Face Desolation, and Scrape By.
 9. **The engine saves the campaign.** `TurnEngine.save` calls `Campaign.save`. It writes the JSON to a temporary file, then replaces the real file, so a crash can't leave half a file. The engine saves after each change.
-10. **The engine logs the case.** The player's move, or `n` for no move, calls `TurnEngine._record`. It builds a case with `cases.build_case` and sends it to the server, which adds it to `suites/play-<context>.yaml`. If the player didn't take the model's top answer, the case is tagged. The tag is `abstained` when that answer was `cannot_tell`, and `corrected` otherwise. Escape calls `TurnEngine.skip`, which saves nothing.
+10. **The engine logs the case.** When the player makes a move, or presses `n` for no move, `make_move` or `no_move` calls `TurnEngine._record`. It builds a case with `cases.build_case` and sends it to the server, which adds it to `suites/play-<context>.yaml`. If the player didn't take the model's top answer, the case is tagged. The tag is `abstained` when that answer was `cannot_tell`, and `corrected` otherwise. Escape calls `TurnEngine.skip`, which saves nothing.
 
 `TurnEngine.suggest` does steps 1 to 3 in one call, with no worker thread. The tests use it.
 
@@ -129,7 +129,7 @@ The module docstring of `turn.py` gives the order the app calls the engine in. T
 3. **The policy makes a suggestion.** `policy.suggest_oracle` puts the kind the model chose first: the likelihoods or the tables, each most probable first. The band is `act`, which preselects the first option, when the `kind` confidence is at least `act` and the chosen likelihood's or table's probability at least `pick`, from `suites/policies/oracle.yaml`. Otherwise it's `escalate`. When the request failed or the kind is `cannot_tell`, the options are every table, then every likelihood. `TurnEngine.accept_oracle` keeps the decision.
 4. **The player confirms.** In `oracle` mode, Enter calls `TurnEngine.answer_oracle` with the option and the question. It calls `ask_yes_no` or `roll_table`, which log the question with the answer, then saves the case with `cases.build_oracle_case` to `play-oracle`. Escape calls `skip_oracle`. Either way, the bar returns to `BarState.resume` if there was one.
 
-The engine stores the owed follow-ups, the next move's add, Turn the Tide, the End the Fight offer, Draw the Circle's harm boasts, and a rolled card that isn't resolved in the campaign, so they survive a restart. It doesn't store a decision waiting for a move.
+The engine stores these in the campaign, so they survive a restart: the owed follow-ups, the next move's add, Turn the Tide, the End the Fight offer, Draw the Circle's harm boasts, and a rolled card that isn't resolved. It doesn't store a decision waiting for a move.
 
 `TurnEngine.save` writes the waiting card to `Campaign.pending_card` as a `SavedCard`: the move, the dice, the boosts, and the facts the outcome depends on. The card's effects aren't saved. When an engine starts on a campaign with a saved card, `TurnEngine._restore` works the effects out again with `_card`, against the campaign as it was saved with the card. So a new fact that changes a card's effects must go in `_Pending` and `SavedCard` too, or a restored card can differ.
 
@@ -214,14 +214,14 @@ After each change, run the gates in [Testing](#testing). If your change affects 
 
 1. In `abilities.py`, find the ability in `ABILITIES` by `(asset id, ability number)`. Abilities are numbered from 1. Replace its `Reminder` with a tuple of `Boost`s, or edit the boosts it has. Each `Boost` has a `label`, the `moves` it applies to, and fields for what it changes.
 2. If your boost needs a new kind of change, add a field to `Boost`. Then handle it in `turn.py`, usually in `TurnEngine._why_not` or `make_move`, or in `abilities.boost_effects`.
-3. Test the table in `tests/test_abilities.py`, which checks that boosts name real moves and stats the data offers. Test the boost on a roll in `tests/test_boosts.py`, with `engine()` from `tests/support.py`.
+3. Test the table in `tests/test_abilities.py`, which checks that each boost refers to real moves and to stats the data offers. Test the boost on a roll in `tests/test_boosts.py`, with `engine()` from `tests/support.py`.
 
 A lasting effect works the same way. Add a `LastingKind` to `LASTING`, and an `AddLasting` effect to the outcome that starts it.
 
 ### Add a `/` command
 
-1. In `commands.py`, write a `_name(engine, values) -> CommandResult` function. `values` holds one string for each argument given, already checked against the argument's options. Raise `UsageError` for a bad argument the registry can't check, so the error shows the usage, and `CommandError` for anything else. Change the campaign through a `TurnEngine` method where one exists, log what changed, and call `engine.save()`.
-2. Add a `Command` to `REGISTRY` with the name, a one-line summary, the function, and an `Arg` for each argument. Give an `Arg` fixed options as a tuple, or a function of the engine and the earlier values for options that depend on the campaign, such as vow names. For a command with forms, such as `/vow swear`, give `subcommands` instead. Write `help` for a new player and at least one example. Completion, `/help`, and the usage in errors come from this entry.
+1. In `commands.py`, write a `_name(engine, values) -> CommandResult` function. `values` contains one string for each argument given, already checked against the argument's options. Raise `UsageError` for a bad argument the registry can't check, so the error shows the usage, and `CommandError` for anything else. Change the campaign through a `TurnEngine` method where one exists, log what changed, and call `engine.save()`.
+2. Add a `Command` to `REGISTRY` with the name, a one-line summary, the function, and an `Arg` for each argument. Give an `Arg` fixed options as a tuple, or a function of the engine and the earlier values for options that depend on the campaign, like vow names. For a command with forms, like `/vow swear`, give `subcommands` instead. Write `help` for a new player and at least one example. Completion, `/help`, and the usage in errors come from this entry.
 3. If your command needs new engine behavior, add a public method to `TurnEngine` in `turn.py`.
 4. Test the command in `tests/test_commands.py` with `run_command(engine, "/name ...")`, and its options in `tests/test_registry.py` with `REGISTRY.complete`. `test_every_command_has_plain_help` checks the help. Document it in `docs/reference.md`.
 
@@ -241,7 +241,7 @@ First read [`decision-model-guidance.md`](decision-model-guidance.md). It lists 
 1. Make the change. The question text is in `decide.py` (`MOVE_INSTRUCTIONS` and `STAT_INSTRUCTIONS`, and `KIND_INSTRUCTIONS`, `LIKELIHOOD_INSTRUCTIONS`, and `TABLE_INSTRUCTIONS` for the oracle). The state the model sees comes from `TurnState.to_json`. The option descriptions are in `criteria.py`, and the moves each context offers are in `moves.py`.
 2. Run `uv run ironsworn-tui write-suites` to regenerate the question sets and recognizer suites. `tests/test_experiment.py` fails until they match what play sends.
 3. Re-record `tests/fixtures/decide-exploring-ditch.json`, because `tests/test_decide.py` checks that its request still matches `build_request`. `tests/fixtures/README.md` describes the fixtures.
-4. Before play relies on the change, measure it on the recognizer suites with `jevtester run` and `jevtester report`. Record the numbers in `experiments/results.md`. The oracle questions have their own suite, `recognizer-oracle`.
+4. Before play relies on the change, measure it on the recognizer suites with `jevtester run` and `jevtester report`. Record the numbers in `experiments/results.md`. The oracle questions have a separate suite, `recognizer-oracle`.
 
 A new `move` option also needs a rule in `suites/policies/moves.yaml`. A new table in `oracles.ASKED_TABLES` needs a description in `criteria.py` and a rule in `suites/policies/oracle.yaml`, and the `table` question must stay at 26 options or fewer.
 
@@ -262,7 +262,7 @@ The docs site has a separate check: `uv run zensical build --clean` must report 
 
 ### Test layout
 
-Most modules have a test file named after them. For example, `test_turn.py` tests `turn.py`, and `test_progress.py` tests `rules/progress.py`. `policy.py` has no file of its own: `test_turn.py` tests its bands, and `test_experiment.py` tests the policy file. A few features have separate files:
+Most modules have a test file named after them. For example, `test_turn.py` tests `turn.py`, and `test_progress.py` tests `rules/progress.py`. `policy.py` has no test file: `test_turn.py` tests its bands, and `test_experiment.py` tests the policy file. A few features have separate files:
 
 - `test_boosts.py` tests boosts on a roll.
 - `test_asset_moves.py` tests asset moves, lasting effects, and companions.

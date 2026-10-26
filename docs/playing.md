@@ -1,6 +1,6 @@
 # How Ironsworn plays in ironsworn-tui
 
-ironsworn-tui applies most of the rules of *Ironsworn* for you, and leaves the story and the choices to you. For each rule below, you'll find what it means in the game, what the app does about it, and what you still decide or apply yourself. You don't need to have played Ironsworn before, but finish [Getting started](getting-started.md) first.
+ironsworn-tui applies most of the rules of *Ironsworn* for you, and leaves the story and the choices to you. You don't need to have played Ironsworn before, but finish [Getting started](getting-started.md) first.
 
 For step-by-step tasks, like running a fight or buying an asset, see [How-to guides](how-to.md). For every command and key, see the [Reference](reference.md).
 
@@ -32,7 +32,7 @@ In the app, a turn goes like this:
 5. You make the choices, and the app applies the result.
 6. If the result calls for another move, like Endure Harm, the app asks you to make it next.
 
-The log keeps a record of each turn, so you can learn the rules as you play. The first time you make a move, the log says what the move is for. Then it shows the roll, the result's text from the rulebook, the options you picked, and each change with its new value, such as "Momentum +2 (now 4)." When the result asks something of you that the app can't do, a line that starts with "Next:" says what it is. For example, Gather Information's strong hit says to envision what you learn, so the log says "Next: imagine what you learn and type it, or ask the oracle." "Envision" is the rulebook's word for imagining what happens in the story.
+The log records each turn, so you can learn the rules as you play. The first time you make a move, the log says what the move is for. Then it shows the roll, the result's text from the rulebook, the options you picked, and each change with its new value, like "Momentum +2 (now 4)." When the result calls for something the app can't do, a line that starts with "Next:" says what it is. For example, Gather Information's strong hit says to envision what you learn, so the log says "Next: imagine what you learn and type it, or ask the oracle." "Envision" is the rulebook's word for imagining what happens in the story.
 
 How much the suggestion bar offers depends on the model's confidence:
 
@@ -45,9 +45,9 @@ If a move lets you choose a stat, the model also suggests one. You can change it
 
 The moves on offer depend on where you are. Outside a fight and a journey, you get the exploring moves. During a journey, you can also Reach Your Destination. In a fight, you get Attack, Battle, and a few others, like Face Danger and Secure an Advantage. Attack becomes Strike or Clash depending on who has initiative (see [Fights](#fights)).
 
-To play without the model, start the app with `--no-model`. Every message then gets the full list. [How-to guides](how-to.md) shows how.
+To play without the model, start the app with `--no-model`. The suggestion bar then shows the full move list for every message. [How-to guides](how-to.md) shows how.
 
-The app saves each message the model answered as a test case, with the move you chose. The cases measure how often the model is right. Escape leaves a message without saving it.
+The app saves each message the model answered as a test case, with the move you chose. Together, the cases show how often the model is right. If you press Escape to leave a message without a move, the app saves no case for it.
 
 ## The action roll
 
@@ -70,7 +70,7 @@ The app rolls the dice, adds everything, and shows the result on the roll card. 
 
 A *match* is when both challenge dice show the same number (rulebook pages 9 and 10). In solo play, a match is a prompt to add a twist. On a strong hit, the twist is usually an opportunity. On a miss, things get worse in an unexpected way.
 
-The app adds "match" to the roll in the log. It doesn't change the result. You decide what the twist is, or ask the oracle (see [Oracles](#oracles)).
+The app adds "match" to the roll in the log. A match doesn't change the result. You decide what the twist is, or ask the oracle (see [Oracles](#oracles)).
 
 ## Stats
 
@@ -82,7 +82,7 @@ Your character has five *stats*, each from 1 to 3 at the start (rulebook page 33
 - **Shadow:** sneakiness, deceptiveness, and cunning.
 - **Wits:** expertise, knowledge, and observation.
 
-Each move sets which stat you roll, or lets you choose one by how you act. Face Danger, for example, rolls edge if you act with speed and iron if you act with force. The model suggests a stat, and you can change it. You know how your character acted, so the choice is yours.
+Each move sets which stat you roll, or lets you choose one by how you act. With Face Danger, for example, you roll edge if you act with speed and iron if you act with force. The model suggests a stat, and you can change it. You know how your character acted, so the choice is yours.
 
 ## Health, spirit, and supply
 
@@ -120,7 +120,7 @@ When your momentum is negative and equals your action die, the action die counts
 
 Momentum can't go below -6. If you lose momentum when you're already at -6, you must Face a Setback (rulebook page 97). You either take the extra loss from health, spirit, or supply, or you lose progress on a quest, journey, or fight.
 
-The app logs a note with the amount, whether a move or `/adjust momentum` took the momentum. You choose how to pay it and apply it with `/adjust`.
+The app logs a note with the amount, whether you lost the momentum to a move or to `/adjust momentum`. You choose how to pay it and apply it with `/adjust`.
 
 ## Conditions and debilities
 
@@ -139,7 +139,7 @@ Other debilities are permanent, like *maimed* or *corrupted*. The app marks a de
 
 ## Progress tracks
 
-Some challenges are too big for one roll. Ironsworn tracks them on a *progress track*: ten boxes that you fill as you make headway (rulebook pages 14 to 18). Each box has four *ticks*.
+Some challenges are too big for one roll. In Ironsworn, you track them on a *progress track*: ten boxes that you fill as you make headway (rulebook pages 14 to 18). Each box has four *ticks*.
 
 ### Ranks
 
@@ -180,7 +180,7 @@ When you travel through dangerous land, you Undertake a Journey (rulebook pages 
 
 A fight starts with Enter the Fray (rulebook pages 78 to 89). You name each foe and give it a rank. Each foe gets a progress track. A foe's rank also sets how much harm it deals: 1 for troublesome, up to 5 for epic.
 
-*Initiative* says who is in control. With initiative, you act. Without it, you react. The app tracks it and shows it on the character panel. Unless a move says otherwise, a strong hit in a fight takes initiative, and a weak hit or a miss loses it (rulebook page 53).
+Whoever has *initiative* is in control. With initiative, you act. Without it, you react. The app tracks it and shows it on the character panel. Unless a move says otherwise, a strong hit in a fight takes initiative, and a weak hit or a miss loses it (rulebook page 53).
 
 When you attack, the suggestion bar offers Attack. With initiative, Attack is Strike. Without it, Attack is Clash. Each hit marks progress on the targeted foe's track. With more than one foe, `/target` picks which foe you attack.
 
@@ -188,7 +188,7 @@ How much harm you deal depends on your weapon. A deadly weapon, like a sword, ax
 
 To win the fight, you make End the Fight, a progress move on the foe's track. On a strong hit, the foe is out of the fight. The app removes it. On a weak hit, you also choose a cost.
 
-Turn the Tide lets you seize initiative once per fight when the foe has it (rulebook page 81). You add +1 to the move and take +1 momentum on a hit. On a miss, you must Pay the Price. `/tide` sets it up for your next move.
+Turn the Tide lets you seize initiative once per fight when the foe has it (rulebook page 81). You add +1 to the move and take +1 momentum on a hit. On a miss, you must Pay the Price. `/tide` sets up Turn the Tide for your next move.
 
 Battle settles a whole fight with one roll, if you don't want to play out each exchange.
 
@@ -196,9 +196,9 @@ A fight can also end without End the Fight, for example when you flee or the foe
 
 #### When the app offers End the Fight
 
-The rulebook lets you make End the Fight after any strong hit on a move meant as a decisive action (rulebook page 82). Only you know whether a move was meant that way. So the app offers End the Fight after a strong hit on any move you make in a fight, such as Strike, Clash, Face Danger, or Secure an Advantage. The bar shows "f end the fight." Press Escape to keep fighting when the move wasn't decisive.
+The rulebook lets you make End the Fight after any strong hit on a move meant as a decisive action (rulebook page 82). Only you know whether a move was meant that way. So the app offers End the Fight after a strong hit on any move you make in a fight, like Strike, Clash, Face Danger, or Secure an Advantage. The bar shows "f end the fight." Press Escape to keep fighting when the move wasn't decisive.
 
-The app doesn't offer it after Enter the Fray, Draw the Circle, or Battle, after a suffer move such as Endure Harm, or when the targeted foe has no full box of progress. With no full box, End the Fight can't score a hit.
+The app doesn't offer it after Enter the Fray, Draw the Circle, or Battle, after a suffer move like Endure Harm, or when the targeted foe has no full box of progress. With no full box, End the Fight can't score a hit.
 
 #### Draw the Circle
 
@@ -208,17 +208,17 @@ Draw the Circle starts a duel (rulebook page 73). On a strong hit, you can choos
 - **Bare yourself:** Your foe's harm is +1 until the fight ends. End the Fight's "It's worse than you thought" cost, and `/endure harm` with no amount, use the higher harm.
 - **Hold no iron:** Your harm is 1 until the fight ends. The app then sets it back to what it was.
 - **Bloody yourself:** You owe Endure Harm for 1 harm.
-- **To the death:** The app logs it. The fiction decides what it means.
+- **To the death:** The app logs it. You decide what it means in the fiction.
 
 ### Bonds
 
-A *bond* is a close tie to a person or community (rulebook page 36). When you Forge a Bond, the app marks one tick on your bonds track. Some moves add +1 when you share a bond with someone. The app can't tell whether you do. For Sojourn, the app asks: answer `yes` in the Bond field, and the app adds the +1 and lets you choose one more recovery option on a hit (rulebook page 71). Don't also add the +1 yourself. For other moves, like Compel or Draw the Circle, add the +1 yourself with `+` before you roll. When your character retires, Write Your Epilogue rolls against your bonds track.
+A *bond* is a close tie to a person or community (rulebook page 36). When you Forge a Bond, the app marks one tick on your bonds track. Some moves add +1 when you share a bond with someone. The app can't tell whether you do. For Sojourn, the app asks: answer `yes` in the Bond field, and the app adds the +1 and lets you choose one more recovery option on a hit (rulebook page 71). Don't also add the +1 yourself. For other moves, like Compel or Draw the Circle, add the +1 yourself with `+` before you roll. When your character retires, you roll Write Your Epilogue against your bonds track.
 
 The rulebook lets you start with up to three background bonds. Name them with `--bond` when you create your character, and the app marks a tick for each. To add a bond later, use `/adjust bonds`.
 
 ### Aid Your Ally
 
-Aid Your Ally is Secure an Advantage made in direct support of an ally (rulebook page 76). On a hit, your ally takes the move's benefits instead of you. In a fight, a strong hit gives you and your ally initiative. The app doesn't track your ally, so it rolls the move like Secure an Advantage and shows your ally's benefits as a note. Pick it from the full move list (`/moves`). The decision model never suggests it. Your Secure an Advantage abilities apply too, and their adds help your roll, but the rulebook gives their benefits on a hit to your ally, so the app shows those as a note. Their costs stay with you. Loyalist's first ability adds +1 and gives you +1 momentum on a hit.
+Aid Your Ally is Secure an Advantage made in direct support of an ally (rulebook page 76). On a hit, your ally takes the move's benefits instead of you. In a fight, a strong hit gives you and your ally initiative. The app doesn't track your ally, so it rolls the move like Secure an Advantage and shows your ally's benefits as a note. Pick it from the full move list (`/moves`). The decision model never suggests it. Your Secure an Advantage abilities apply too, and their adds help your roll. The rulebook gives their benefits on a hit to your ally, though, so the app shows those benefits as a note. Their costs stay with you. Loyalist's first ability adds +1 and gives you +1 momentum on a hit.
 
 ## Experience
 
@@ -237,20 +237,20 @@ The rulebook says to let new assets come from the story. Whether that fits is up
 
 ## Moves the app requires next
 
-Some results call for another move right away. The app keeps a list of these *follow-up moves* and asks you to make each one in order. Until you do, you can't make another move. You can still use `/` commands. The list is saved, so it survives a restart. So is a roll card you haven't applied: if you quit with a card open, the app shows the same card, with the same dice, when you come back.
+Some results call for another move right away. The app keeps a list of these *follow-up moves* and asks you to make each one in order. Until you do, you can't make another move. You can still use `/` commands. The app saves the list, so it survives a restart. It also saves a roll card you haven't applied: if you quit with a card open, the app shows the same card, with the same dice, when you come back.
 
 The follow-ups are:
 
 - **Pay the Price:** after most misses (rulebook page 105). You choose how: the most obvious bad outcome (`o`), ask the oracle whether your likelier outcome happens (`a`), or roll on the table (`t`). The app logs the answer. You decide what it means and apply any cost. The log's "Next:" line reminds you to do both.
 - **Endure Harm:** when you're hurt (rulebook page 91). The app takes the harm off your health first, then rolls the higher of your health or iron. If your health is already 0, the rest of the harm comes off momentum.
 - **Endure Stress:** when you face shock or despair (rulebook page 95). It works like Endure Harm, with spirit and heart.
-- **Face Death** and **Face Desolation:** when an Endure Harm or Endure Stress result says "The harm is mortal" or "You are overwhelmed." They roll heart.
+- **Face Death** and **Face Desolation:** when an Endure Harm or Endure Stress result says "The harm is mortal" or "You are overwhelmed." For both, you roll heart.
 - **Companion Endure Harm:** when a companion is hurt (see [Companions](#companions)).
 - **Forsake Your Vow:** when you give up a vow.
 
 On an Endure Harm miss with 0 health, the app asks you to mark wounded or maimed, or to roll on the move's table. Endure Stress does the same with shaken or corrupted. If a table result is fatal, the app adds Face Death or Face Desolation to the list.
 
-The rules resolve these moves before anything else happens, so the app blocks other moves until you make them. When a result adds one, the log shows "Owed:" and the move, then a "Next:" line that says what the move does and which key makes it.
+The rules say to resolve these moves before anything else happens, so the app blocks other moves until you make them. When a result adds one, the log shows "Owed:" and the move, then a "Next:" line that says what the move does and which key makes it.
 
 ### When the fiction means harm
 
@@ -269,7 +269,7 @@ Ask the Oracle has four parts:
 
 The oracle gives an answer. You decide what it means in the fiction.
 
-The likelihood is yours to choose, because it depends on the story so far. If you type only a question after `/oracle`, the decision model suggests a likelihood for a yes or no question, or a table for anything else, and you confirm it or pick another. In a test of 56 questions, it told yes or no questions from table questions every time, and picked a table that fit 30 of 33 times. Its likelihoods were rougher: 14 of 21 matched the expected one, and 19 of 21 were the expected one or the one next to it. So read a suggested likelihood as a starting point. When the scene points to "likely" and the app suggests "50/50," pick "likely."
+The likelihood is yours to choose, because it depends on the story so far. If you type only a question after `/oracle`, the decision model suggests a likelihood for a yes or no question, or a table for anything else, and you confirm it or pick another. In a test of 56 questions, the model told yes or no questions from table questions every time, and picked a table that fit 30 of 33 times. Its likelihoods were rougher: 14 of 21 matched the expected one, and 19 of 21 were the expected one or the one next to it. So read a suggested likelihood as a starting point. When the scene points to "likely" and the app suggests "50/50," pick "likely."
 
 ## Assets
 
@@ -298,11 +298,11 @@ Some abilities add new moves, like a ritual's. These appear on the full move lis
 
 Some results last beyond one roll, like a talisman you craft or an elixir you brew. The app calls these *lasting effects*. They appear with your abilities when they apply to a move, and you turn them on with `a` in the same way.
 
-Each kind of lasting effect ends by a different rule. Some end after one use. Some end when you roll a 1 on the action die while using them. Some end when health, spirit, or momentum drops below +1. The app ends these for you. Others last until the fiction ends them. `/effects` lists them all, and `/effects end` ends one by hand.
+Each kind of lasting effect ends by a different rule. Some end after one use. Some end when you roll a 1 on the action die while using them. Some end when health, spirit, or momentum drops below +1. The app ends these for you. Others last until something in the fiction ends them. `/effects` lists them all, and `/effects end` ends one by hand.
 
 ### Companions
 
-A *companion* is a helper character, like a hawk or a horse. A companion has a health meter, separate from yours. You name it with `/asset set`, and then `/asset` commands and the Heal form take that name too.
+A *companion* is a helper character, like a hawk or a horse. A companion has a health meter, separate from yours. You name it with `/asset set`, and then `/asset` commands and the Heal form accept that name too.
 
 When a companion is hurt, you make Companion Endure Harm (rulebook page 94). The harm comes off its health first. Any harm left over comes off your momentum. Then you roll the higher of your heart or its health. If your companion is at 0 health and you miss with a 1 on the action die, the companion dies. The app gives you 1 experience for each of its marked abilities and removes it.
 
@@ -312,7 +312,7 @@ The app can't tell when your companion is hurt in the fiction. When it is, use `
 
 `/asset show` lists every ability's full text. A few abilities don't change a roll, so the app doesn't apply them on one:
 
-- Abilities that only help an ally's own moves, like Loyalist's second and third. The app tracks only your character.
+- Abilities that only help an ally's moves, like Loyalist's second and third. The app tracks only your character.
 - Abilities that change the story but have nothing to roll, like Raven's third or Communion's second.
 - Abilities that change something once, when you mark them, like Shadow-kin's stat change. The app applies the change at that point.
 - A few abilities that you apply yourself with `/adjust`. Fated's second ability is one. The app logs a reminder when it applies.

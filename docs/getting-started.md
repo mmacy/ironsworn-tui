@@ -1,12 +1,12 @@
 # Getting started
 
-Install ironsworn-tui, create a character named Blarg the Destructor, and play their first session. You'll swear a vow, make a move, mark progress, and ask the oracle. You don't need to know *Ironsworn* first. Each rule is explained the first time you meet it, and only as far as this session needs.
+Install ironsworn-tui, create a character named Blarg the Destructor, and play their first session. You'll swear a vow, make a move, mark progress, and ask the oracle. You don't need to know *Ironsworn* first. You'll learn each rule the first time you meet it, and only as far as this session needs.
 
 For the rules in depth, see [Playing Ironsworn](playing.md). The full rules are in the *Ironsworn* rulebook, a free download from the publisher, Tomkin Press, at [tomkinpress.com](https://tomkinpress.com/products/ironsworn-digital-edition).
 
 ## Install the app
 
-You need Python 3.14, [uv](https://docs.astral.sh/uv/), and a checkout of [jevtester](https://github.com/mmacy/jevtester) at `~/repos/jevtester`. jevtester is the tool the app uses to ask the decision model which move you're making. The model also needs your own deployment, set up as [How to set up the model target](how-to.md#how-to-set-up-the-model-target) shows.
+You need Python 3.14, [uv](https://docs.astral.sh/uv/), and a checkout of [jevtester](https://github.com/mmacy/jevtester) at `~/repos/jevtester`. jevtester is the tool the app uses to ask the decision model which move you're making. You also need your own deployment of the model, set up as [How to set up the model target](how-to.md#how-to-set-up-the-model-target) shows.
 
 Clone the repository:
 
@@ -88,7 +88,7 @@ The app prints `Starting jevtester for decision-1@foundry…`, then opens the ga
 
 ![The play screen for a new campaign. The character panel on the left shows Blarg, the Destructor, with their stats, health, spirit, and supply at 5, momentum +2, their three assets, and their background vow with ten empty boxes. The log on the right shows a welcome note that says how to start. The suggestion bar lists the keys for the input line, and the input line at the bottom reads "Type what your character does, or / for a command".](images/start.svg)
 
-Look at the character panel. Blarg has health 5, spirit 5, and supply 5. These are meters, which go down as they're hurt, shaken, or runs low on gear. The panel also shows `Momentum +2 (max 10, reset 2)`. Momentum is a measure of how well things are going. Good results raise it, and bad results lower it. You can spend it later to improve a roll.
+Look at the character panel. Blarg has health 5, spirit 5, and supply 5. These are meters. Health goes down when Blarg is hurt, spirit when they're shaken, and supply when they run low on gear. The panel also shows `Momentum +2 (max 10, reset 2)`. Momentum is a measure of how well things are going. Good results raise it, and bad results lower it. You can spend it later to improve a roll.
 
 ## Swear a vow
 
@@ -98,7 +98,7 @@ Blarg's background vow is a long-term goal. They also need a goal for this sessi
 /vow swear dangerous Free my brother from the raiders
 ```
 
-A line that starts with `/` is a command, not an action. This one makes the Swear an Iron Vow move. A move is a rule that tells you what happens when your character does something risky or important. `dangerous` is the vow's rank. Ranks go from troublesome to epic, and a dangerous vow is a typical quest.
+A line that starts with `/` is a command, not an action. This one makes the Swear an Iron Vow move. A move is a rule for what happens when your character does something risky or important. `dangerous` is the vow's rank. Ranks go from troublesome to epic, and a dangerous vow is a typical quest.
 
 The app rolls the dice, and the suggestion bar shows a roll card. It looks like this:
 
@@ -108,7 +108,7 @@ On a weak hit, you are determined but begin your quest with more questions than 
 Enter apply
 ```
 
-Your result may be different, because the dice are random. The card shows the rulebook's outcome text. The new vow already appears under "Vows" in the character panel, with ten empty boxes. Press Enter to apply the result, which saves the vow. Those boxes are the vow's progress track. You fill them as you get closer to fulfilling the vow.
+Your result may be different, because the dice are random. The card shows the rulebook's outcome text. The new vow already appears under "Vows" in the character panel, with ten empty boxes. Those boxes are the vow's progress track. You fill them as you get closer to fulfilling the vow. Press Enter to apply the result, which saves the vow.
 
 ## Make a move
 
@@ -118,7 +118,7 @@ Now describe what Blarg does. Type an action in your own words and press Enter:
 I creep across the frozen river toward the raider camp
 ```
 
-The suggestion bar shows "Thinking…" while the decision model reads your action. Then it shows its suggestion, such as:
+The suggestion bar shows "Thinking…" while the decision model reads your action. Then the bar shows the model's suggestion, such as:
 
 ```text
 1 Face Danger 0.94
@@ -167,7 +167,7 @@ What you do next depends on your result.
 
 On a strong hit, the card says what you gain, such as "Take +1 momentum". Press Enter to apply it.
 
-On a weak hit, the card often asks you to choose a cost:
+On a weak hit, the card often lists costs for you to choose from:
 
 ```text
 Face Danger +edge: weak hit
@@ -186,7 +186,7 @@ The rulebook lists the costs too. The card shows them only once, as the numbered
 
 Press the number of the cost that fits the story, then press Enter. If the ice slowed Blarg down, press `1`, then Enter. They lose 1 momentum, and the character panel shows it. Some costs, like `2` (tired or hurt), lead to another roll. When that happens, the suggestion bar shows the next roll and the keys to press.
 
-On a miss, press Enter, and the suggestion bar shows Pay the Price. This move decides what goes wrong. Press `o` to take the most obvious bad outcome, then describe it in your next action.
+On a miss, press Enter, and the suggestion bar shows Pay the Price. You make this move to decide what goes wrong. Press `o` to take the most obvious bad outcome, then describe it in your next action.
 
 ![The suggestion bar after a miss on Face Danger. It shows "Pay the Price" and the keys "o obvious outcome", "a ask the oracle", and "t roll the table".](images/pay-the-price.svg)
 
@@ -194,7 +194,7 @@ Whatever the result, decide what it means for Blarg. The app changes the numbers
 
 ## Read the log
 
-After you apply a result, the roll card closes, and the log keeps the whole turn. Say Blarg looks around, and the app suggests Gather Information. On a strong hit, the log shows:
+After you apply a result, the roll card closes, and the log shows a record of the whole turn. Say Blarg looks around, and the app suggests Gather Information. On a strong hit, the log shows:
 
 ```text
 I look around to gain an idea of my surroundings
@@ -205,7 +205,7 @@ Momentum +2 (now 5)
 Next: imagine what you learn and type it, or ask the oracle (/ask likely for yes or no, /oracle action for ideas).
 ```
 
-Each line has its own color:
+Each kind of line has a different color:
 
 - Your message is bold.
 - The line in dim italics says what the move is for. It appears the first time you make each move in a campaign.
@@ -213,11 +213,11 @@ Each line has its own color:
 - The result's text is plain. It's the text the roll card showed.
 - On a weak hit or a miss with a choice, a magenta line says what you picked, such as "Picked: Sacrifice resources".
 - Each change is green, with its new value.
-- A bold yellow line that starts with "Next:" says what to do next, when the result asks for something the app can't do for you.
+- A bold yellow line that starts with "Next:" says what to do next, when the result calls for something the app can't do for you.
 
 ![The log after Gather Information's strong hit. Under the typed line "I look around to gain an idea of my surroundings", it shows what Gather Information is for, the roll "6 + 3 + 0 = 9 vs 3, 4, strong hit", the strong hit's text, "Momentum +2 (now 5)", and a "Next:" line that says to imagine what Blarg learns or ask the oracle.](images/turn-record.svg)
 
-Here, the "Next:" line asks you to decide what Blarg learns. Type it as your next action, such as "I find tracks leading north to the raider camp." If you have no idea, ask the oracle, as the next sections show.
+Here, the "Next:" line says to decide what Blarg learns. Type it as your next action, such as "I find tracks leading north to the raider camp." If you have no idea, ask the oracle, as the next sections show.
 
 ## Mark progress on your vow
 
@@ -227,7 +227,7 @@ Say Blarg reaches the raider camp without being seen. That's a step toward freei
 /vow mark Free my brother from the raiders
 ```
 
-The log shows `Reach a Milestone: Free my brother from the raiders, progress +2 boxes (now 2 boxes)`. The vow's track in the character panel now has two filled boxes. A dangerous vow fills two boxes for each milestone. A harder vow fills fewer, so it takes more milestones.
+The log shows `Reach a Milestone: Free my brother from the raiders, progress +2 boxes (now 2 boxes)`. The vow's track in the character panel now has two filled boxes. Each milestone fills two boxes on a dangerous vow. On a harder vow, a milestone fills fewer boxes, so you need more milestones.
 
 Type `/vow` to list your vows and their progress.
 
@@ -239,7 +239,7 @@ Solo play has no game master to answer questions about the world. The oracle ans
 /ask likely Is my brother in the camp?
 ```
 
-The log keeps your question with the answer, such as `Ask (likely): Is my brother in the camp? 69: yes`. The word after `/ask` is how likely you think a yes is: `almost certain`, `likely`, `50/50`, `unlikely`, or `small chance`. The question is optional.
+The log shows your question with the answer, such as `Ask (likely): Is my brother in the camp? 69: yes`. The word after `/ask` is how likely you think a yes is: `almost certain`, `likely`, `50/50`, `unlikely`, or `small chance`. The question is optional.
 
 You don't have to remember the likelihoods. Type `/ask ` and the input line shows them in dim text, such as `[almost certain | likely | 50/50 | unlikely | small chance | help]`. Type a letter or two to narrow the list, press Up or Down to pick one, and press Tab to complete it. This works for every command: type `/` to see them all.
 

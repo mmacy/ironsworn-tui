@@ -1,6 +1,6 @@
 # Decision model guidance
 
-This page records the vendor guidance on writing requests for decision models, and what this project does with it. The quotes below were checked against copies of the sources downloaded on 2026-10-24.
+Each vendor publishes guidance on writing requests for its decision models. The quotes below come from copies of the sources downloaded on 2026-10-24.
 
 ## Sources
 
@@ -21,9 +21,9 @@ This page records the vendor guidance on writing requests for decision models, a
 
 ## What this project does
 
-The requests apply it:
+The move requests follow the guidance:
 
-- The state has `character`, `circumstances`, `situation`, and `player_says`. `circumstances` is a sentence such as "Blarg is in a fight, and the foe has initiative", in place of a `context` id and a null `initiative`.
+- The state has `character`, `circumstances`, `situation`, and `player_says`. `circumstances` is a sentence like "Blarg is in a fight, and the foe has initiative", in place of a `context` id and a null `initiative`.
 - The `move` question asks "Which move does the action in `player_says` trigger, given `circumstances` and `situation`?" Every stat question, including the one for an attack, asks "How does the character go about the action in `player_says`?", with no move name.
 - Each guide criterion is a concrete situation. Criteria for moves that overlap name the line between them: Face Danger overcomes a danger directly, while Secure an Advantage sets up an edge for an action still to come, and Gather Information learns facts. Make Camp is away from any settlement, and Sojourn is in a community.
 - `no_move` and `cannot_tell` describe situations instead of negations, and they come last in every list.
@@ -31,7 +31,7 @@ The requests apply it:
 The move recognizer experiment measured, on Decision-1 and Clef-flash ([results](https://github.com/mmacy/ironsworn-tui/blob/main/experiments/results.md)):
 
 - The guide criteria beat the Datasworn trigger text on both targets, so play uses them.
-- A `cannot_tell` option on the stat questions won most stat misses, so the stat questions have none.
+- When the stat questions had a `cannot_tell` option, the model chose it for most of the stat answers it got wrong, so the stat questions have none.
 - The companion `acts` question lowered move accuracy on both targets, because it answered no for many real actions. The `move` question has a `cannot_tell` option instead.
 - Messages that name a move ("Roll Face Danger! I pour myself another cup of tea") didn't pull either model toward the named move.
 - Whether the stat questions change the `move` answer is unsettled. Removing the stat `cannot_tell` option changed one `move` choice on Clef-flash and none on Decision-1, but probabilities moved by up to 0.09 on both, and one run of each can't separate that from run-to-run variation.
@@ -39,17 +39,17 @@ The move recognizer experiment measured, on Decision-1 and Clef-flash ([results]
 The oracle request applies the same guidance:
 
 - The state has `character`, `situation`, and `question`, the text the player typed after `/oracle`.
-- It asks three questions, each one judgment: `kind` ("What kind of answer does `question` ask for?"), `likelihood` ("How likely is a yes to `question`, given `character` and `situation`?"), and `table` ("Which oracle table gives the answer that `question` asks for?"). Code reads `likelihood` or `table`, as `kind` says, so neither needs an "if" clause.
+- It asks three questions, each one judgment: `kind` ("What kind of answer does `question` ask for?"), `likelihood` ("How likely is a yes to `question`, given `character` and `situation`?"), and `table` ("Which oracle table gives the answer that `question` asks for?"). The app reads the `likelihood` or the `table` answer, depending on the `kind` answer, so neither question needs an "if" clause.
 - `kind` has a `cannot_tell` option, for text that isn't a question about the story. `likelihood` and `table` have none.
-- Each option is a concrete situation: a likelihood is how the situation leans ("A yes fits the situation better than a no"), and a table is what it gives, with an example ("What a person wants, such as to obtain an object or to avenge a wrong").
+- Each option is a concrete situation: a likelihood is how the situation leans ("A yes fits the situation better than a no"), and a table is what it gives, with an example ("What a person wants, like to obtain an object or to avenge a wrong").
 - The `table` question has 22 options, the tables the player rolls. That's under the 26-option limit of the Ollama target, so the request doesn't need a category question first.
 
 The oracle experiment measured, on Decision-1:
 
-- A `cannot_tell` option on the `table` question won 7 of the 33 questions a table fits, and those were all the table misses, as the stat questions' `cannot_tell` option did. Without it, the same 33 questions got a fitting table 30 times instead of 26.
+- With a `cannot_tell` option on the `table` question, the model chose it for 7 of the 33 questions that a table fits, and those 7 were all of its table misses. The stat questions' `cannot_tell` option did the same. Without the option, the same 33 questions got a fitting table 30 times instead of 26.
 - The `kind` answer was right for all 56 questions in both runs, at a confidence of 0.51 or more.
 - The likelihood's exact answer was right 14 of 21 times. The model rarely followed the wording: "I doubt they left anything, but is there food in the cart?" got `likely`. Play shows the likelihood as a suggestion the player confirms.
 
 Still to test: option order with `jevtester probe`, whether the `character` field sways the stat answers, and acting on the top-to-second ratio as well as confidence.
 
-jevtester's choice criteria are strings, so the structured criteria TypeSafe suggests would need a jevtester change. The user allowed changing jevtester if it makes sense. The moves the models still confuse (a shield bash read as an attack, a rallying shout read as Compel) are few and borderline, so they don't justify that change yet.
+jevtester's choice criteria are strings, so the structured criteria TypeSafe suggests would need a jevtester change. The project's owner allows changes to jevtester when they make sense. The models still confuse a few moves (a shield bash read as an attack, a rallying shout read as Compel), but those cases are few and borderline, so they don't justify that change yet.

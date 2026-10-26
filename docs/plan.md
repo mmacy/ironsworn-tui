@@ -27,13 +27,13 @@ The app has no LLM narrator. In solo Ironsworn the player writes the fiction, so
 | Play constitution | Which choices belong to the player, and how initiative works | `references/constitution.md` in the same folder |
 | jevtester | The `decide`, `run`, and `report` commands, the `serve` API for adding cases, the suite, question set, and policy formats, and the targets | `~/repos/jevtester` |
 
-`iron.py` is a CLI, not a library. Only `action_roll()` and `build_indices()` return values. Progress rolls, suffer moves, oracles, and momentum bounds exist only as `cmd_*` functions that print JSON, and its error helper calls `sys.exit(2)`. It also fails this project's gates: ruff and pyright both report findings, and `test_iron.py` uses `# noqa` and runs `iron.py` as a subprocess. So `ironsworn_tui/rules/` holds the rules as typed functions, with the tests ported to call them, and uses `iron.py` as the reference for the math.
+`iron.py` is a CLI, not a library. Only `action_roll()` and `build_indices()` return values. Progress rolls, suffer moves, oracles, and momentum bounds exist only as `cmd_*` functions that print JSON, and its error helper calls `sys.exit(2)`. It also fails this project's gates: ruff and pyright both report findings, and `test_iron.py` uses `# noqa` and runs `iron.py` as a subprocess. So `ironsworn_tui/rules/` contains the rules as typed functions, with `iron.py` as the reference for the math, and the ported tests call those functions.
 
-The Datasworn move data contains the stat choices. Each move's `trigger.conditions` lists its approaches, and each condition has a `method` (`player_choice`, `lowest`, or `highest`) and the stats it rolls with. For example, Face Danger lists five `player_choice` approaches ("With speed, agility, or precision" uses edge). Single-stat moves have a condition with no text. Each move also has a `roll_type`: `action_roll`, `progress_roll`, `special_track`, or `no_roll`.
+The Datasworn move data contains the stat choices. Each move's `trigger.conditions` lists its approaches, and each condition has a `method` (`player_choice`, `lowest`, or `highest`) and the stats the player can roll with. For example, Face Danger lists five `player_choice` approaches ("With speed, agility, or precision" uses edge). Single-stat moves have a condition with no text. Each move also has a `roll_type`: `action_roll`, `progress_roll`, `special_track`, or `no_roll`.
 
 ## Licensing
 
-The Datasworn files are CC BY 4.0 or CC BY-NC-SA 4.0, file by file. `iron.py` and the plugin's guides are CC BY-NC-SA 4.0, and the port is a derived work. The Datasworn data is vendored with its `LICENSE.md`, and this repository is licensed under CC BY-NC-SA 4.0 to match.
+The Datasworn files are CC BY 4.0 or CC BY-NC-SA 4.0, file by file. `iron.py` and the plugin's guides are CC BY-NC-SA 4.0, and the port is a derived work. This repository vendors the Datasworn data with its `LICENSE.md`, and it's licensed under CC BY-NC-SA 4.0 to match.
 
 ## Architecture
 
@@ -63,9 +63,9 @@ ironsworn_tui/
 The repository root has two config files:
 
 - `ironsworn-tui.toml` has the app's settings: `jevtester_project` (the path of the jevtester checkout, default `~/repos/jevtester`), `target` (default `decision-1@foundry`), and `campaigns_dir` (default `campaigns`).
-- `jevtester.toml` is a jevtester config for this repository. It copies the target entries the app uses from `~/repos/jevtester/jevtester.toml` and sets `paths.suites = "suites"`.
+- `jevtester.toml` is a jevtester config for this repository. It contains copies of the target entries the app uses from `~/repos/jevtester/jevtester.toml` and sets `paths.suites = "suites"`.
 
-jevtester finds suites, question sets, and policies relative to its config file: `suites/<name>.yaml`, `suites/question-sets/<name>.yaml`, and `suites/policies/<name>.yaml`. It also writes its run database to `.jevtester/`, which `.gitignore` lists. `uv run --project` doesn't change the working directory, and jevtester reads `./jevtester.toml` by default. So every jevtester command the app runs passes the config path explicitly, as the server the app starts does:
+jevtester finds suites, question sets, and policies relative to its config file: `suites/<name>.yaml`, `suites/question-sets/<name>.yaml`, and `suites/policies/<name>.yaml`. It also writes its run database to `.jevtester/`, which `.gitignore` lists. `uv run --project` doesn't change the working directory, and jevtester reads `./jevtester.toml` by default. So the app passes the config path explicitly to every jevtester command it runs, including the server it starts:
 
 ```sh
 uv run --project ~/repos/jevtester jevtester --config ~/repos/ironsworn-tui/jevtester.toml serve --port <free port>
@@ -84,11 +84,11 @@ The app sorts the 35 moves into four groups:
 
 Turn the Tide isn't a separate action. Its text says the character steals initiative "to make a move (not a progress move)", adds +1, and takes +1 momentum on a hit, or must Pay the Price on a miss. So `/tide` arms it for the next move. The app allows it once per fight, only when the foe has initiative, and treats the next attack as Strike.
 
-Aid Your Ally is Secure an Advantage for an ally. It's on the full move list, not a `move` option, and rolls as Secure an Advantage with the benefits noted for the ally.
+Aid Your Ally is Secure an Advantage for an ally. It's on the full move list, not a `move` option, and the app rolls it as Secure an Advantage with the benefits noted for the ally.
 
 ### Contexts
 
-The option list depends on the context, and each context has a fixed list so that its jevtester suite matches what play sends:
+The option list depends on the context, and each context has a fixed list so that its jevtester suite matches the requests the app sends during play:
 
 | Context | When | Options |
 |---|---|---|
@@ -98,7 +98,7 @@ The option list depends on the context, and each context has a fixed list so tha
 
 Every context adds `no_move` (the action has no risk, so nothing triggers) and `cannot_tell`. `exploring` has 20 options, `journey` 21, and `fight` 10. Battle is in all three, because it can replace a whole fight, including Enter the Fray (rulebook page 84). All three are under Clef-flash's limit of 26 on Ollama.
 
-In the `fight` context, Strike and Clash are one option, `attack`. Code picks Strike when the character has initiative and Clash when the foe has it. Both moves offer iron in close quarters and edge at range, so they share one stat question.
+In the `fight` context, Strike and Clash are one option, `attack`. Code picks Strike when the character has initiative and Clash when the foe has it. Both moves let the player roll iron in close quarters and edge at range, so they share one stat question.
 
 ## Questions per turn
 
@@ -109,9 +109,9 @@ One request contains every question for the turn:
 | `move` | choice | Which move the action triggers | The context's move list, each move described by a short criterion written from the disambiguation guide |
 | `stat_<move>` | choice | Which approach the action takes, for that move | That move's `player_choice` conditions with text, each condition's text as the description. There's no `cannot_tell` option, because one won too often in the recognizer experiment. |
 
-Stat questions go only to moves with two or more `player_choice` conditions that have text: Face Danger, Secure an Advantage, Battle, Compel, Enter the Fray, and `attack`. Because the move isn't known until the answer comes back, the request contains a `stat_<move>` question for each of those moves in the context. The app reads the one for the move the player confirms. Other moves have one stat, and code handles the rest:
+The request has stat questions only for moves with two or more `player_choice` conditions that have text: Face Danger, Secure an Advantage, Battle, Compel, Enter the Fray, and `attack`. Because the move isn't known until the answer comes back, the request contains a `stat_<move>` question for each of those moves in the context. The app reads the one for the move the player confirms. Other moves have one stat, and code handles the rest:
 
-- **Heal** rolls wits when the character treats someone else, and the lower of iron and wits when they mend their own wounds (`method: lowest`). The roll card asks the player which with a key.
+- **Heal** uses wits when the character treats someone else, and the lower of iron and wits when they mend their own wounds (`method: lowest`). The player picks which on the roll card with a key.
 - **Moves with `method: highest`** (Endure Harm, Endure Stress, Companion Endure Harm) use the higher value, which code computes.
 
 `criteria.py` has two kinds of `move` criteria: the short ones from the guide, and the Datasworn trigger text ("When you attempt something risky..."). The guide criteria scored better in the recognizer experiment, so play uses them.
@@ -131,7 +131,7 @@ The state is JSON with the character's situation and the player's text:
 
 ## Calling the decision model
 
-`decide.py` starts `jevtester serve --port <free port>` once, with `--config` set to this repository's `jevtester.toml`, and sends each request to `POST /api/decide`. jevtester handles the Foundry, Workers AI, Ollama, and MLX targets and their sign-ins, so this app stores no credentials. A target that fails returns a result with `ok: false`, and the app then shows the full move list.
+`decide.py` starts `jevtester serve --port <free port>` once, with `--config` set to this repository's `jevtester.toml`, and sends each request to `POST /api/decide`. jevtester handles the Foundry, Workers AI, Ollama, and MLX targets and their sign-ins, so this app stores no credentials. When a target fails, jevtester returns a result with `ok: false`, and the app then shows the full move list.
 
 A `jevtester decide` subprocess per call adds 0.72 to 0.75 seconds to each call, over the half-second limit. Through the server, a warm call adds about 13 milliseconds.
 
@@ -165,7 +165,7 @@ Rolls follow the rules in the reference:
 - **Burning momentum** cancels each challenge die lower than the momentum, and any other die stands against the action score. The port re-evaluates the existing roll instead of rolling again. The roll card offers it only when it improves the result. Afterward, momentum resets.
 - **A negative momentum** equal to the action die cancels the die.
 - **Progress rolls** (End the Fight, Fulfill Your Vow, Reach Your Destination) ignore momentum and can't burn it.
-- **A match** on the challenge dice is marked on the roll card. Ironsworn leaves its meaning to the player, so the app only shows it.
+- **A match** on the challenge dice shows on the roll card. Ironsworn leaves its meaning to the player, so the app only shows it.
 
 ## Foes and fights
 
@@ -182,7 +182,7 @@ Use Textual. The screen has four parts:
 
 Focus moves between the input line and the suggestion bar, so plain keys work in both:
 
-- In the input line, Enter sends the message, and focus moves to the suggestion bar when the answers arrive. The input line is disabled while the model answers, so keys typed then can't reach the bar. Text that starts with `/` is a command, not a message. While a roll card is waiting, the input line takes nothing until the card is applied.
+- In the input line, Enter sends the message, and focus moves to the suggestion bar when the answers arrive. The input line is disabled while the model answers, so keys typed then can't reach the bar. Text that starts with `/` is a command, not a message. While a roll card is waiting, the input line accepts only `/help` and `/quit` until the player applies the card.
 - In the suggestion bar, Enter rolls, 1 to 9 and then A to Z pick a move, e, h, i, s, and w change the stat, + and - change the add, and Escape returns to the input line without rolling.
 - On the roll card, number keys pick an outcome choice, Enter confirms each choice and then applies the card, and b burns momentum. After a strong hit in a fight that leaves the target with a full box, the bar offers End the Fight with f, and Escape declines it.
 
@@ -219,7 +219,7 @@ The engine saves each turn's case through the running `jevtester serve`, with `P
 - `stat_<move>`: the stat the player rolled with, for the move they rolled, when that move has a stat question.
 - `expected_action`: the policy action for that move.
 
-A case gets the `corrected` tag when the player overrode the model's top move, and the `abstained` tag instead when the model's top answer was `cannot_tell`. A turn where the request failed has no `decide` output, so it isn't saved. The play suites are tracked in git, because the user chose to keep them. `ironsworn-tui write-suites` creates them once and never rewrites them, because they hold the cases.
+A case gets the `corrected` tag when the player overrode the model's top move, and the `abstained` tag instead when the model's top answer was `cannot_tell`. A turn where the request failed has no `decide` output, so it isn't saved. The play suites are tracked in git, because the user chose to keep them. `ironsworn-tui write-suites` creates them once and never rewrites them, because they contain the cases.
 
 To measure accuracy, run a suite and then report on the run:
 
@@ -236,7 +236,7 @@ The user asked for every asset, not a subset. There are 78 assets with 234 abili
 
 ### Owning assets
 
-- The character owns a list of assets. Each owned asset records which of its three abilities are marked, its meter values (a companion's health, a warband's strength), its text fields (a companion's name, a Devotant's god and stat), and its choice (Ironclad's armor).
+- The character owns a list of assets. For each owned asset, the campaign records which of its three abilities are marked, its meter values (a companion's health, a warband's strength), its text fields (a companion's name, a Devotant's god and stat), and its choice (Ironclad's armor).
 - A new asset starts with the abilities Datasworn marks as enabled. Companions, Battle-scarred, and Shadow-kin start with none, so the player picks one.
 - `/asset buy` spends 3 experience on a new asset, and `/asset upgrade` spends 2 to mark an ability, as Advance says. Animal Kin, Ritualist, and Weaponmaster take 1 off for their kind of asset.
 - Marking some abilities changes the character once: Battle-scarred and Shadow-kin move stat points, and Battle-scarred lowers maximum health. The app applies these when the ability is marked.
@@ -246,7 +246,7 @@ The user asked for every asset, not a subset. There are 78 assets with 234 abili
 ### Abilities on a roll
 
 - When the player picks a move, the app lists the marked abilities that enhance it. The player turns on the ones whose condition holds in the fiction, such as "by hunting". The app can't judge the fiction, so it never turns one on by itself.
-- Each ability's entry says what it does: an add, a stat or asset meter to roll instead, momentum on a hit or strong hit, extra harm or a set amount of harm, a cost before rolling (supply, momentum, or an asset meter), a reroll of any dice, a weak hit counted as a miss or a strong hit as a weak hit, a choice of one of several effects, and a limit of once per fight or one time only.
+- Each ability's entry gives what the ability does: an add, a stat or asset meter to roll instead, momentum on a hit or strong hit, extra harm or a set amount of harm, a cost before rolling (supply, momentum, or an asset meter), a reroll of any dice, a weak hit counted as a miss or a strong hit as a weak hit, a choice of one of several effects, and a limit of once per fight or one time only.
 - Some abilities act when something else happens rather than on a roll: on burning momentum (Swordmaster, Veteran, Banner-sworn, Wayfinder, Revenant), on marking experience for a vow (the +1 experience abilities), on filling a progress box (Bonded, Fated), or at Face Death (Owl). The turn engine calls the table at those points.
 - A reroll is a new step on the roll card: the player picks which dice to roll again.
 - What remains is text the player reads and applies with `/adjust`: envisioning, asking the oracle, and effects on allies, who don't exist in solo play.
@@ -254,12 +254,12 @@ The user asked for every asset, not a subset. There are 78 assets with 234 abili
 ### Asset moves and lasting effects
 
 - 23 abilities add a move, such as each ritual's move, Craft Arrow, and Scrape By. The app adds them to the full move list once the character owns the ability, and the outcomes table gets an entry for each.
-- Many results grant a lasting effect: an elixir, a bound pelt, a keen, a talisman, a blood rune, a ward. The campaign keeps a list of these. Each has the same kind of entry as an ability, and ends after one use, on an action die of 1, or when the player removes it. They appear in the same list as abilities when the player picks a move.
+- Many results grant a lasting effect: an elixir, a bound pelt, a keen, a talisman, a blood rune, a ward. The campaign contains a list of these. Each has the same kind of entry as an ability, and ends after one use, on an action die of 1, or when the player removes it. They appear in the same list as abilities when the player picks a move.
 - Companion Endure Harm joins the suffer moves when the character has a companion. A companion at 0 health that dies is removed, and the character takes 1 experience for each marked ability.
 
 ### Asking the model
 
-The model still sees only the core moves. Adding asset moves or ability conditions to its questions changes every question set, so it needs its own experiment first. That's the last part of build step 8, and it starts only after the user agrees.
+The model still sees only the core moves. Adding asset moves or ability conditions to its questions changes every question set, so it needs a separate experiment first. That's the last part of build step 8, and it starts only after the user agrees.
 
 ## Build order
 
