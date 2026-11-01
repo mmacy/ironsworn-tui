@@ -6,7 +6,9 @@ import pytest
 
 from ironsworn_tui import cli
 from ironsworn_tui.campaign import Campaign
+from ironsworn_tui.creation import AssetPick, Setup
 from ironsworn_tui.settings import Settings, SettingsError
+from ironsworn_tui.walkthrough import NameStep
 
 
 @pytest.fixture
@@ -162,3 +164,137 @@ def test_new_assets_help_lists_the_ids(settings: Settings, capsys: pytest.Captur
     assert cli.main(args) == 0
     assert "Companion: cave_lion" in capsys.readouterr().out
     assert not (settings.campaigns_dir / "Kira.json").exists()
+
+
+def _walkthrough_returns(
+    monkeypatch: pytest.MonkeyPatch, setup: Setup | None, seen: list[cli.Walkthrough]
+) -> None:
+    def run(self: cli.Walkthrough) -> Setup | None:
+        seen.append(self)
+        return setup
+
+    monkeypatch.setattr(cli.Walkthrough, "run", run)
+
+
+def _name_step(walkthrough: cli.Walkthrough) -> NameStep:
+    step = walkthrough.steps[0]
+    assert isinstance(step, NameStep)
+    return step
+
+
+def _played(monkeypatch: pytest.MonkeyPatch) -> list[cli.IronswornApp]:
+    apps: list[cli.IronswornApp] = []
+
+    def run(self: cli.IronswornApp) -> None:
+        apps.append(self)
+
+    monkeypatch.setattr(cli.IronswornApp, "run", run)
+    return apps
+
+
+def _setup(**changes: object) -> Setup:
+    setup = Setup(
+        name="Blarg",
+        description="the Destructor",
+        stats={"edge": 2, "heart": 2, "iron": 1, "shadow": 1, "wits": 3},
+        assets=[AssetPick("archer"), AssetPick("wayfinder"), AssetPick("hawk", ability=1)],
+        background_vow="Find who burned my village",
+        inciting_incident="Raiders took my brother.",
+        scene="The burned village at dawn",
+        vow="Find my brother",
+    )
+    for key, value in changes.items():
+        setattr(setup, key, value)
+    return setup
+
+
+def test_new_alone_runs_the_walkthrough_then_plays(
+    settings: Settings, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+):
+    seen: list[cli.Walkthrough] = []
+    _walkthrough_returns(monkeypatch, _setup(), seen)
+    apps = _played(monkeypatch)
+    assert cli.main(["new", "--no-model"]) == 0
+    assert len(seen) == 1
+    path = settings.campaigns_dir / "Blarg.json"
+    campaign = Campaign.load(path)
+    assert campaign.world.inciting_incident == "Raiders took my brother."
+    # In media res, play opens on the Swear an Iron Vow roll.
+    assert campaign.pending_card is not None
+    assert apps[0].engine.card is not None
+    assert apps[0].engine.card.move == "swear_an_iron_vow"
+    assert str(path) in capsys.readouterr().out
+
+
+def test_new_with_a_name_starts_the_walkthrough_with_it(
+    settings: Settings, monkeypatch: pytest.MonkeyPatch
+):
+    seen: list[cli.Walkthrough] = []
+    _walkthrough_returns(monkeypatch, None, seen)
+    assert cli.main(["new", "Blarg", "--no-model"]) == 1
+    assert _name_step(seen[0]).start_name == "Blarg"
+
+
+def test_quitting_the_walkthrough_saves_nothing(
+    settings: Settings, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+):
+    _walkthrough_returns(monkeypatch, None, [])
+    apps = _played(monkeypatch)
+    assert cli.main(["new", "--no-model"]) == 1
+    assert not settings.campaigns_dir.exists()
+    assert apps == []
+    assert "Nothing saved" in capsys.readouterr().err
+
+
+def test_the_walkthrough_knows_the_names_in_use(
+    settings: Settings, monkeypatch: pytest.MonkeyPatch
+):
+    assert cli.main(ARGS) == 0
+    seen: list[cli.Walkthrough] = []
+    _walkthrough_returns(monkeypatch, None, seen)
+    cli.main(["new", "--no-model"])
+    assert _name_step(seen[0]).taken("Kira")
+    assert not _name_step(seen[0]).taken("Blarg")
+
+
+def test_overwrite_lets_the_walkthrough_reuse_a_name(
+    settings: Settings, monkeypatch: pytest.MonkeyPatch
+):
+    assert cli.main(ARGS) == 0
+    seen: list[cli.Walkthrough] = []
+    _walkthrough_returns(monkeypatch, None, seen)
+    cli.main(["new", "--overwrite", "--no-model"])
+    assert not _name_step(seen[0]).taken("Kira")
+
+
+def test_a_prologue_opens_play_without_a_roll(settings: Settings, monkeypatch: pytest.MonkeyPatch):
+    _walkthrough_returns(monkeypatch, _setup(start="prologue", vow=""), [])
+    apps = _played(monkeypatch)
+    assert cli.main(["new", "--no-model"]) == 0
+    assert apps[0].engine.card is None
+
+
+def test_new_needs_every_creation_option_or_none(
+    settings: Settings, capsys: pytest.CaptureFixture[str]
+):
+    assert cli.main(["new", "Kira", "--description", "a hunter"]) == 2
+    error = capsys.readouterr().err
+    assert "--stats, --assets, and --vow" in error
+
+
+def test_new_with_options_needs_a_name(settings: Settings, capsys: pytest.CaptureFixture[str]):
+    assert cli.main(ARGS[:1] + ARGS[2:]) == 2
+    assert "name" in capsys.readouterr().err
+
+
+def test_walkthrough_options_need_the_walkthrough(
+    settings: Settings, capsys: pytest.CaptureFixture[str]
+):
+    assert cli.main(["new", "--bond", "Highvale"]) == 2
+    assert "--description" in capsys.readouterr().err
+
+
+def test_new_refuses_a_background_vow_below_extreme(
+    settings: Settings, capsys: pytest.CaptureFixture[str]
+):
+    assert cli.main([*ARGS, "--rank", "dangerous"]) == 2

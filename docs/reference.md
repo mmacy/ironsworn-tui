@@ -19,7 +19,7 @@ ironsworn-tui <command> [options]
 
 | Command | What it does |
 |---|---|
-| [`new`](#ironsworn-tui-new) | Creates a character and a campaign file. |
+| [`new`](#ironsworn-tui-new) | Creates a character and a campaign, in a walkthrough or from options. |
 | [`play`](#ironsworn-tui-play) | Opens a campaign in the play screen. |
 | [`suggest`](#ironsworn-tui-suggest) | Prints the moves the decision model suggests for one message. |
 | [`write-suites`](#ironsworn-tui-write-suites) | Writes the decision model's test suites. |
@@ -31,33 +31,43 @@ ironsworn-tui <command> [options]
 | Status | Meaning |
 |---|---|
 | `0` | The command succeeded. |
+| `1` | `new` only: you quit the walkthrough, and nothing was saved. |
 | `2` | The arguments didn't parse, an option wasn't valid, the settings file couldn't be read or wasn't valid, or a campaign file was missing, already existed, or couldn't be loaded. The command prints `Error:` and the reason, or argparse's usage message, to standard error. |
 | `3` | `suggest` only: jevtester couldn't answer, or the model gave no answer. |
 
 ### ironsworn-tui new
 
 ```text
-ironsworn-tui new <name> --description <text> --stats <stat>=<n>,... --assets <asset>[:<ability>],... --vow <text> [--bond <text>]... [--rank <rank>] [--harm 1|2] [--overwrite]
+ironsworn-tui new [<name>] [--overwrite] [--no-model]
+ironsworn-tui new <name> --description <text> --stats <stat>=<n>,... --assets <asset>[:<ability>],... --vow <text> [--bond <text>]... [--rank extreme|epic] [--harm 1|2] [--overwrite]
 ```
 
-Creates a character and a campaign with one background vow. Saves it as `<name>.json` in the campaigns folder, and prints the file's path to standard output. The character starts with full health, spirit, and supply, +2 momentum, and 0 experience.
+Creates a character and a campaign. With none of `--description`, `--stats`, `--assets`, and `--vow`, it opens the [walkthrough](#walkthrough). With all four, it creates the character from the options. Either way, the character starts with full health, spirit, and supply, +2 momentum, and 0 experience, and the campaign is saved as `<name>.json` in the campaigns folder.
 
-| Argument or option | Required | Default | Value |
-|---|---|---|---|
-| `<name>` | Yes | | The character's name. It's also the campaign's name and the file name, and it's case-sensitive. |
-| `--description` | Yes | | A few words about the character, such as `"the Destructor"`. |
-| `--stats` | Yes | | All five stats (`edge`, `heart`, `iron`, `shadow`, `wits`), given the values 3, 2, 2, 1, and 1 in any order. Write each as `<stat>=<n>` and separate them with commas. Case doesn't matter. |
-| `--assets` | Yes | | Exactly three asset ids, separated by commas with no spaces. Ids are lowercase, such as `archer` or `cave_lion`. An asset that starts with no ability marked, such as a companion, needs the ability to mark after a colon, from 1 to 3, such as `hawk:2`. An asset that starts with an ability marked takes no colon. `--assets help` prints the ids by category, exits with 0, and creates nothing. |
-| `--vow` | Yes | | The background vow's text. |
-| `--bond` | No | None | A person or community the character shares a background bond with. Repeat it for up to three bonds. For each bond, the app marks one tick on the bonds track and logs `Bond: <text>`. |
-| `--rank` | No | `epic` | The background vow's rank: `troublesome`, `dangerous`, `formidable`, `extreme`, or `epic`. Case doesn't matter. |
-| `--harm` | No | `2` | The harm the character deals: `2` with a deadly weapon, `1` without. |
-| `--overwrite` | No | Off | Replaces an existing campaign with the same name, to start the character over. The old campaign is lost. |
+The walkthrough saves the campaign, prints the file's path to standard output, and then starts play as [`play`](#ironsworn-tui-play) does. If the walkthrough started in media res, play opens on the Swear an Iron Vow roll for the first vow. After a prologue, the log notes how to swear the vow with [`/vow swear`](#vow). If you quit the walkthrough, it prints `Nothing saved.` to standard error and exits with status 1.
+
+From the options, the command saves the campaign, prints the file's path, and exits without starting play.
+
+| Argument or option | Default | Value |
+|---|---|---|
+| `<name>` | None | The character's name. It's also the campaign's name and the file name, and it's case-sensitive. The options form needs it. The walkthrough starts with it filled in. |
+| `--description` | None | A few words about the character, such as `"the Destructor"`. |
+| `--stats` | None | All five stats (`edge`, `heart`, `iron`, `shadow`, `wits`), given the values 3, 2, 2, 1, and 1 in any order. Write each as `<stat>=<n>` and separate them with commas. Case doesn't matter. |
+| `--assets` | None | Exactly three asset ids, separated by commas with no spaces. Ids are lowercase, such as `archer` or `cave_lion`. An asset that starts with no ability marked, such as a companion, needs the ability to mark after a colon, from 1 to 3, such as `hawk:2`. An asset that starts with an ability marked takes no colon. `--assets help` prints the ids by category, exits with 0, and creates nothing. |
+| `--vow` | None | The background vow's text. |
+| `--bond` | None | A person or community the character shares a background bond with. Repeat it for up to three bonds. For each bond, the app marks one tick on the bonds track and logs `Bond: <text>`. Options form only. |
+| `--rank` | `epic` | The background vow's rank: `extreme` or `epic`. Case doesn't matter. Options form only. |
+| `--harm` | `2` | The harm the character deals: `2` with a deadly weapon, `1` without. Options form only. |
+| `--overwrite` | Off | Replaces an existing campaign with the same name, to start the character over. The old campaign is lost. In the walkthrough, it lets the name step take a name a campaign already uses. |
+| `--no-model` | Off | After the walkthrough, play without move suggestions, as `play --no-model` does. |
 
 Errors, each with exit status 2. The command writes nothing when one occurs.
 
 | Message | Cause |
 |---|---|
+| `Error: give <options> too, or leave out every option to use the walkthrough.` | Some of `--description`, `--stats`, `--assets`, and `--vow` are given, but not all four. |
+| `Error: give the character's name before the options.` | The options form has no `<name>`. |
+| `Error: --bond, --rank, and --harm go with --description, --stats, --assets, and --vow. Without those, new asks everything in the walkthrough.` | `--bond`, `--rank`, or `--harm` is given without the other options. |
 | `Error: a campaign named <name> already exists at <path>. Use --overwrite to start over, or choose another name.` | A campaign with that name exists, and `--overwrite` isn't given. |
 | `Error: give the five stats, edge, heart, iron, shadow, and wits, the values 3, 2, 2, 1, and 1 in any order, got <stats>` | A stat is missing, or the values aren't 3, 2, 2, 1, 1. |
 | `Error: unknown stat '<word>'; the stats are edge, heart, iron, shadow, and wits` | A name in `--stats` isn't one of the five stats. |
@@ -71,10 +81,12 @@ Errors, each with exit status 2. The command writes nothing when one occurs.
 | `Error: write a pick as an ability number, such as <id>:1` | The text after the colon isn't a number. |
 | `Error: buy <Asset> with /asset buy once you play, to choose its stat changes` | The pick is Shadow-Kin 1 or Battle-Scarred 1, which change stats. |
 | `Error: rank must be one of: troublesome, dangerous, formidable, extreme, epic` | `--rank` isn't a rank. |
+| `Error: a background vow is extreme or epic` | `--rank` is a rank below extreme. |
 
-Example:
+Examples:
 
 ```console
+$ ironsworn-tui new
 $ ironsworn-tui new Blarg --description "the Destructor" \
     --stats edge=3,heart=2,iron=2,shadow=1,wits=1 \
     --assets archer,hawk:2,wright \
@@ -83,6 +95,38 @@ $ ironsworn-tui new Blarg --description "the Destructor" \
 ```
 
 See also: [`ironsworn-tui play`](#ironsworn-tui-play).
+
+#### Walkthrough
+
+The walkthrough asks each step of the rulebook's campaign setup in turn. The heading shows the rulebook step, the question, and `Step <n> of 7`. A rules line under it gives the rule, and the line at the bottom lists the keys. A problem with a step, or the result of a roll, shows in yellow above the keys.
+
+| Step | Questions | Needed |
+|---|---|---|
+| Create your character | Name and description. Stats. Three assets. For an asset that starts with no ability marked, its starting ability, and for any asset with fields, such as a companion's name or Ironclad's armor, the fields. Whether the character carries a deadly weapon. | The name, the description, all five stats, three assets, each starting ability, and each choice field. A text field, such as a name, is optional. |
+| Create your world | The 11 world truths of the Ironlands, one at a time, each with its quest starter. The region where the story begins, and the place in it. | A choice for each truth, which can be "Leave it open". A region. |
+| Mark your background bonds | Up to three bonds. | Nothing. |
+| Write your background vow | The vow, and its rank: extreme or epic. The quest starters of the chosen truths and region are listed as ideas. | The vow. |
+| Envision your inciting incident | The problem that starts the story, with the quest starters as ideas. | Nothing. |
+| Set the scene | In media res or a prologue. The opening scene, which becomes the [`/scene`](#scene) text. In media res, the first vow and its rank: troublesome, dangerous, or formidable. | In media res, the vow. |
+| Review | Every choice. | Nothing. |
+
+| Key | Where | Action |
+|---|---|---|
+| Enter | Everywhere | Move to the step's next field, or from its last field to the next step. On the review, create the campaign and play. |
+| Tab, Shift+Tab | Everywhere | Move between the step's fields. |
+| Esc | Everywhere | Go back a step. The answers are kept. |
+| Ctrl+Q | Everywhere | Quit and save nothing. |
+| Up, Down | A list of choices | Select the choice above or below. |
+| 1 to 9 | A list of choices | Select a choice by its number. |
+| Up, Down, 1, 2, 3 | Stats | Move between the stats, and give the highlighted stat a value. A value that's used up is taken from the stat that had it. |
+| Up, Down, Space | Assets | Browse the assets, and pick or drop the highlighted one. The right side shows its abilities. |
+| Ctrl+R | Name | Roll an Ironlander name. |
+| `r` | A world truth | Roll 1 to 100 for the truth. |
+| `a` | A world truth | Roll for this truth and every truth after it, then move to the region. |
+| Ctrl+R | Where your story begins | Roll a settlement name for the place. |
+| Ctrl+R | Inciting incident | Roll the action and theme oracles for an idea. |
+
+Shadow-Kin's and Battle-Scarred's first abilities change stats, so the walkthrough shows them but doesn't let you choose them. Buy them in play with [`/asset buy`](#asset).
 
 ### ironsworn-tui play
 
@@ -184,7 +228,7 @@ suites/recognizer-fight-guide-acts.yaml
 The play screen has four parts:
 
 - **Character panel**, on the left: stats, health, spirit, supply, momentum, debilities, harm, experience, and the add for the next move; then, when they're active, the fight and the journey; then vows, bonds, and assets. In a fight, `>` marks the foe an attack targets. Each progress track shows 10 boxes: `■` is full, `▣` has some ticks, and `□` is empty. When the panel doesn't fit the screen, it scrolls.
-- **Log**, on the right: the campaign log. On opening, it shows the last 200 entries. A new campaign's log shows a welcome note that says how to start. A blank line separates each message and each command you type.
+- **Log**, on the right: the campaign log. On opening, it shows the last 200 entries. A new campaign's log shows a welcome note that says how to start, after any roll card the campaign opens on. A blank line separates each message and each command you type.
 - **Suggestion bar**, below them: suggested moves, the roll card, and owed moves. Its keys depend on its [mode](#suggestion-bar).
 - **Input line**, at the bottom: where you type a message or a `/` command. When empty, it reads `Type what your character does, or / for a command`.
 
@@ -203,7 +247,7 @@ A move adds these entries to the log, in this order. The app saves them all in t
 | Bold yellow | A `Next:` line, when the result asks for something the app doesn't do: imagining what happens, with how to ask the oracle; an owed move, with what it does and its key; or the End the Fight offer. |
 | Yellow | A note, such as an error or something to apply yourself. |
 | Dim | A command you ran, and what it changed. |
-| Bold italic | A note you wrote with `/note`. |
+| Bold italic | A note you wrote with `/note`, or the inciting incident from the walkthrough. |
 | Blue | Help from `/help` or `<command> help`. It isn't saved to the campaign log. |
 
 Changes made before the roll, such as a new vow or Endure Harm's damage, appear before the roll entry. Progress shows in boxes, and in ticks when it isn't whole boxes. A box is 4 ticks.
@@ -381,6 +425,7 @@ Names you type:
 | [`/note`](#note) | Writes a note in the log. |
 | [`/vow`](#vow) | Lists, swears, marks, fulfills, or forsakes vows. |
 | [`/scene`](#scene) | Sets the scene text. |
+| [`/world`](#world) | Lists the world truths, where the story began, and the inciting incident. |
 | [`/target`](#target) | Picks the foe an attack targets. |
 | [`/tide`](#tide) | Arms or disarms Turn the Tide. |
 | [`/adjust`](#adjust) | Changes a value by hand. |
@@ -510,6 +555,21 @@ Replaces the scene text, which the decision model reads with each message. Logs 
 ```text
 /scene A ruined watchtower in the rain
 Scene: A ruined watchtower in the rain
+```
+
+### /world
+
+```text
+/world
+```
+
+Lists what the [walkthrough](#walkthrough) set up: `Where you begin: <place>, <region>`, `Inciting incident: <text>`, and each world truth as `<truth>: <text>`, leaving out any that weren't set. Shows `No world truths, place, or inciting incident.` when none were, as for a campaign created from options. Changes nothing.
+
+```text
+/world
+Where you begin: Ravenford, Havens
+Inciting incident: Raiders took Torvin, and they'll sell him at the coast before the thaw
+Mysticism: Magic is rare and dangerous, but those few who wield the power are truly gifted.
 ```
 
 ### /target

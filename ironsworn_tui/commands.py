@@ -261,6 +261,18 @@ def _note(engine: TurnEngine, values: Values) -> CommandResult:
     return CommandResult()
 
 
+def _world(engine: TurnEngine, _: Values) -> CommandResult:
+    world = engine.campaign.world
+    lines: list[str] = []
+    where = ", ".join(part for part in (world.place, world.region or "") if part)
+    if where:
+        lines.append(f"Where you begin: {where}")
+    if world.inciting_incident:
+        lines.append(f"Inciting incident: {world.inciting_incident}")
+    lines += [f"{truth.name}: {truth.text}" for truth in world.truths]
+    return CommandResult(tuple(lines or ["No world truths, place, or inciting incident."]))
+
+
 def _vows(engine: TurnEngine, _: Values) -> CommandResult:
     vows = engine.campaign.vows
     lines = [f"{vow.name} ({vow.rank.name.lower()}): {_filled(vow)}" for vow in vows]
@@ -759,6 +771,16 @@ REGISTRY = Registry(
                 "With no option, /vow lists your vows and their progress.",
             ),
             examples=("/vow", "/vow swear dangerous Find my brother"),
+        ),
+        Command(
+            "world",
+            "List the world truths, where the story began, and the inciting incident",
+            _world,
+            help=(
+                "The walkthrough in ironsworn-tui new sets these up before play. They're the "
+                "facts of your world and the problem that started your story.",
+            ),
+            examples=("/world",),
         ),
         Command(
             "scene",

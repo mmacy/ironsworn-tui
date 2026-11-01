@@ -16,12 +16,13 @@ from ironsworn_tui.rules.momentum import MomentumBounds, adjust_momentum, moment
 from ironsworn_tui.rules.progress import TICKS_PER_BOX, TRACK_TICKS, ProgressRoll, Rank
 from ironsworn_tui.rules.suffer import Endurance
 
-SCHEMA_VERSION = 4
+SCHEMA_VERSION = 5
 METER_MAX = 5
 STARTING_STATS = (3, 2, 2, 1, 1)
 STARTING_ASSETS = 3
 STARTING_MOMENTUM = 2
 MAX_BACKGROUND_BONDS = 3
+BACKGROUND_RANKS = (Rank.EXTREME, Rank.EPIC)
 
 type Meter = Literal["health", "spirit", "supply"]
 type Debility = Literal[
@@ -434,6 +435,35 @@ class LogEntry(_Model):
     text: str
 
 
+class WorldTruth(_Model):
+    """A truth about the world the player chose, such as what Iron means to the people.
+
+    Attributes:
+        name: The truth's name, such as `Iron`.
+        text: What it says.
+    """
+
+    name: str
+    text: str
+
+
+class World(_Model):
+    """What the player set up about the world before play (rulebook pages 194 and 196).
+
+    Attributes:
+        truths: The world truths the player chose, in the rulebook's order. A truth left open
+            isn't here.
+        region: The region of the Ironlands where the story begins, or None.
+        place: The place where the story begins, such as a village's name.
+        inciting_incident: The problem that drives the character into action.
+    """
+
+    truths: list[WorldTruth] = Field(default_factory=list[WorldTruth])
+    region: str | None = None
+    place: str = ""
+    inciting_incident: str = ""
+
+
 class Campaign(_Model):
     """Everything saved about one campaign.
 
@@ -459,12 +489,13 @@ class Campaign(_Model):
             Circle's "Hold no iron" boast set it to 1. None when no boast changed it.
         pending_card: The roll card waiting for the player's choices, if any.
         background_vow: The name of the background vow, which Fated counts.
+        world: The world truths, where the story begins, and the inciting incident.
         lasting: The lasting effects, such as a talisman, in the order they started.
         explained: The moves whose purpose the log has explained, so each is explained once.
         log: The turn log.
     """
 
-    schema_version: Literal[4] = SCHEMA_VERSION
+    schema_version: Literal[5] = SCHEMA_VERSION
     character: Character
     vows: list[ProgressTrack] = Field(default_factory=list[ProgressTrack])
     bonds: int = Field(default=0, ge=0, le=TRACK_TICKS)
@@ -483,6 +514,7 @@ class Campaign(_Model):
     harm_after_fight: int | None = Field(default=None, ge=1, le=2)
     pending_card: SavedCard | None = None
     background_vow: str | None = None
+    world: World = Field(default_factory=World)
     lasting: list[Lasting] = Field(default_factory=list[Lasting])
     explained: list[str] = Field(default_factory=list[str])
     log: list[LogEntry] = Field(default_factory=list[LogEntry])
@@ -737,13 +769,15 @@ def new_campaign(
     Args:
         character: The character.
         background_vow: The background vow's name.
-        rank: The background vow's rank.
+        rank: The background vow's rank, extreme or epic (rulebook page 195).
         bonds: Up to three people or communities the character shares a bond with. Each
             marks one tick on the bonds track (rulebook page 36).
 
     Raises:
-        ValueError: If there are more than three bonds.
+        ValueError: If the rank isn't extreme or epic, or there are more than three bonds.
     """
+    if rank not in BACKGROUND_RANKS:
+        raise ValueError("a background vow is extreme or epic")
     if len(bonds) > MAX_BACKGROUND_BONDS:
         raise ValueError(f"a character starts with up to {MAX_BACKGROUND_BONDS} bonds")
     campaign = Campaign(

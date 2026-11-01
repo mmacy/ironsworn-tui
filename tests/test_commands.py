@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from ironsworn_tui.campaign import Campaign, Lasting, OwedMove
+from ironsworn_tui.campaign import Campaign, Lasting, OwedMove, World, WorldTruth
 from ironsworn_tui.commands import parse_foes, run_command
 from ironsworn_tui.registry import CommandError
 from ironsworn_tui.rules.dice import Hit
@@ -404,3 +404,23 @@ def test_marking_an_epic_vow_reports_the_tick(tmp_path: Path):
 def test_quit_asks_the_app_to_quit(tmp_path: Path):
     turn, _, _ = engine(tmp_path)
     assert run_command(turn, "/quit").quit
+
+
+def test_world_lists_the_setup(tmp_path: Path):
+    turn, _, _ = engine(tmp_path)
+    turn.campaign.world = World(
+        truths=[WorldTruth(name="Iron", text="Iron is precious.")],
+        region="Havens",
+        place="Cinderhome",
+        inciting_incident="The overseer is sick.",
+    )
+    assert run_command(turn, "/world").lines == (
+        "Where you begin: Cinderhome, Havens",
+        "Inciting incident: The overseer is sick.",
+        "Iron: Iron is precious.",
+    )
+
+
+def test_world_without_a_setup(tmp_path: Path):
+    turn, _, _ = engine(tmp_path)
+    assert run_command(turn, "/world").lines == ("No world truths, place, or inciting incident.",)

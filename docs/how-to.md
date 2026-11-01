@@ -75,6 +75,8 @@ Use this when you have no network, no sign-in, or want to pick every move yourse
    uv run ironsworn-tui play Blarg --no-model
    ```
 
+   For a new character, add it to `new` instead: `uv run ironsworn-tui new --no-model`. Play starts without the model once the walkthrough ends.
+
 2. Type what your character does and press Enter. The log shows your message, and the bar shows the full list of moves for where you are, with none selected.
 3. Pick a move. Press 1 to 9 for the first nine, Shift and a letter (`A`, `B`, and so on) for the moves after those, or the arrow keys for any move.
 4. If the bar shows "Stat: press" and a list of keys, press one of them: e, h, i, s, or w for edge, heart, iron, shadow, or wits.
@@ -84,9 +86,9 @@ You can also type `/moves` to open the full list without typing a message first.
 
 With the model, the app saves each message the model answered, with the move you made, as a test case in `suites/play-<context>.yaml`. Without the model, it saves none.
 
-## How to create a character with specific stats and assets
+## How to create a character from options
 
-Use this to start a campaign with the character you planned on paper.
+Use this to create a character in one command instead of in the walkthrough, for example in a script. The command saves the campaign and stops. It doesn't ask for world truths, an inciting incident, or an opening scene, and it doesn't start play.
 
 Before you start, choose:
 
@@ -107,7 +109,7 @@ Steps:
 
 2. Add any of these options if you need them:
 
-   - `--rank` sets the background vow's rank. It's `epic` unless you give another rank: `troublesome`, `dangerous`, `formidable`, or `extreme`.
+   - `--rank extreme` makes the background vow extreme instead of epic. A background vow is always one of the two.
    - `--harm 1` means your character doesn't carry a deadly weapon. The default is 2.
    - `--bond` adds a background bond, like `--bond "My sister Ash"`. Repeat it for up to three bonds. Each one marks a tick on your bonds track.
 
@@ -122,11 +124,19 @@ You can't start with the first ability of Battle-scarred or Shadow-kin, because 
 
 To name a companion, see [How to look after a companion](#how-to-look-after-a-companion).
 
+Once the campaign is saved, play it with `uv run ironsworn-tui play Blarg`.
+
 ## How to start a character over
 
 Use this to throw away a campaign and create the character again, for example after a practice session.
 
-Run `new` with the same name and add `--overwrite`:
+Run `new` with `--overwrite`, and give the character the same name in the walkthrough:
+
+```sh
+uv run ironsworn-tui new --overwrite
+```
+
+To create the character from options instead, add `--overwrite` to the full command:
 
 ```sh
 uv run ironsworn-tui new Blarg --description "the Destructor" --stats edge=2,heart=2,iron=1,shadow=1,wits=3 --assets archer,hawk:2,wright --vow "Avenge my village" --overwrite

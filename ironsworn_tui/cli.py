@@ -13,6 +13,7 @@ from ironsworn_tui.app import IronswornApp
 from ironsworn_tui.campaign import Campaign, asset_catalog, create_character, new_campaign
 from ironsworn_tui.cases import ORACLE_SUITE, play_suite_name
 from ironsworn_tui.commands import parse_rank
+from ironsworn_tui.creation import Setup, begin_campaign, open_play
 from ironsworn_tui.criteria import CriteriaStyle
 from ironsworn_tui.decide import DecideError, TurnState, build_request, jevtester_server
 from ironsworn_tui.experiment import (
@@ -30,6 +31,7 @@ from ironsworn_tui.rules.datasworn import Stat, datasworn
 from ironsworn_tui.rules.errors import UnknownIdError
 from ironsworn_tui.settings import SettingsError, load_settings
 from ironsworn_tui.turn import TurnEngine
+from ironsworn_tui.walkthrough import Walkthrough
 
 TOP_MOVES = 3
 STATS: dict[str, Stat] = {stat: stat for stat in get_args(Stat.__value__)}
@@ -87,11 +89,42 @@ def _campaign_path(name: str) -> Path:
     return load_settings().campaigns_dir / f"{name}.json"
 
 
+CREATION_OPTIONS = ("description", "stats", "assets", "vow")
+
+
+def _listing(items: Sequence[str]) -> str:
+    """Join items as a sentence does: `a`, `a and b`, or `a, b, and c`."""
+    if len(items) < 3:
+        return " and ".join(items)
+    return ", ".join(items[:-1]) + ", and " + items[-1]
+
+
 def new(args: argparse.Namespace) -> int:
-    """Create a character and a campaign with their background vow."""
-    if args.assets.strip().lower() == "help":
+    """Create a character and a campaign: with the walkthrough, or from the options."""
+    assets: str = args.assets or ""
+    if assets.strip().lower() == "help":
         print("\n".join(asset_catalog(datasworn())))
         return 0
+    missing = [f"--{option}" for option in CREATION_OPTIONS if getattr(args, option) is None]
+    if len(missing) == len(CREATION_OPTIONS):
+        if args.bond or args.rank is not None or args.harm is not None:
+            print(
+                "Error: --bond, --rank, and --harm go with --description, --stats, --assets, "
+                "and --vow. Without those, `new` asks everything in the walkthrough.",
+                file=sys.stderr,
+            )
+            return 2
+        return _walkthrough(args)
+    if missing:
+        print(
+            f"Error: give {_listing(missing)} too, or leave out every option to use the "
+            "walkthrough.",
+            file=sys.stderr,
+        )
+        return 2
+    if args.name is None:
+        print("Error: give the character's name before the options.", file=sys.stderr)
+        return 2
     path = _campaign_path(args.name)
     if path.exists() and not args.overwrite:
         print(
@@ -117,10 +150,10 @@ def new(args: argparse.Namespace) -> int:
             args.name,
             args.description,
             stats,
-            [spec.strip().lower() for spec in args.assets.split(",")],
-            harm=args.harm,
+            [spec.strip().lower() for spec in assets.split(",")],
+            harm=args.harm if args.harm is not None else 2,
         )
-        campaign = new_campaign(character, args.vow, parse_rank(args.rank), args.bond)
+        campaign = new_campaign(character, args.vow, parse_rank(args.rank or "epic"), args.bond)
     except (ValueError, UnknownIdError) as error:
         print(f"Error: {error}", file=sys.stderr)
         return 2
@@ -129,9 +162,64 @@ def new(args: argparse.Namespace) -> int:
     return 0
 
 
+def _walkthrough(args: argparse.Namespace) -> int:
+    """Run the walkthrough, save the campaign it sets up, and play it."""
+    rng = random.Random()
+
+    def taken(name: str) -> bool:
+        return _campaign_path(name).exists() and not args.overwrite
+
+    setup = Walkthrough(datasworn(), rng, name=args.name or "", taken=taken).run()
+    if setup is None:
+        print("Nothing saved.", file=sys.stderr)
+        return 1
+    path = _campaign_path(setup.name)
+    campaign = begin_campaign(datasworn(), setup)
+    campaign.save(path)
+    print(path)
+    return _run(campaign, path, no_model=args.no_model, rng=rng, setup=setup)
+
+
+def _run(
+    campaign: Campaign,
+    path: Path,
+    *,
+    no_model: bool,
+    rng: random.Random,
+    setup: Setup | None = None,
+) -> int:
+    """Play a campaign, after the first move of a new one's setup."""
+    settings = load_settings()
+    with ExitStack() as stack:
+        decider = None
+        if not no_model:
+            print(f"Starting jevtester for {settings.target}…", file=sys.stderr)
+            try:
+                decider = stack.enter_context(jevtester_server(settings))
+            except (DecideError, OSError) as error:
+                campaign.add_log("note", f"Playing without move suggestions: {error}")
+        try:
+            engine = TurnEngine(
+                campaign,
+                datasworn(),
+                rng,
+                load_thresholds(settings.target),
+                decider=decider,
+                target=settings.target,
+                path=path,
+                cases=decider,
+            )
+        except ValueError as error:
+            print(f"Error: can't play {path}: {error}", file=sys.stderr)
+            return 2
+        if setup is not None:
+            open_play(engine, setup)
+        IronswornApp(engine).run()
+    return 0
+
+
 def play(args: argparse.Namespace) -> int:
     """Play a campaign in the TUI."""
-    settings = load_settings()
     path = _campaign_path(args.name)
     if not path.exists():
         print(
@@ -143,30 +231,7 @@ def play(args: argparse.Namespace) -> int:
     except (OSError, ValueError) as error:
         print(f"Error: can't load {path}: {error}", file=sys.stderr)
         return 2
-    with ExitStack() as stack:
-        decider = None
-        if not args.no_model:
-            print(f"Starting jevtester for {settings.target}…", file=sys.stderr)
-            try:
-                decider = stack.enter_context(jevtester_server(settings))
-            except (DecideError, OSError) as error:
-                campaign.add_log("note", f"Playing without move suggestions: {error}")
-        try:
-            engine = TurnEngine(
-                campaign,
-                datasworn(),
-                random.Random(),
-                load_thresholds(settings.target),
-                decider=decider,
-                target=settings.target,
-                path=path,
-                cases=decider,
-            )
-        except ValueError as error:
-            print(f"Error: can't play {path}: {error}", file=sys.stderr)
-            return 2
-        IronswornApp(engine).run()
-    return 0
+    return _run(campaign, path, no_model=args.no_model, rng=random.Random())
 
 
 def write_suites(args: argparse.Namespace) -> int:
@@ -264,16 +329,30 @@ def make_parser() -> argparse.ArgumentParser:
 
     n = commands.add_parser(
         "new",
-        help="Create a character and a campaign.",
-        description=_paragraph(
-            "Create a character and a campaign with one background vow, save it as "
-            "<name>.json in the campaigns folder, and print the file's path. The character "
-            "starts with full health, spirit, and supply, and +2 momentum. Play the campaign "
-            "with `ironsworn-tui play <name>`. Exits with 2, and writes nothing, if the file "
-            "already exists and you didn't pass --overwrite, or an option isn't valid."
+        help="Create a character and a campaign, in the walkthrough or from options.",
+        description=(
+            _paragraph(
+                "With no options, open the walkthrough. It asks each campaign setup step in "
+                "the rulebook's order: your character, the world, your background bonds and "
+                "vow, the inciting incident, and the opening scene. Then it saves the "
+                "campaign, prints the file's path, and starts play. If you start in media "
+                "res, play opens on the Swear an Iron Vow roll. Exits with 1, and writes "
+                "nothing, if you quit the walkthrough."
+            )
+            + "\n\n"
+            + _paragraph(
+                "With --description, --stats, --assets, and --vow, create the character and "
+                "a campaign with one background vow, save it as <name>.json in the campaigns "
+                "folder, and print the file's path, without the walkthrough or play. The "
+                "character starts with full health, spirit, and supply, and +2 momentum. "
+                "Play the campaign with `ironsworn-tui play <name>`. Exits with 2, and "
+                "writes nothing, if the file already exists and you didn't pass "
+                "--overwrite, or an option isn't valid."
+            )
         ),
         epilog=(
-            "example:\n"
+            "examples:\n"
+            "  ironsworn-tui new\n"
             '  ironsworn-tui new Blarg --description "the Destructor" \\\n'
             "    --stats edge=3,heart=2,iron=2,shadow=1,wits=1 \\\n"
             "    --assets archer,hawk:2,wright \\\n"
@@ -281,15 +360,20 @@ def make_parser() -> argparse.ArgumentParser:
         ),
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
-    n.add_argument("name", help="The character's name, which also names the campaign file.")
+    n.add_argument(
+        "name",
+        nargs="?",
+        help=(
+            "The character's name, which also names the campaign file. The walkthrough "
+            "starts with it filled in."
+        ),
+    )
     n.add_argument(
         "--description",
-        required=True,
         help="A few words about the character, such as 'the Destructor'.",
     )
     n.add_argument(
         "--stats",
-        required=True,
         metavar="<stat>=<n>,...",
         help=(
             "All five stats, edge, heart, iron, shadow, and wits, given the values 3, 2, 2, 1, "
@@ -299,7 +383,6 @@ def make_parser() -> argparse.ArgumentParser:
     )
     n.add_argument(
         "--assets",
-        required=True,
         metavar="<asset>[:<ability>],...",
         help=(
             "Three asset ids, separated by commas with no spaces. An asset that starts with no "
@@ -307,7 +390,7 @@ def make_parser() -> argparse.ArgumentParser:
             "archer,hawk:2,wright. --assets help prints the asset ids and creates nothing."
         ),
     )
-    n.add_argument("--vow", required=True, help="The background vow, in quotes.")
+    n.add_argument("--vow", help="The background vow, in quotes.")
     n.add_argument(
         "--bond",
         action="append",
@@ -319,23 +402,23 @@ def make_parser() -> argparse.ArgumentParser:
     )
     n.add_argument(
         "--rank",
-        default="epic",
-        help=(
-            "The background vow's rank: troublesome, dangerous, formidable, extreme, or epic "
-            "(default: epic)."
-        ),
+        help="The background vow's rank: extreme or epic (default: epic).",
     )
     n.add_argument(
         "--harm",
         type=int,
         choices=[1, 2],
-        default=2,
         help="The harm the character deals: 2 with a deadly weapon, 1 without (default: 2).",
     )
     n.add_argument(
         "--overwrite",
         action="store_true",
         help="Replace an existing campaign with this name, to start the character over.",
+    )
+    n.add_argument(
+        "--no-model",
+        action="store_true",
+        help=("After the walkthrough, play without move suggestions, as `play --no-model` does."),
     )
     n.set_defaults(func=new)
 

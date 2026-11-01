@@ -19,6 +19,21 @@ The app and you split the work this way:
 
 The app never decides fiction for you. It can't see the story, so it can't tell whether you're in a community, whether your foe is a beast, or whether the price you pay should be an injury. Where a rule depends on the fiction, the app asks you or leaves it to you.
 
+## Campaign setup
+
+The rulebook sets up a campaign in eight steps (rulebook page 202), and `ironsworn-tui new` with no options walks through them in order:
+
+1. **Create your character** (pages 33 to 47). You give your five stats the values 3, 2, 2, 1, and 1, and pick three assets. A new asset starts with its first ability marked. A companion starts with one you choose, and you give it a name. The app also asks whether your character carries a deadly weapon, because that sets the harm they deal in a fight.
+2. **Create your world** (pages 122 to 129). The rulebook offers 11 *truths* about the Ironlands, each with three options. You choose one, roll 1 to 100 for one, or leave the truth open to find out in play. Each option has a *quest starter*, a story idea. Then you choose the region where the story begins, and name the place.
+3. **Mark your background bonds** (page 195). You start with up to three bonds, each one tick on the bonds track. You don't make Forge a Bond for them.
+4. **Write your background vow** (page 195). Your long-term goal is extreme or epic, and you don't make Swear an Iron Vow for it. The walkthrough lists the quest starters of the truths and region you chose as ideas.
+5. **Envision your inciting incident** (page 196). This is the problem that forces your character into action now. The rulebook suggests making it personal, a problem that won't go away on its own, with a deadline.
+6. **Set the scene** (page 198). You start *in media res*, as the problem strikes, or with a prologue in the normal world. The scene you write becomes the scene text, which the decision model reads.
+7. **Swear an Iron Vow** (page 199). In media res, you swear a vow to face the inciting incident, troublesome, dangerous, or formidable. The app makes the move, and play opens on the roll card. After a prologue, you swear the vow with `/vow swear` when the problem arrives.
+8. **Take your next steps** (page 200). This is play.
+
+`/world` lists the truths, where the story began, and the inciting incident. You can change any of them in the fiction as you play. The app doesn't use them in any rule.
+
 ## The fiction-first loop
 
 Ironsworn is played *fiction first*. You describe what your character does. If the action is risky or uncertain, it triggers a *move*. A move is a rule with a trigger, like Gather Information's "When you search an area, ask questions, conduct an investigation, or follow a track" (rulebook page 62). Each move lists what to roll and what each result means. If an action isn't risky, no move triggers, and it happens.
@@ -165,7 +180,7 @@ The four progress moves are Fulfill Your Vow, Reach Your Destination, End the Fi
 
 A *vow* is a sworn quest, like "Avenge my village." Vows drive the game (rulebook pages 4 and 98 to 101).
 
-- **Swear:** When you swear a vow, you make the Swear an Iron Vow move. The app asks for the vow and its rank. You can type the oath as fiction, or use `/vow swear`. Your character's first vow, the *background vow*, comes from character creation.
+- **Swear:** When you swear a vow, you make the Swear an Iron Vow move. The app asks for the vow and its rank. You can type the oath as fiction, or use `/vow swear`. Your character's long-term vow, the *background vow*, comes from character creation, and you don't roll for it.
 - **Mark progress:** When you overcome an important obstacle in your quest, you Reach a Milestone and mark progress. The app can't tell when that happens, so you decide and use `/vow mark`.
 - **Fulfill:** When you think the quest is done, you make Fulfill Your Vow. On a strong hit, the app marks experience by the vow's rank and clears the vow. On a weak hit, it marks one less. On a miss, you choose to recommit or give up the vow.
 - **Forsake:** If you give up a vow, you Forsake Your Vow. The app clears the vow and makes you Endure Stress equal to its rank.
@@ -214,7 +229,7 @@ Draw the Circle starts a duel (rulebook page 73). On a strong hit, you can choos
 
 A *bond* is a close tie to a person or community (rulebook page 36). When you Forge a Bond, the app marks one tick on your bonds track. Some moves add +1 when you share a bond with someone. The app can't tell whether you do. For Sojourn, the app asks: answer `yes` in the Bond field, and the app adds the +1 and lets you choose one more recovery option on a hit (rulebook page 71). Don't also add the +1 yourself. For other moves, like Compel or Draw the Circle, add the +1 yourself with `+` before you roll. When your character retires, you roll Write Your Epilogue against your bonds track.
 
-The rulebook lets you start with up to three background bonds. Name them with `--bond` when you create your character, and the app marks a tick for each. To add a bond later, use `/adjust bonds`.
+The rulebook lets you start with up to three background bonds. Name them in the walkthrough, or with `--bond` when you create a character from options, and the app marks a tick for each. To add a bond later, use `/adjust bonds`.
 
 ### Aid Your Ally
 

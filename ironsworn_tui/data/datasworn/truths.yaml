@@ -153,7 +153,7 @@ truths:
         # True magic—if it ever existed—is lost to us.
         quest_starter: |-
           Someone close to you is accused of cursing a settlement, causing fields to go fallow and cattle to become sick. What is the evidence of this? Will you defend this person and uncover the true cause of the settlement’s troubles?
-      - roll: { min: 68, max: 100 }
+      - roll: { min: 34, max: 67 }
         description: |-
           Magic is rare and dangerous, but those few who wield the power are truly gifted.
         # Magic is rare.

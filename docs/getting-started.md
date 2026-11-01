@@ -1,6 +1,6 @@
 # Getting started
 
-Install ironsworn-tui, create a character named Blarg the Destructor, and play their first session. You'll swear a vow, make a move, mark progress, and ask the oracle. You don't need to know *Ironsworn* first. You'll learn each rule the first time you meet it, and only as far as this session needs.
+Install ironsworn-tui, create a character named Blarg the Destructor and their world, and play their first session. You'll swear a vow, make a move, mark progress, and ask the oracle. You don't need to know *Ironsworn* first. You'll learn each rule the first time you meet it, and only as far as this session needs.
 
 For the rules in depth, see [Playing Ironsworn](playing.md). The full rules are in the *Ironsworn* rulebook, a free download from the publisher, Tomkin Press, at [tomkinpress.com](https://tomkinpress.com/products/ironsworn-digital-edition).
 
@@ -27,80 +27,106 @@ az account show
 
 If the command shows an account, you're signed in. If it says you aren't, run `az login` and follow its steps.
 
-If you can't sign in, you can still follow this tutorial. Add `--no-model` to the `play` command later on. The app then shows the full list of moves instead of a suggestion, and you pick the move yourself.
+If you can't sign in, you can still follow this tutorial. Add `--no-model` to the `new` command later on. The app then shows the full list of moves instead of a suggestion, and you pick the move yourself.
 
 ## Create your character
 
-Create Blarg with one command:
+Start the walkthrough:
 
 ```sh
-uv run ironsworn-tui new Blarg --description "the Destructor" --stats edge=2,heart=2,iron=1,shadow=1,wits=3 --assets archer,wayfinder,hawk:1 --vow "Find who burned my village"
+uv run ironsworn-tui new
 ```
 
-The command prints the full path of the new campaign file, which ends in `campaigns/Blarg.json`. A campaign is your saved game: the character, their vows, and the log of everything that has happened.
-
-Each part of the command is a choice you make about your character.
+The walkthrough asks for each part of the campaign setup, in the rulebook's order. At the top, the heading names the step and counts the steps, and a line below it gives the rule for that step. At the bottom, a line lists the keys. Enter moves to the next field, and from a step's last field to the next step. Esc goes back a step and keeps your answers. Ctrl+Q quits and saves nothing.
 
 ### Name and description
 
-`Blarg` is the character's name. The app also uses it as the name of the campaign file, so you'll type it again to play. `--description` is a few words about who they are. The decision model reads it, so describe them the way you'd introduce them.
+Type `Blarg` and press Enter, then type `the Destructor` and press Enter. The name also names the campaign file, so you'll type it again to play. The description is a few words about who your character is. The decision model reads both, so describe them the way you'd introduce them. If you can't think of a name, press Ctrl+R to roll one.
 
 ### Stats
 
 Your character has five stats. Each stat is a number you add to the dice when you act a certain way:
 
-- Edge is quickness, agility, and skill in ranged combat.
+- Edge is quickness, agility, and prowess in ranged combat.
 - Heart is courage, willpower, empathy, sociability, and loyalty.
-- Iron is physical strength, endurance, aggressiveness, and skill in close combat.
+- Iron is physical strength, endurance, aggressiveness, and prowess in close combat.
 - Shadow is sneakiness, deceptiveness, and cunning.
 - Wits is expertise, knowledge, and observation.
 
-You give the five stats the values 3, 2, 2, 1, and 1, in any order. Put the 3 in what your character does best. Blarg reads the land well, so they have wits 3, edge 2, heart 2, iron 1, and shadow 1. The app rejects any other spread.
+You give the five stats the values 3, 2, 2, 1, and 1, in any order. Put the 3 in what your character does best. Blarg reads the land well, so they have wits 3, edge 2, heart 2, iron 1, and shadow 1.
+
+Up and Down move between the stats, and the keys 1, 2, and 3 give the highlighted stat a value. Press `2` for edge, then Down and `2` for heart, Down and `1` for iron, Down and `1` for shadow, and Down and `3` for wits. If you give a value that's used up, the stat that had it loses it, and the line below the stats shows what's still to give. Press Enter.
+
+![The stats step of the walkthrough. Each stat is listed with its value and what it covers: edge 2, heart 2, iron 1, shadow 1, and wits 3. The line below says "All five are set."](images/walkthrough-stats.svg)
 
 ### Assets
 
-Assets are cards that give your character special abilities. Each asset has three abilities, and you start with the first one marked. You pick three assets. Blarg's are:
+Assets are cards that give your character special abilities. There are four kinds: companions, paths, combat talents, and rituals. Each asset has three abilities, and a new asset starts with the first one marked. You pick three.
 
-- `archer`, a combat talent for fighting with a bow.
-- `wayfinder`, a path that helps on journeys and when scouting.
-- `hawk:1`, a hawk companion.
+The list on the left shows every asset by kind, and the right side shows the highlighted asset's abilities. Use Up and Down to browse, and press Space to pick or drop an asset. Pick Blarg's three:
 
-A companion starts with no ability marked, so you pick one after a colon. `hawk:1` marks the hawk's first ability, which helps when Blarg travels or hunts. To see every asset id before you create a character, run `uv run ironsworn-tui new Blarg --description x --stats x --assets help --vow x`, which lists them and creates nothing. Once you're playing, `/asset list` shows them too.
+- Archer, a combat talent for fighting with a bow.
+- Wayfinder, a path that helps on journeys and when scouting.
+- Hawk, a hawk companion.
+
+![The assets step of the walkthrough. The line at the top says "Picked 3 of 3: Archer, Wayfinder, Hawk". The list on the left shows the companions with Hawk marked and highlighted, and the right side shows Hawk's three abilities.](images/walkthrough-assets.svg)
+
+Press Enter. A companion starts with no ability marked, so the next step asks which one Blarg's hawk starts with, and what it's called. Press `1` to mark the first ability, which helps when Blarg travels or hunts. Press Enter, type `Kestrel` for the hawk's name, and press Enter.
+
+### Equipment
+
+The equipment step asks whether your character carries a deadly weapon. Blarg carries a bow, so keep the first option, and press Enter. With a deadly weapon, your character inflicts 2 harm in a fight. Without one, they inflict 1.
+
+## Create your world
+
+Next, the walkthrough asks about the world. The rulebook describes 11 truths about the Ironlands, such as where the people came from and how magic works. Each truth has three options. Read them and press a number to choose one, press `r` to roll for it, or choose the last option to leave it open and find out in play. Under the options, each one's quest starter is an idea for a story. Look out for one that suggests a goal for Blarg.
+
+![The first world truth, The Old World. Its three options are listed, with the third selected, followed by "Leave it open, to find out in play". Below them is the third option's quest starter, about a ship from the Old World that ran aground on the Barrier Islands.](images/walkthrough-truth.svg)
+
+Press Enter after each truth. To move faster, press `a` at any truth to roll for it and every truth after it.
+
+Then choose where Blarg's story begins. Press `5` for the Havens, a region of forests, rivers, and low hills. Press Tab, type `Ravenford` as the name of Blarg's village, and press Enter. Ctrl+R rolls a village name if you want one.
+
+## Bonds and vows
+
+### Background bonds
+
+A bond is a connection to a person or a community. You can start with up to three, and each one marks a tick on your bonds track. Type `My brother, Torvin` for the first bond and press Enter. Press Enter twice more to leave the others empty.
 
 ### Background vow
 
-A vow is a promise your character swears to complete. Your background vow is the big goal that drives your character's whole story. `--vow "Find who burned my village"` sets Blarg's. A background vow is epic, the hardest of the five ranks, so it takes a long time to fulfill.
+A vow is a promise your character swears to complete. Your background vow is the long-term goal that drives your character's whole story. Type `Find who burned my village` and press Enter. A background vow is extreme or epic, the two hardest of the five ranks, so it takes a long time to fulfill. Keep epic, and press Enter.
+
+### Inciting incident
+
+The inciting incident is the problem that forces your character into action now. It works best when it's personal, won't go away on its own, and has a deadline. Type `Raiders took Torvin, and they'll sell him at the coast before the thaw`, and press Enter. If you're stuck, Ctrl+R asks the oracle for an action and a theme to spark an idea.
+
+## Set the scene
+
+The last question is how the story starts. *In media res* starts in the middle of things, as the problem strikes, and your character swears to face it now. A prologue starts in the normal world, before the problem arrives. Keep in media res, and press Enter.
+
+Type the opening scene, `The raiders' trail at the edge of the burned village`, and press Enter. The scene tells the decision model where Blarg is.
+
+In media res, Blarg swears a vow to face the inciting incident. Type `Free my brother from the raiders` and press Enter. The rank says how hard the vow is. Ranks go from troublesome to epic, and a dangerous vow is a typical quest. Keep dangerous, and press Enter.
+
+The review lists every choice. Press Esc to go back and change one, or press Enter to create the campaign and play.
 
 ## Start playing
 
-Start the game:
+The walkthrough prints the full path of the new campaign file, which ends in `campaigns/Blarg.json`. A campaign is your saved game: the character, their world, their vows, and the log of everything that has happened. Then the app prints `Starting jevtester for decision-1@foundry…` and opens the game screen. If you couldn't sign in to the model, start the walkthrough with `uv run ironsworn-tui new --no-model` instead.
 
-```sh
-uv run ironsworn-tui play Blarg
-```
-
-The app prints `Starting jevtester for decision-1@foundry…`, then opens the game screen. The screen has four parts:
+The game screen has four parts:
 
 - The character panel, on the left, shows Blarg's stats, meters, assets, and vows.
 - The log, on the right, shows everything that happens.
 - The suggestion bar, below them, shows the moves you can make and the result of each roll.
 - The input line, at the bottom, says "Type what your character does, or / for a command". You type here.
 
-![The play screen for a new campaign. The character panel on the left shows Blarg, the Destructor, with their stats, health, spirit, and supply at 5, momentum +2, their three assets, and their background vow with ten empty boxes. The log on the right shows a welcome note that says how to start. The suggestion bar lists the keys for the input line, and the input line at the bottom reads "Type what your character does, or / for a command".](images/start.svg)
-
-Look at the character panel. Blarg has health 5, spirit 5, and supply 5. These are meters. Health goes down when Blarg is hurt, spirit when they're shaken, and supply when they run low on gear. The panel also shows `Momentum +2 (max 10, reset 2)`. Momentum is a measure of how well things are going. Good results raise it, and bad results lower it. You can spend it later to improve a roll.
+![The play screen as the walkthrough opens it. The character panel on the left shows Blarg, the Destructor, with their stats, health, spirit, and supply at 5, momentum +2, their two vows with empty progress tracks, and their three assets. The log on the right shows the bond, the inciting incident, the scene, and the roll for Swear an Iron Vow. The suggestion bar shows the roll card: "Swear an Iron Vow +heart: weak hit", the outcome text, and "Enter apply".](images/start.svg)
 
 ## Swear a vow
 
-Blarg's background vow is a long-term goal. They also need a goal for this session, and in *Ironsworn* a goal starts with a vow. Type this line and press Enter:
-
-```text
-/vow swear dangerous Free my brother from the raiders
-```
-
-A line that starts with `/` is a command, not an action. This one makes the Swear an Iron Vow move. A move is a rule for what happens when your character does something risky or important. `dangerous` is the vow's rank. Ranks go from troublesome to epic, and a dangerous vow is a typical quest.
-
-The app rolls the dice, and the suggestion bar shows a roll card. It looks like this:
+The walkthrough made Blarg's first move for you. A move is a rule for what happens when your character does something risky or important. Swearing a vow is the Swear an Iron Vow move, and the app has rolled the dice for it. The suggestion bar shows the roll card:
 
 ```text
 Swear an Iron Vow +heart: weak hit
@@ -108,7 +134,11 @@ On a weak hit, you are determined but begin your quest with more questions than 
 Enter apply
 ```
 
-Your result may be different, because the dice are random. The card shows the rulebook's outcome text. The new vow already appears under "Vows" in the character panel, with ten empty boxes. Those boxes are the vow's progress track. You fill them as you get closer to fulfilling the vow. Press Enter to apply the result, which saves the vow.
+Your result may be different, because the dice are random. The card shows the rulebook's outcome text. The new vow already appears under "Vows" in the character panel, with ten empty boxes. Those boxes are the vow's progress track. You fill them as you get closer to fulfilling the vow. Press Enter to apply the result.
+
+Look at the character panel. Blarg has health 5, spirit 5, and supply 5. These are meters. Health goes down when Blarg is hurt, spirit when they're shaken, and supply when they run low on gear. The panel also shows `Momentum +2 (max 10, reset 2)`. Momentum is a measure of how well things are going. Good results raise it, and bad results lower it. You can spend it later to improve a roll. On a weak hit, Swear an Iron Vow gives +1 momentum, so the panel now shows `Momentum +3`.
+
+Later vows don't need the walkthrough. A line that starts with `/` is a command, not an action, and `/vow swear dangerous Find the raider chief` swears a new dangerous vow.
 
 ## Make a move
 

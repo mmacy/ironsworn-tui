@@ -483,6 +483,9 @@ class IronswornApp(App[None]):
         self.engine = engine
         self.bar_state = BarState()
         self._ask_id = 0
+        # A new campaign's log holds only its setup, such as its bonds and scene, so it gets
+        # a welcome once no roll card waits.
+        self._welcome = not any(entry.kind == "message" for entry in engine.campaign.log)
 
     def compose(self) -> ComposeResult:
         """Lay out the four parts."""
@@ -504,12 +507,6 @@ class IronswornApp(App[None]):
         campaign = self.engine.campaign
         for entry in campaign.log[-LOG_RESTORED:]:
             self.write_log(entry.kind, entry.text)
-        if not campaign.log:
-            name = campaign.character.name
-            self.note(
-                f"Welcome. Type what {name} does, such as I search the burned village for "
-                "tracks, and press Enter. Type /help to learn how to play."
-            )
         self.after_turn()
 
     @property
@@ -940,6 +937,12 @@ class IronswornApp(App[None]):
         if engine.card is not None:
             self.show_card(engine.card)
             return
+        if self._welcome:
+            self._welcome = False
+            self.note(
+                f"Welcome. Type what {engine.campaign.character.name} does, such as I search "
+                "the burned village for tracks, and press Enter. Type /help to learn how to play."
+            )
         if engine.follow_ups:
             self.bar_state = BarState(mode="follow_up")
         elif engine.campaign.end_fight_offered:

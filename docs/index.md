@@ -22,13 +22,12 @@ Clone the repository, sign in, create a character, and start playing:
 git clone https://github.com/mmacy/ironsworn-tui.git
 cd ironsworn-tui
 az login
-uv run ironsworn-tui new Blarg --description "the Destructor" --stats edge=2,heart=2,iron=1,shadow=1,wits=3 --assets archer,hawk:2,wright --vow "Avenge my village"
-uv run ironsworn-tui play Blarg
+uv run ironsworn-tui new
 ```
 
 There's no separate install step. The first time you run `uv run`, uv installs the app's dependencies.
 
-Type what Blarg does and press Enter. When the app suggests a move, press Enter to roll it, then Enter again to apply the result. Press Ctrl+Q to quit. The app saves your campaign after every turn, so when you run `play Blarg` again, you pick up where you stopped.
+`new` opens a walkthrough that creates your character and their world, step by step, and then starts play. Say you named your character Blarg. Type what Blarg does and press Enter. When the app suggests a move, press Enter to roll it, then Enter again to apply the result. Press Ctrl+Q to quit. The app saves your campaign after every turn, so when you run `uv run ironsworn-tui play Blarg`, you pick up where you stopped.
 
 ## Documentation
 

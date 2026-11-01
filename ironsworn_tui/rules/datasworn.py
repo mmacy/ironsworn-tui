@@ -351,7 +351,8 @@ class Asset(_StrictModel):
         abilities: The three abilities.
         meters: Its meters, by id.
         selects: Its select fields, by id.
-        texts: The ids of its text fields, such as a companion's `name`.
+        texts: Its text fields' labels by field id, such as a Devotant's `god's name` under
+            `gods_name`.
         counts_as_debility: True when owning it counts as a debility, as Oathbreaker does.
     """
 
@@ -362,7 +363,7 @@ class Asset(_StrictModel):
     abilities: tuple[Ability, Ability, Ability]
     meters: Mapping[str, AssetMeter] = Field(default_factory=dict[str, AssetMeter])
     selects: Mapping[str, AssetSelect] = Field(default_factory=dict[str, AssetSelect])
-    texts: tuple[str, ...] = ()
+    texts: Mapping[str, str] = Field(default_factory=dict[str, str])
     counts_as_debility: bool = False
 
 
@@ -468,7 +469,7 @@ def _asset(asset_id: str, raw: YamlMap) -> Asset:
     """Build an asset model from its YAML."""
     meters: dict[str, AssetMeter] = {}
     selects: dict[str, AssetSelect] = {}
-    texts: list[str] = []
+    texts: dict[str, str] = {}
     # Kindred's `expertise` is the one field an ability, not the asset, defines.
     fields: YamlMap = {**(raw.get("controls") or {}), **(raw.get("options") or {})}
     for ability in raw["abilities"]:
@@ -482,7 +483,7 @@ def _asset(asset_id: str, raw: YamlMap) -> Asset:
             case "select_value" | "select_enhancement":
                 selects[field_id] = _select(field)
             case "text":
-                texts.append(field_id)
+                texts[field_id] = field["label"]
             case other:
                 raise ValueError(f"{asset_id} has a field of unknown type {other}")
     abilities: list[Ability] = []
@@ -517,8 +518,89 @@ def _asset(asset_id: str, raw: YamlMap) -> Asset:
         abilities=(abilities[0], abilities[1], abilities[2]),
         meters=meters,
         selects=selects,
-        texts=tuple(texts),
+        texts=texts,
         counts_as_debility=bool(raw.get("count_as_impact")),
+    )
+
+
+class TruthOption(_StrictModel):
+    """One of a world truth's three options.
+
+    Attributes:
+        roll: The rolls on 1 to 100 that pick it.
+        description: What the truth says about the world.
+        quest_starter: A quest idea that follows from it.
+    """
+
+    roll: RollRange
+    description: str
+    quest_starter: str
+
+
+class Truth(_StrictModel):
+    """One of the world truths for the Ironlands, such as Iron (rulebook page 122).
+
+    Attributes:
+        id: The truth id, such as `iron`.
+        name: The truth's name, such as `Iron`.
+        options: The three options, in the rulebook's order.
+    """
+
+    id: str
+    name: str
+    options: tuple[TruthOption, ...]
+
+    def option_for(self, roll: int) -> int:
+        """Return the index of the option a roll on 1 to 100 picks.
+
+        Raises:
+            ValueError: If no option covers the roll.
+        """
+        for index, option in enumerate(self.options):
+            if option.roll.min <= roll <= option.roll.max:
+                return index
+        raise ValueError(f"no option of {self.name} covers {roll}")
+
+
+class Region(_StrictModel):
+    """A region of the Ironlands (rulebook page 112).
+
+    Attributes:
+        id: The region id, such as `havens`.
+        name: The region's name, such as `Havens`.
+        summary: A sentence or two about it, with links reduced to their labels.
+        quest_starter: A quest idea set there.
+    """
+
+    id: str
+    name: str
+    summary: str
+    quest_starter: str
+
+
+def _truth(truth_id: str, raw: YamlMap) -> Truth:
+    options = tuple(
+        TruthOption(
+            roll=RollRange.model_validate(option["roll"]),
+            description=plain_text(option["description"]),
+            quest_starter=plain_text(option["quest_starter"]),
+        )
+        for option in raw["options"]
+    )
+    covered = sorted(
+        roll for option in options for roll in range(option.roll.min, option.roll.max + 1)
+    )
+    if covered != list(range(1, 101)):
+        raise ValueError(f"the options of the truth {truth_id} don't cover 1 to 100 once each")
+    return Truth(id=truth_id, name=raw["name"], options=options)
+
+
+def _region(region_id: str, raw: YamlMap) -> Region:
+    return Region(
+        id=region_id,
+        name=raw["name"],
+        summary=plain_text(raw["summary"]),
+        quest_starter=plain_text(raw["quest_starter"]),
     )
 
 
@@ -544,6 +626,8 @@ class Datasworn:
             aren't in `moves`, which the decision model's questions are built from.
         npcs: Each NPC's YAML, by NPC id.
         rules: The ruleset's `rules` section.
+        truths: The world truths, by truth id, in the rulebook's order.
+        regions: The regions of the Ironlands, by region id, in the rulebook's order.
     """
 
     moves: Mapping[str, Move]
@@ -552,6 +636,8 @@ class Datasworn:
     asset_moves: Mapping[str, Move]
     npcs: Mapping[str, YamlMap]
     rules: YamlMap
+    truths: Mapping[str, Truth]
+    regions: Mapping[str, Region]
 
     def move(self, move_id: str) -> Move:
         """Return a move.
@@ -663,14 +749,15 @@ def load_datasworn(directory: Path = DATASWORN_DIR) -> Datasworn:
     """Read the Datasworn YAML in a directory and build the indices.
 
     Args:
-        directory: The folder that holds `moves.yaml`, `npcs.yaml`, `rules.yaml`, and the
-            `oracles` and `assets` folders.
+        directory: The folder that holds `moves.yaml`, `npcs.yaml`, `rules.yaml`,
+            `truths.yaml`, `atlas.yaml`, and the `oracles` and `assets` folders.
 
     Returns:
         The indices.
 
     Raises:
-        ValueError: If two assets, two NPCs, or two moves share an id.
+        ValueError: If two assets, two NPCs, or two moves share an id, or a truth's options
+            don't cover 1 to 100 once each.
     """
     moves: dict[str, Move] = {}
     oracles: dict[str, OracleTable] = {}
@@ -710,6 +797,20 @@ def load_datasworn(directory: Path = DATASWORN_DIR) -> Datasworn:
         asset_moves=MappingProxyType(asset_moves),
         npcs=MappingProxyType(npcs),
         rules=_load(directory / "rules.yaml")["rules"],
+        truths=MappingProxyType(
+            {
+                key: _truth(key, raw)
+                for key, raw in _load(directory / "truths.yaml")["truths"].items()
+            }
+        ),
+        regions=MappingProxyType(
+            {
+                key: _region(key, raw)
+                for key, raw in _load(directory / "atlas.yaml")["atlas"]["ironlands"][
+                    "contents"
+                ].items()
+            }
+        ),
     )
 
 
