@@ -57,6 +57,8 @@ STAT_TEXT: dict[Stat, str] = {
 }
 # The rulebook's order of asset types (page 39).
 ASSET_CATEGORIES = ("Companion", "Path", "Combat Talent", "Ritual")
+# The rulebook's example character, Saskia, gives each example (pages 193 to 199).
+BOND_EXAMPLES = ("Cinderhome", "The clan overseer", "")
 LEAVE_OPEN = "Leave it open, to find out in play"
 BACKGROUND_RANKS = (Rank.EXTREME, Rank.EPIC)
 VOW_RANKS = (Rank.TROUBLESOME, Rank.DANGEROUS, Rank.FORMIDABLE)
@@ -361,9 +363,9 @@ class NameStep(Step):
     def compose(self) -> ComposeResult:
         """Lay out the two inputs."""
         yield Label("Name")
-        yield Input(value=self.start_name, placeholder="Such as Blarg", id="name")
+        yield Input(value=self.start_name, placeholder="Saskia", id="name")
         yield Label("Description")
-        yield Input(placeholder="Such as the Destructor", id="description")
+        yield Input(placeholder="a former raider turned farmer", id="description")
 
     def action_roll(self) -> None:
         """Roll an Ironlander name into the name input."""
@@ -593,9 +595,9 @@ class AssetDetailsStep(Step):
                 self.selects[asset_id, field] = (choices, ids_)
                 widgets += [Label(select.label.capitalize()), choices]
             for field, label in asset.texts.items():
-                text = Input(value=pick.fields.get(field, ""), placeholder="Optional")
+                text = Input(value=pick.fields.get(field, ""))
                 self.texts[asset_id, field] = text
-                widgets += [Label(label.capitalize()), text]
+                widgets += [Label(f"{label.capitalize()} (optional)"), text]
         self.mount_all(widgets)
 
     def check(self) -> str | None:
@@ -730,8 +732,8 @@ class PlaceStep(Step):
         """Lay out the regions, the highlighted region, and the place."""
         yield ChoiceList([region.name for region in self.data.regions.values()])
         yield Static("", classes="detail", id="region")
-        yield Label("Place")
-        yield Input(placeholder="Optional", id="place")
+        yield Label("Place (optional)")
+        yield Input(placeholder="Cinderhome", id="place")
 
     @on(ChoiceList.Changed)
     def show_region(self, event: ChoiceList.Changed) -> None:
@@ -772,8 +774,8 @@ class BondsStep(Step):
     def compose(self) -> ComposeResult:
         """Lay out three inputs."""
         for number in range(1, 4):
-            yield Label(f"Bond {number}")
-            yield Input(placeholder="Optional: a person or community")
+            yield Label(f"Bond {number} (optional)")
+            yield Input(placeholder=BOND_EXAMPLES[number - 1])
 
     def apply(self, setup: Setup) -> None:
         """Set the bonds that were written."""
@@ -802,7 +804,7 @@ class BackgroundVowStep(Step):
     def compose(self) -> ComposeResult:
         """Lay out the vow, the rank, and the quest starters."""
         yield Label("Vow")
-        yield Input(placeholder="Such as Avenge my village", id="background-vow")
+        yield Input(placeholder="Defeat the Red Moon clan", id="background-vow")
         yield Label("Rank")
         yield ChoiceList([rank.name.capitalize() for rank in BACKGROUND_RANKS], 1)
         yield Static("", classes="detail", id="starters")
@@ -840,8 +842,8 @@ class IncidentStep(Step):
 
     def compose(self) -> ComposeResult:
         """Lay out the incident, the oracle's answer, and the quest starters."""
-        yield Label("Inciting incident")
-        yield Input(placeholder="Optional: a prologue can find it in play", id="incident")
+        yield Label("Inciting incident (optional)")
+        yield Input(placeholder="A mysterious sickness has struck the overseer", id="incident")
         yield Static("", classes="detail", id="spark")
         yield Static("", classes="detail", id="starters")
 
@@ -875,10 +877,10 @@ class SceneStep(Step):
     def compose(self) -> ComposeResult:
         """Lay out the start, the scene, and the vow."""
         yield ChoiceList([text for _, text in STARTS], 0, id="start")
-        yield Label("Scene")
-        yield Input(placeholder="Such as The overseer's longhouse at night", id="scene")
+        yield Label("Scene (optional)")
+        yield Input(placeholder="The overseer's longhouse", id="scene")
         yield Label("Vow", classes="vow")
-        yield Input(placeholder="Such as Find a cure for the overseer", id="vow", classes="vow")
+        yield Input(placeholder="Heal the overseer", id="vow", classes="vow")
         yield Label("Rank", classes="vow")
         yield ChoiceList(
             [rank.name.capitalize() for rank in VOW_RANKS], 1, id="rank", classes="vow"
