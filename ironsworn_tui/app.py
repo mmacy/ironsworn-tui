@@ -68,13 +68,14 @@ HELP_STYLE = "blue"
 LOG_RESTORED = 200
 GHOST = Style(dim=True)
 GHOST_SELECTED = Style(dim=True, reverse=True)
+# Each field's placeholder: an example value, or the answers a field takes.
 FIELD_HINTS = {
-    "vow": "The vow",
+    "vow": "Heal the overseer",
     "rank": "troublesome, dangerous, formidable, extreme, or epic",
-    "foes": "A name and a rank, such as Wolf dangerous",
-    "destination": "The destination",
+    "foes": "Raider chief dangerous, Archer troublesome",
+    "destination": "The Deep Wilds",
     "treat": "yourself, someone else, or a companion",
-    "amount": "How much to spend",
+    "amount": "1",
     "bond": "yes or no",
 }
 # The suggestion bar shows an option's probability only from this value up.
