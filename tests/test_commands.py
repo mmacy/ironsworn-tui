@@ -415,7 +415,7 @@ def test_world_lists_the_setup(tmp_path: Path):
         inciting_incident="The overseer is sick.",
     )
     assert run_command(turn, "/world").lines == (
-        "Where you begin: Cinderhome, Havens",
+        "Where your story begins: Cinderhome, Havens",
         "Inciting incident: The overseer is sick.",
         "Iron: Iron is precious.",
     )
@@ -423,4 +423,6 @@ def test_world_lists_the_setup(tmp_path: Path):
 
 def test_world_without_a_setup(tmp_path: Path):
     turn, _, _ = engine(tmp_path)
-    assert run_command(turn, "/world").lines == ("No world truths, place, or inciting incident.",)
+    assert run_command(turn, "/world").lines == (
+        "No world truths, place where your story begins, or inciting incident.",
+    )

@@ -73,7 +73,8 @@ class Setup:
         background_vow: The background vow's name.
         background_rank: Its rank, extreme or epic.
         inciting_incident: The problem that drives the character into action.
-        start: `in_media_res` to start as the problem arrives and swear the vow at once, or
+        start: `in_media_res` to begin as the inciting incident happens and swear the vow at
+            once, or
             `prologue` to start in the normal world.
         scene: The opening scene, which becomes the situation line.
         vow: The vow to swear in media res. Unused in a prologue.
@@ -160,14 +161,14 @@ def open_play(engine: TurnEngine, setup: Setup) -> None:
         return
     engine.campaign.add_log(
         "note",
-        "When the problem arrives, swear an iron vow to face it with /vow swear, such as /vow "
+        "When your inciting incident comes, Swear an Iron Vow with /vow swear, such as /vow "
         "swear dangerous Find my brother.",
     )
     engine.save()
 
 
 def needs_ability(data: Datasworn, asset_id: str) -> bool:
-    """True when a new asset starts with no ability marked, as a companion does."""
+    """True when an asset doesn't have a starting ability, as a companion doesn't."""
     return not any(ability.enabled for ability in data.asset(asset_id).abilities)
 
 

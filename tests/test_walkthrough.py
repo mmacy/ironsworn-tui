@@ -158,9 +158,9 @@ def test_the_review_lists_the_choices():
         summary = str(app.query_one("#summary").render())
         assert "Blarg, the Destructor" in summary
         assert "Hawk (Kestrel), ability 1; Archer; Wayfinder" in summary
-        assert "Where you begin: Cinderhome, Havens" in summary
+        assert "Where your story begins: Cinderhome, Havens" in summary
         assert "swearing Find my brother (formidable)" in summary
-        assert f"World truths: {TRUTHS} chosen, 0 open" in summary
+        assert f"World truths: {TRUTHS} chosen, 0 blank" in summary
 
     run(drive, dice)
 
@@ -207,7 +207,7 @@ def test_the_name_starts_filled_in_and_can_be_rolled():
     run(drive, dice, name="Blarg")
 
 
-def test_giving_a_value_takes_it_from_another_stat():
+def test_setting_a_bonus_takes_it_from_another_stat():
     async def drive(app: Walkthrough, pilot: Driver) -> None:
         await name_step(app, pilot)
         grid = app.query_one(StatGrid)
@@ -215,7 +215,7 @@ def test_giving_a_value_takes_it_from_another_stat():
         assert grid.values == {"heart": 3}
         await pilot.press("enter")
         assert isinstance(app.step, StatsStep)
-        assert error(app) == "Give every stat a value. Still to give: 2, 2, 1, 1."
+        assert error(app) == "Set every stat. Bonuses left: 2, 2, 1, 1."
 
     run(drive)
 
@@ -315,7 +315,7 @@ def test_a_truth_needs_a_choice_and_can_be_left_open():
     async def drive(app: Walkthrough, pilot: Driver) -> None:
         await character(app, pilot)
         await pilot.press("enter")
-        assert error(app) == "Choose an option, roll, or leave it open."
+        assert error(app) == "Choose an option, roll, or leave it blank."
         await pilot.press("4", "enter")
         assert isinstance(app.step, TruthStep)
         assert app.step.truth.id == "iron"
@@ -412,7 +412,7 @@ def test_a_prologue_needs_no_vow():
         assert not app.query_one("#vow", Input).display
         await pilot.press("enter", "enter")
         assert isinstance(app.step, ReviewStep)
-        assert "Start: a prologue" in str(app.query_one("#summary").render())
+        assert "Start: the normal world, with a prologue" in str(app.query_one("#summary").render())
 
     app = run(drive, dice)
     assert (app.setup.start, app.setup.vow) == ("prologue", "")

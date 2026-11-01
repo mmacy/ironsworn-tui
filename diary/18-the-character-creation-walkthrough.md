@@ -1,6 +1,6 @@
 # 18: The character creation walkthrough
 
-Saturday 31 October 2026, 17:51 to 18:28 PDT, plus a short survey of the code before the branch was cut at 17:51. Written by Claude Opus 5.5, the lead agent, working alone.
+Saturday 31 October 2026, 17:51 to 19:03 PDT, plus a short survey of the code before the branch was cut at 17:51. Written by Claude Opus 5.5, the lead agent, working alone.
 
 ## The request and the three decisions
 
@@ -38,7 +38,7 @@ The rulebook says a background vow is extreme or epic (page 195). The flag form 
 
 `walkthrough.py` is a second Textual app. It has 22 steps: name, stats, assets, asset details, equipment, the 11 truths, where the story begins, bonds, background vow, inciting incident, the opening scene, and a review. The heading shows the rulebook step and "Step n of 7", and each step has a rules line. Enter moves to the next field, and from a step's last field to the next step. Esc goes back and keeps the answers. Ctrl+Q quits and saves nothing.
 
-I wrote three small widgets. `ChoiceList` picks one option with the arrows or digits. `StatGrid` gives the stats 3, 2, 2, 1, 1. A value that's used up is taken from the stat that had it. `AssetList` is an option list of the 78 assets by type, and Space picks or drops one while the right side shows its abilities. The asset details step appears only when a picked asset needs something: a starting ability for a companion, a name, or a choice such as Ironclad's armor. Shadow-Kin's and Battle-Scarred's first abilities change stats, so the list shows them dimmed and won't select them.
+I wrote three small widgets. `ChoiceList` picks one option with the arrows or digits. `StatGrid` arranges the bonuses 3, 2, 2, 1, 1 across the stats. A bonus that's used up is taken from the stat that had it. `AssetList` is an option list of the 78 assets by type, and Space picks or drops one while the right side shows its abilities. The asset details step appears only when a picked asset needs something: a starting ability for a companion, a name, or a choice such as Ironclad's armor. Shadow-Kin's and Battle-Scarred's first abilities change stats, so the list shows them dimmed and won't select them.
 
 ## What the screenshots caught
 
@@ -69,6 +69,21 @@ All five gates passed: ruff format, ruff check, pyright with 0 errors, 1,174 tes
 ## The docs
 
 The tutorial now creates Blarg in the walkthrough: wits 3, Archer, Wayfinder, and a hawk named Kestrel. The truths are left to the dice. Blarg begins in Ravenford in the Havens, with a bond to their brother Torvin. The inciting incident is "Raiders took Torvin, and they'll sell him at the coast before the thaw", and in media res Blarg swears "Free my brother from the raiders". The screenshot script builds the same campaign through `begin_campaign` and `open_play`, so every play screenshot now shows Kestrel and the setup lines. It also draws three new walkthrough screens. The reference documents both forms of `new`, the walkthrough's steps and keys, exit status 1, and `/world`. `playing.md` gained a section on the eight setup steps with their rulebook pages.
+
+## The user's review of the wording
+
+After the PR opened at 18:28, the user asked "What's \"media res?\"". My summary had shortened "in media res", Latin for "in the middle of things", to "media res".
+
+Then they asked: "When have you ever seen hint text in a text box that starts with \"Such as\"?" Every placeholder read like "Such as Blarg", and two read "Optional: ...". The user added: "And \"the Destructor\" probably isn't a good example, is it? There's probably a better one from the rulebook, eh?" The placeholders are now bare example values from the rulebook's example character, Saskia (pages 193 to 199): "Saskia", "a former raider turned farmer", "Cinderhome", "Defeat the Red Moon clan", and "A mysterious sickness has struck the overseer". Optional fields say so in their labels. The play screen's move details form had the same habit ("A name and a rank, such as Wolf dangerous"), and the user agreed to fix it there too.
+
+Next: "Is it really \"give\" your stats in the rulebook?" It isn't. Page 33 says "arrange these bonuses across your five stats", and page 47 says "Set your stats". The user said: "Do that across everything, not just \"give\" and the stats." I reread the rulebook pages behind each step and reworded the walkthrough, the setup docs, and the asset errors to its terms:
+
+- Assets have a *default ability* and a *starting ability* (pages 21 and 42), not an ability that "starts marked". The errors now read "Hawk doesn't have a starting ability; choose one from 1 to 3" and "Archer already has a default ability".
+- Harm comes from being "armed with a deadly weapon" or "unarmed or using an improvised or simple weapon" (page 19).
+- A truth is chosen and made "true for your version of the Ironlands" (page 122), and the rulebook says to "fill in the blanks" as you play, so "Leave it open" became "Leave it blank, and fill it in as you play".
+- The two ways to start are "the normal world" and "in media res" (page 198), and the inciting incident is "an imminent threat or compelling need" with "a ticking clock" (pages 196 to 197).
+
+One finding from that reread: the rulebook doesn't offer a roll for the truths. Page 122 says only to choose an option or "make your own truth". The roll ranges come from Datasworn. The walkthrough keeps the roll and has no way to write your own truth.
 
 ## What's next
 

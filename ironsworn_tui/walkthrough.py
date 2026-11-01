@@ -59,12 +59,12 @@ STAT_TEXT: dict[Stat, str] = {
 ASSET_CATEGORIES = ("Companion", "Path", "Combat Talent", "Ritual")
 # The rulebook's example character, Saskia, gives each example (pages 193 to 199).
 BOND_EXAMPLES = ("Cinderhome", "The clan overseer", "")
-LEAVE_OPEN = "Leave it open, to find out in play"
+LEAVE_OPEN = "Leave it blank, and fill it in as you play"
 BACKGROUND_RANKS = (Rank.EXTREME, Rank.EPIC)
 VOW_RANKS = (Rank.TROUBLESOME, Rank.DANGEROUS, Rank.FORMIDABLE)
 STARTS = (
-    ("in_media_res", "In media res: start as the problem strikes, and swear your vow now"),
-    ("prologue", "Prologue: start in the normal world, and swear your vow when the problem comes"),
+    ("in_media_res", "In media res: begin as the incident happens, and swear the vow now"),
+    ("prologue", "The normal world: begin with a prologue, and swear the vow later"),
 )
 
 
@@ -194,7 +194,8 @@ class ChoiceList(Static, can_focus=True):
 
 
 class StatGrid(Static, can_focus=True):
-    """Gives the five stats 3, 2, 2, 1, and 1 with the arrows and the keys 1 to 3."""
+    """Arranges the bonuses 3, 2, 2, 1, and 1 across the five stats, with the arrows and the
+    keys 1 to 3."""
 
     BINDINGS: ClassVar[list[BindingType]] = [
         Binding("up", "move(-1)", show=False),
@@ -217,14 +218,14 @@ class StatGrid(Static, can_focus=True):
         self.draw()
 
     def left(self) -> list[int]:
-        """The values still to give, highest first."""
+        """The bonuses still to set, highest first."""
         left: list[int] = list(STARTING_STATS)
         for value in self.values.values():
             left.remove(value)
         return left
 
     def draw(self) -> None:
-        """Draw each stat with its value and what it covers, and the values still to give."""
+        """Draw each stat with its bonus and what it covers, and the bonuses still to set."""
         grid = Table.grid(padding=(0, 1))
         grid.add_column(no_wrap=True)
         grid.add_column(no_wrap=True)
@@ -240,7 +241,7 @@ class StatGrid(Static, can_focus=True):
                 Text(STAT_TEXT[stat], style="dim"),
             )
         left = self.left()
-        footer = "Still to give: " + ", ".join(map(str, left)) if left else "All five are set."
+        footer = "Bonuses left: " + ", ".join(map(str, left)) if left else "All five stats are set."
         table = Table.grid()
         table.add_row(grid)
         table.add_row("")
@@ -256,8 +257,8 @@ class StatGrid(Static, can_focus=True):
         """Move on."""
         self.post_message(Advance(self))
 
-    def give(self, value: int) -> None:
-        """Give the current stat a value, taking it from another stat if none is left."""
+    def set_bonus(self, value: int) -> None:
+        """Set the current stat's bonus, taking it from another stat if none is left."""
         stat = STAT_ORDER[self.row]
         self.values.pop(stat, None)
         if value not in self.left():
@@ -269,9 +270,9 @@ class StatGrid(Static, can_focus=True):
         self.draw()
 
     def on_key(self, event: events.Key) -> None:
-        """Give a value with 1, 2, or 3."""
+        """Set a bonus with 1, 2, or 3."""
         if event.character in ("1", "2", "3"):
-            self.give(int(event.character))
+            self.set_bonus(int(event.character))
             event.stop()
 
 
@@ -349,10 +350,11 @@ class NameStep(Step):
     section = SECTIONS[0]
     title = "Name"
     rules = (
-        "Envision your character: their skills, background, and motivations. Give them a "
-        "name, and a few words that sum them up. The decision model reads both."
+        "Envision your character, considering their motivations, skills, background, "
+        "appearance, personality, and connections to the world. Give your character a name, "
+        "and a few words that sum them up. The decision model reads both."
     )
-    keys = "Ctrl+R roll a name"
+    keys = "Ctrl+R roll an Ironlander name"
 
     def __init__(self, name: str, taken: Callable[[str], bool]) -> None:
         """Create the step, with a name to start from and a check for names in use."""
@@ -400,10 +402,11 @@ class StatsStep(Step):
     section = SECTIONS[0]
     title = "Stats"
     rules = (
-        "Give your stats 3, 2, 2, 1, and 1 in any order. A move adds one of them to the "
-        "action die, so put the 3 where your character is strongest."
+        "Set your stats by arranging the bonuses 3, 2, 2, 1, and 1 across them in any order. "
+        "A move adds one stat to the action die, so put the 3 where your character is "
+        "strongest."
     )
-    keys = "Up and down choose a stat · 1-3 give a value"
+    keys = "Up and down choose a stat · 1-3 set its bonus"
 
     def compose(self) -> ComposeResult:
         """Lay out the grid."""
@@ -413,7 +416,7 @@ class StatsStep(Step):
         """Need all five stats."""
         left = self.query_one(StatGrid).left()
         if left:
-            return "Give every stat a value. Still to give: " + ", ".join(map(str, left)) + "."
+            return "Set every stat. Bonuses left: " + ", ".join(map(str, left)) + "."
         return None
 
     def apply(self, setup: Setup) -> None:
@@ -450,9 +453,9 @@ class AssetsStep(Step):
     section = SECTIONS[0]
     title = "Assets"
     rules = (
-        "Pick three assets: companions, paths, combat talents, or rituals. Each has three "
-        "abilities, and a new asset starts with the first marked. A companion starts with "
-        "the one you choose."
+        "Pick three assets from companions, paths, combat talents, and rituals. All assets "
+        "include three abilities, and most have a default ability filled in. If an asset "
+        "doesn't have a starting ability, you choose one."
     )
     keys = "Up and down browse · Space pick or drop"
 
@@ -541,8 +544,8 @@ class AssetDetailsStep(Step):
     section = SECTIONS[0]
     title = "Asset details"
     rules = (
-        "Choose the starting ability of each asset that has none marked. Name your "
-        "companions, and fill in what your other assets ask for."
+        "Choose a starting ability for each asset that doesn't have one. Give your companions "
+        "a name, and fill in what your other assets ask for."
     )
     keys = "Tab next field · Up and down or 1-9 choose"
 
@@ -579,7 +582,7 @@ class AssetDetailsStep(Step):
                 pickable = pickable_abilities(self.data, asset_id)
                 options = [" ".join(ability.text.split()) for ability in asset.abilities]
                 unavailable = {
-                    number - 1: "buy it in play, because it changes your stats"
+                    number - 1: "upgrade to it in play, because it changes your stats"
                     for number in range(1, len(options) + 1)
                     if number not in pickable
                 }
@@ -632,14 +635,18 @@ class EquipmentStep(Step):
     section = SECTIONS[0]
     title = "Equipment"
     rules = (
-        "Note any gear that matters to your story. In a fight, a deadly weapon, such as a "
-        "sword, axe, spear, or bow, inflicts 2 harm. Without one, you inflict 1."
+        "Make note of any important equipment or items you start with. If you are armed "
+        "with a deadly weapon, such as a sword, axe, spear, or bow, you inflict 2 harm. If "
+        "you are unarmed or using a simple weapon, such as a shield, staff, or club, you "
+        "inflict 1 harm."
     )
     keys = "Up and down or 1-2 choose"
 
     def compose(self) -> ComposeResult:
         """Lay out the choice."""
-        yield ChoiceList(["I carry a deadly weapon: 2 harm", "I don't: 1 harm"], 0)
+        yield ChoiceList(
+            ["Armed with a deadly weapon: 2 harm", "Unarmed, or a simple weapon: 1 harm"], 0
+        )
 
     def apply(self, setup: Setup) -> None:
         """Set the harm."""
@@ -655,8 +662,9 @@ class TruthStep(Step):
     ]
     section = SECTIONS[1]
     rules = (
-        "Choose what's true of the Ironlands, roll for it, or leave it open. Look for a "
-        "quest starter that sparks an idea for your background vow or inciting incident."
+        "Choose one of the three options and make it true for your version of the "
+        "Ironlands, roll for it, or leave it blank. Keep an eye out for quest starters which "
+        "trigger an idea for a background vow or an inciting incident."
     )
     keys = "1-4 choose · r roll · a roll this and the rest"
 
@@ -698,7 +706,7 @@ class TruthStep(Step):
     def check(self) -> str | None:
         """Need a choice."""
         if self.query_one(ChoiceList).selected is None:
-            return "Choose an option, roll, or leave it open."
+            return "Choose an option, roll, or leave it blank."
         return None
 
     def apply(self, setup: Setup) -> None:
@@ -717,10 +725,10 @@ class PlaceStep(Step):
     section = SECTIONS[1]
     title = "Where your story begins"
     rules = (
-        "Choose the region where your story begins, and name the place, such as your home "
-        "village. You can leave the place for later."
+        "Choose where your story begins: a region of the Ironlands, and a place in it. Is "
+        "your character part of a community, or wandering the wilderness?"
     )
-    keys = "1-9 choose a region · Tab place · Ctrl+R roll a place name"
+    keys = "1-9 choose a region · Tab place · Ctrl+R roll a settlement name"
 
     def __init__(self, data: Datasworn) -> None:
         """Create the step."""
@@ -767,8 +775,8 @@ class BondsStep(Step):
     section = SECTIONS[2]
     title = "Background bonds"
     rules = (
-        "Mark up to three bonds with people or communities, such as your home village or a "
-        "friend. Each marks one tick on your bonds track. You can keep them for later."
+        "Give yourself up to three bonds, to a community or an individual. Mark a tick on "
+        "your bonds track for each. You can hold a bond in reserve and introduce it in play."
     )
 
     def compose(self) -> ComposeResult:
@@ -796,8 +804,9 @@ class BackgroundVowStep(Step):
     section = SECTIONS[3]
     title = "Background vow"
     rules = (
-        "Your background vow is your character's long-term goal, sworn long ago or after a "
-        "recent event. It's extreme or epic, and you don't roll to swear it."
+        "Your background vow represents a primary motivation or ultimate goal, sworn years "
+        "ago or in reaction to a recent, major event. Give it a rank of extreme or epic. You "
+        "don't make the Swear an Iron Vow move for it."
     )
     keys = "Tab next field · 1-2 choose the rank"
 
@@ -834,11 +843,11 @@ class IncidentStep(Step):
     section = SECTIONS[4]
     title = "Inciting incident"
     rules = (
-        "The inciting incident is the problem that forces your character into action now. "
-        "Make it personal, make it a problem that won't go away on its own, and give it a "
-        "ticking clock."
+        "Your inciting incident is an imminent threat or compelling need that forces your "
+        "character into action. Make it personal, make it a problem that won't go away on "
+        "its own, and give it a ticking clock."
     )
-    keys = "Ctrl+R ask the oracle for an action and a theme"
+    keys = "Ctrl+R roll the action and theme oracles"
 
     def compose(self) -> ComposeResult:
         """Lay out the incident, the oracle's answer, and the quest starters."""
@@ -866,11 +875,12 @@ class SceneStep(Step):
     """How play starts, the opening scene, and the first vow."""
 
     section = SECTIONS[5]
-    title = "Opening scene"
+    title = "Starting play"
     rules = (
-        "Start in media res, in the middle of things, and swear an iron vow to face the "
-        "problem. Or start with a prologue in the normal world, and swear it when the "
-        "problem comes. A first vow is troublesome, dangerous, or formidable."
+        "Begin in media res, in the middle of things, as your inciting incident happens, and "
+        "Swear an Iron Vow to face it. Or begin with the normal world, in a prologue, and "
+        "swear the vow when the incident comes. Give the vow a rank of troublesome, "
+        "dangerous, or formidable."
     )
     keys = "Tab next field · Up and down or 1-3 choose"
 
@@ -939,7 +949,7 @@ def review_text(data: Datasworn, setup: Setup) -> str:
         f"Stats: {stats}",
         f"Assets: {escape('; '.join(assets))}",
         f"Harm: {setup.harm}",
-        f"Where you begin: {escape(where or 'not set')}",
+        f"Where your story begins: {escape(where or 'not set')}",
         f"Bonds: {escape('; '.join(setup.bonds) or 'none yet')}",
         f"Background vow: {escape(setup.background_vow)} ({setup.background_rank.name.lower()})",
         f"Inciting incident: {escape(setup.inciting_incident or 'not set')}",
@@ -949,9 +959,9 @@ def review_text(data: Datasworn, setup: Setup) -> str:
             f"Start: in media res, swearing {escape(setup.vow)} ({setup.vow_rank.name.lower()})"
         )
     else:
-        lines.append("Start: a prologue")
+        lines.append("Start: the normal world, with a prologue")
     lines.append(f"Scene: {escape(setup.scene or 'not set')}")
-    lines.append(f"World truths: {len(truths)} chosen, {len(data.truths) - len(truths)} open")
+    lines.append(f"World truths: {len(truths)} chosen, {len(data.truths) - len(truths)} blank")
     return "\n\n".join(["\n".join(lines), *(escape(truth) for truth in truths)])
 
 

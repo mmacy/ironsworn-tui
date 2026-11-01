@@ -53,15 +53,15 @@ Your character has five stats. Each stat is a number you add to the dice when yo
 - Shadow is sneakiness, deceptiveness, and cunning.
 - Wits is expertise, knowledge, and observation.
 
-You give the five stats the values 3, 2, 2, 1, and 1, in any order. Put the 3 in what your character does best. Blarg reads the land well, so they have wits 3, edge 2, heart 2, iron 1, and shadow 1.
+You set your stats by arranging the bonuses 3, 2, 2, 1, and 1 across them, in any order. Put the 3 in what your character does best. Blarg reads the land well, so they have wits 3, edge 2, heart 2, iron 1, and shadow 1.
 
-Up and Down move between the stats, and the keys 1, 2, and 3 give the highlighted stat a value. Press `2` for edge, then Down and `2` for heart, Down and `1` for iron, Down and `1` for shadow, and Down and `3` for wits. If you give a value that's used up, the stat that had it loses it, and the line below the stats shows what's still to give. Press Enter.
+Up and Down move between the stats, and the keys 1, 2, and 3 set the highlighted stat's bonus. Press `2` for edge, then Down and `2` for heart, Down and `1` for iron, Down and `1` for shadow, and Down and `3` for wits. If you set a bonus that's used up, the stat that had it loses it, and the line below the stats shows the bonuses left. Press Enter.
 
-![The stats step of the walkthrough. Each stat is listed with its value and what it covers: edge 2, heart 2, iron 1, shadow 1, and wits 3. The line below says "All five are set."](images/walkthrough-stats.svg)
+![The stats step of the walkthrough. Each stat is listed with its value and what it covers: edge 2, heart 2, iron 1, shadow 1, and wits 3. The line below says "All five stats are set."](images/walkthrough-stats.svg)
 
 ### Assets
 
-Assets are cards that give your character special abilities. There are four kinds: companions, paths, combat talents, and rituals. Each asset has three abilities, and a new asset starts with the first one marked. You pick three.
+Assets are cards that give your character special abilities. There are four kinds: companions, paths, combat talents, and rituals. All assets include three abilities, and most have a default ability filled in. You pick three.
 
 The list on the left shows every asset by kind, and the right side shows the highlighted asset's abilities. Use Up and Down to browse, and press Space to pick or drop an asset. Pick Blarg's three:
 
@@ -71,17 +71,17 @@ The list on the left shows every asset by kind, and the right side shows the hig
 
 ![The assets step of the walkthrough. The line at the top says "Picked 3 of 3: Archer, Wayfinder, Hawk". The list on the left shows the companions with Hawk marked and highlighted, and the right side shows Hawk's three abilities.](images/walkthrough-assets.svg)
 
-Press Enter. A companion starts with no ability marked, so the next step asks which one Blarg's hawk starts with, and what it's called. Press `1` to mark the first ability, which helps when Blarg travels or hunts. Press Enter, type `Kestrel` for the hawk's name, and press Enter.
+Press Enter. A companion doesn't have a starting ability, so the next step asks you to choose one for Blarg's hawk, and to give it a name. Press `1` to choose the first ability, which helps when Blarg travels or hunts. Press Enter, type `Kestrel` for the hawk's name, and press Enter.
 
 ### Equipment
 
-The equipment step asks whether your character carries a deadly weapon. Blarg carries a bow, so keep the first option, and press Enter. With a deadly weapon, your character inflicts 2 harm in a fight. Without one, they inflict 1.
+The equipment step asks whether your character is armed with a deadly weapon, such as a sword, axe, spear, or bow. Blarg carries a bow, so keep the first option, and press Enter. With a deadly weapon, your character inflicts 2 harm in a fight. Unarmed or with a simple weapon, they inflict 1.
 
 ## Create your world
 
-Next, the walkthrough asks about the world. The rulebook describes 11 truths about the Ironlands, such as where the people came from and how magic works. Each truth has three options. Read them and press a number to choose one, press `r` to roll for it, or choose the last option to leave it open and find out in play. Under the options, each one's quest starter is an idea for a story. Look out for one that suggests a goal for Blarg.
+Next, the walkthrough asks about the world. The rulebook describes 11 truths about the Ironlands, such as where the people came from and how magic works. Each truth has three options. Read them and press a number to choose one, press `r` to roll for it, or choose the last option to leave it blank and fill it in as you play. Under the options, each one's quest starter is an idea for a story. Look out for one that suggests a goal for Blarg.
 
-![The first world truth, The Old World. Its three options are listed, with the third selected, followed by "Leave it open, to find out in play". Below them is the third option's quest starter, about a ship from the Old World that ran aground on the Barrier Islands.](images/walkthrough-truth.svg)
+![The first world truth, The Old World. Its three options are listed, with the third selected, followed by "Leave it blank, and fill it in as you play". Below them is the third option's quest starter, about a ship from the Old World that ran aground on the Barrier Islands.](images/walkthrough-truth.svg)
 
 Press Enter after each truth. To move faster, press `a` at any truth to roll for it and every truth after it.
 
@@ -91,19 +91,19 @@ Then choose where Blarg's story begins. Press `5` for the Havens, a region of fo
 
 ### Background bonds
 
-A bond is a connection to a person or a community. You can start with up to three, and each one marks a tick on your bonds track. Type `My brother, Torvin` for the first bond and press Enter. Press Enter twice more to leave the others empty.
+A bond is a connection to a community or an individual. You can give yourself up to three, and you mark a tick on your bonds track for each. Type `My brother, Torvin` for the first bond and press Enter. Press Enter twice more to leave the others empty.
 
 ### Background vow
 
-A vow is a promise your character swears to complete. Your background vow is the long-term goal that drives your character's whole story. Type `Find who burned my village` and press Enter. A background vow is extreme or epic, the two hardest of the five ranks, so it takes a long time to fulfill. Keep epic, and press Enter.
+A vow is a promise your character swears to complete. Your background vow represents your character's primary motivation or ultimate goal. Type `Find who burned my village` and press Enter. You give a background vow a rank of extreme or epic, the two hardest of the five ranks, so it takes a long time to fulfill. You don't make the Swear an Iron Vow move for it. Keep epic, and press Enter.
 
 ### Inciting incident
 
-The inciting incident is the problem that forces your character into action now. It works best when it's personal, won't go away on its own, and has a deadline. Type `Raiders took Torvin, and they'll sell him at the coast before the thaw`, and press Enter. If you're stuck, Ctrl+R asks the oracle for an action and a theme to spark an idea.
+The inciting incident is an imminent threat or compelling need that forces your character into action. The rulebook says to make it personal, make it a problem that won't go away on its own, and give it a ticking clock. Type `Raiders took Torvin, and they'll sell him at the coast before the thaw`, and press Enter. If you're stuck, Ctrl+R rolls the action and theme oracles to spark an idea.
 
 ## Set the scene
 
-The last question is how the story starts. *In media res* starts in the middle of things, as the problem strikes, and your character swears to face it now. A prologue starts in the normal world, before the problem arrives. Keep in media res, and press Enter.
+The last question is how play starts. *In media res* begins in the middle of things, as the inciting incident happens, and your character swears a vow to face it now. The normal world begins with a prologue, before the incident comes. Keep in media res, and press Enter.
 
 Type the opening scene, `The raiders' trail at the edge of the burned village`, and press Enter. The scene tells the decision model where Blarg is.
 

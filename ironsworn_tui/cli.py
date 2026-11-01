@@ -376,8 +376,8 @@ def make_parser() -> argparse.ArgumentParser:
         "--stats",
         metavar="<stat>=<n>,...",
         help=(
-            "All five stats, edge, heart, iron, shadow, and wits, given the values 3, 2, 2, 1, "
-            "and 1 in any order, separated by commas with no spaces, such as "
+            "All five stats, edge, heart, iron, shadow, and wits, with the bonuses 3, 2, 2, 1, "
+            "and 1 arranged across them in any order, separated by commas with no spaces, such as "
             "edge=3,heart=2,iron=2,shadow=1,wits=1."
         ),
     )

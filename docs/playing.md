@@ -23,16 +23,16 @@ The app never decides fiction for you. It can't see the story, so it can't tell 
 
 The rulebook sets up a campaign in eight steps (rulebook page 202), and `ironsworn-tui new` with no options walks through them in order:
 
-1. **Create your character** (pages 33 to 47). You give your five stats the values 3, 2, 2, 1, and 1, and pick three assets. A new asset starts with its first ability marked. A companion starts with one you choose, and you give it a name. The app also asks whether your character carries a deadly weapon, because that sets the harm they deal in a fight.
-2. **Create your world** (pages 122 to 129). The rulebook offers 11 *truths* about the Ironlands, each with three options. You choose one, roll 1 to 100 for one, or leave the truth open to find out in play. Each option has a *quest starter*, a story idea. Then you choose the region where the story begins, and name the place.
-3. **Mark your background bonds** (page 195). You start with up to three bonds, each one tick on the bonds track. You don't make Forge a Bond for them.
-4. **Write your background vow** (page 195). Your long-term goal is extreme or epic, and you don't make Swear an Iron Vow for it. The walkthrough lists the quest starters of the truths and region you chose as ideas.
-5. **Envision your inciting incident** (page 196). This is the problem that forces your character into action now. The rulebook suggests making it personal, a problem that won't go away on its own, with a deadline.
-6. **Set the scene** (page 198). You start *in media res*, as the problem strikes, or with a prologue in the normal world. The scene you write becomes the scene text, which the decision model reads.
-7. **Swear an Iron Vow** (page 199). In media res, you swear a vow to face the inciting incident, troublesome, dangerous, or formidable. The app makes the move, and play opens on the roll card. After a prologue, you swear the vow with `/vow swear` when the problem arrives.
+1. **Create your character** (pages 33 to 47). You set your five stats by arranging the bonuses 3, 2, 2, 1, and 1 across them, and pick three assets. Most assets have a default ability filled in. If an asset doesn't have a starting ability, such as a companion, you choose one, and you give a companion a name. You make note of important equipment, and the app asks whether your character is armed with a deadly weapon, because that sets the harm they inflict (page 19).
+2. **Create your world** (pages 122 to 129). The rulebook offers 11 *truths* about the Ironlands, each with three options. You choose one and make it true for your version of the Ironlands, roll 1 to 100 for one, or leave the truth blank and fill it in as you play. Each option has a *quest starter*, a story idea. Then you choose where your story begins: a region, and a place in it.
+3. **Mark your background bonds** (page 195). You give yourself up to three bonds, to a community or an individual, and mark a tick on the bonds track for each. You don't make the Forge a Bond move for them, and you can hold one in reserve.
+4. **Write your background vow** (page 195). Your background vow represents a primary motivation or ultimate goal. You give it a rank of extreme or epic, and you don't make the Swear an Iron Vow move for it. The walkthrough lists the quest starters of the truths and region you chose as ideas.
+5. **Envision your inciting incident** (page 196). This is an imminent threat or compelling need that forces your character into action. The rulebook says to make it personal, make it a problem that won't go away on its own, and give it a ticking clock.
+6. **Set the scene** (page 198). You begin *in media res*, in the middle of things, as the inciting incident happens, or with the normal world, in a prologue. The scene you write becomes the scene text, which the decision model reads.
+7. **Swear an Iron Vow** (page 199). In media res, you swear a vow to face the inciting incident, troublesome, dangerous, or formidable. The app makes the move, and play opens on the roll card. After a prologue, you swear the vow with `/vow swear` when the incident comes.
 8. **Take your next steps** (page 200). This is play.
 
-`/world` lists the truths, where the story began, and the inciting incident. You can change any of them in the fiction as you play. The app doesn't use them in any rule.
+`/world` lists the truths, where your story begins, and the inciting incident. You can change any of them in the fiction as you play. The app doesn't use them in any rule.
 
 ## The fiction-first loop
 

@@ -44,10 +44,10 @@ def test_starting_assets_mark_their_enabled_abilities():
     assert wright.fields == {}
 
 
-def test_asset_without_an_enabled_ability_needs_a_pick():
-    with pytest.raises(AssetError, match="pick"):
+def test_asset_without_a_starting_ability_needs_a_choice():
+    with pytest.raises(AssetError, match="doesn't have a starting ability; choose one"):
         new_owned(datasworn(), "hawk", None)
-    with pytest.raises(AssetError, match="already"):
+    with pytest.raises(AssetError, match="already has a default ability"):
         new_owned(datasworn(), "archer", 1)
     with pytest.raises(AssetError, match="1 to 3"):
         new_owned(datasworn(), "hawk", 4)

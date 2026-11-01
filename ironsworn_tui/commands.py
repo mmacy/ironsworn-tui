@@ -266,11 +266,13 @@ def _world(engine: TurnEngine, _: Values) -> CommandResult:
     lines: list[str] = []
     where = ", ".join(part for part in (world.place, world.region or "") if part)
     if where:
-        lines.append(f"Where you begin: {where}")
+        lines.append(f"Where your story begins: {where}")
     if world.inciting_incident:
         lines.append(f"Inciting incident: {world.inciting_incident}")
     lines += [f"{truth.name}: {truth.text}" for truth in world.truths]
-    return CommandResult(tuple(lines or ["No world truths, place, or inciting incident."]))
+    return CommandResult(
+        tuple(lines or ["No world truths, place where your story begins, or inciting incident."])
+    )
 
 
 def _vows(engine: TurnEngine, _: Values) -> CommandResult:
@@ -774,11 +776,12 @@ REGISTRY = Registry(
         ),
         Command(
             "world",
-            "List the world truths, where the story began, and the inciting incident",
+            "List the world truths, where your story begins, and the inciting incident",
             _world,
             help=(
-                "The walkthrough in ironsworn-tui new sets these up before play. They're the "
-                "facts of your world and the problem that started your story.",
+                "The walkthrough in ironsworn-tui new sets these up before play: the truths of "
+                "your version of the Ironlands, and the inciting incident that set your story "
+                "in motion.",
             ),
             examples=("/world",),
         ),
@@ -915,8 +918,8 @@ REGISTRY = Registry(
                         Arg("stat change", STAT_CHANGES, repeat=True),
                     ),
                     help=(
-                        "Some assets start with no ability marked, so give the ability to "
-                        "mark. A few abilities change your stats: write each change after "
+                        "Some assets don't have a starting ability, so give the one you "
+                        "choose. A few abilities change your stats: write each change after "
                         "the ability, such as +shadow or -heart.",
                     ),
                     examples=("/asset buy owl", "/asset buy shadow_kin 1 -heart +shadow"),

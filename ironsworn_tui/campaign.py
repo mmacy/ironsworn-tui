@@ -161,10 +161,10 @@ def new_owned(data: Datasworn, asset_id: str, ability: int | None) -> OwnedAsset
         if not 1 <= ability <= len(marked):
             raise AssetError(f"{asset.name}'s abilities are numbered 1 to 3")
         if any(marked):
-            raise AssetError(f"{asset.name} already starts with an ability marked")
+            raise AssetError(f"{asset.name} already has a default ability")
         marked[ability - 1] = True
     elif not any(marked):
-        raise AssetError(f"{asset.name} starts with no ability marked; pick one from 1 to 3")
+        raise AssetError(f"{asset.name} doesn't have a starting ability; choose one from 1 to 3")
     return OwnedAsset(
         id=asset_id,
         marked=marked,
@@ -682,9 +682,9 @@ def create_character(
         data: The Datasworn data, to check the asset ids.
         name: The character's name.
         description: A few words about them, such as "a hunter".
-        stats: The five stats, assigned from 3, 2, 2, 1, 1.
-        assets: Three asset ids. An asset that starts with no ability marked, such as a
-            companion, names the ability to mark after a colon, such as `hawk:2`.
+        stats: The five stats, with the bonuses 3, 2, 2, 1, 1 arranged across them.
+        assets: Three asset ids. An asset that doesn't have a starting ability, such as a
+            companion, names the one to choose after a colon, such as `hawk:2`.
         harm: 2 when the character carries a deadly weapon, 1 when not.
 
     Returns:
@@ -700,8 +700,8 @@ def create_character(
     ):
         given = ", ".join(f"{stat}={value}" for stat, value in stats.items())
         raise ValueError(
-            "give the five stats, edge, heart, iron, shadow, and wits, the values 3, 2, 2, 1, "
-            f"and 1 in any order, got {given}"
+            "arrange the bonuses 3, 2, 2, 1, and 1 across the five stats, edge, heart, iron, "
+            f"shadow, and wits, in any order, got {given}"
         )
     ids = [spec.partition(":")[0] for spec in assets]
     for asset_id in ids:

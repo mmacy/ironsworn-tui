@@ -52,8 +52,8 @@ From the options, the command saves the campaign, prints the file's path, and ex
 |---|---|---|
 | `<name>` | None | The character's name. It's also the campaign's name and the file name, and it's case-sensitive. The options form needs it. The walkthrough starts with it filled in. |
 | `--description` | None | A few words about the character, such as `"the Destructor"`. |
-| `--stats` | None | All five stats (`edge`, `heart`, `iron`, `shadow`, `wits`), given the values 3, 2, 2, 1, and 1 in any order. Write each as `<stat>=<n>` and separate them with commas. Case doesn't matter. |
-| `--assets` | None | Exactly three asset ids, separated by commas with no spaces. Ids are lowercase, such as `archer` or `cave_lion`. An asset that starts with no ability marked, such as a companion, needs the ability to mark after a colon, from 1 to 3, such as `hawk:2`. An asset that starts with an ability marked takes no colon. `--assets help` prints the ids by category, exits with 0, and creates nothing. |
+| `--stats` | None | All five stats (`edge`, `heart`, `iron`, `shadow`, `wits`), with the bonuses 3, 2, 2, 1, and 1 arranged across them in any order. Write each as `<stat>=<n>` and separate them with commas. Case doesn't matter. |
+| `--assets` | None | Exactly three asset ids, separated by commas with no spaces. Ids are lowercase, such as `archer` or `cave_lion`. An asset that doesn't have a starting ability, such as a companion, needs the one you choose after a colon, from 1 to 3, such as `hawk:2`. An asset with a default ability takes no colon. `--assets help` prints the ids by category, exits with 0, and creates nothing. |
 | `--vow` | None | The background vow's text. |
 | `--bond` | None | A person or community the character shares a background bond with. Repeat it for up to three bonds. For each bond, the app marks one tick on the bonds track and logs `Bond: <text>`. Options form only. |
 | `--rank` | `epic` | The background vow's rank: `extreme` or `epic`. Case doesn't matter. Options form only. |
@@ -69,15 +69,15 @@ Errors, each with exit status 2. The command writes nothing when one occurs.
 | `Error: give the character's name before the options.` | The options form has no `<name>`. |
 | `Error: --bond, --rank, and --harm go with --description, --stats, --assets, and --vow. Without those, new asks everything in the walkthrough.` | `--bond`, `--rank`, or `--harm` is given without the other options. |
 | `Error: a campaign named <name> already exists at <path>. Use --overwrite to start over, or choose another name.` | A campaign with that name exists, and `--overwrite` isn't given. |
-| `Error: give the five stats, edge, heart, iron, shadow, and wits, the values 3, 2, 2, 1, and 1 in any order, got <stats>` | A stat is missing, or the values aren't 3, 2, 2, 1, 1. |
+| `Error: arrange the bonuses 3, 2, 2, 1, and 1 across the five stats, edge, heart, iron, shadow, and wits, in any order, got <stats>` | A stat is missing, or the values aren't 3, 2, 2, 1, 1. |
 | `Error: unknown stat '<word>'; the stats are edge, heart, iron, shadow, and wits` | A name in `--stats` isn't one of the five stats. |
 | `Error: write each stat as <stat>=<n>, such as <stat>=2` | A stat value is missing or isn't a whole number. |
 | `Error: pick 3 assets, got <n>` | `--assets` doesn't list three assets. |
 | `Error: pick 3 different assets, got <ids>` | `--assets` lists the same asset twice. |
 | `Error: a character starts with up to 3 bonds` | `--bond` is given more than three times. |
 | `Error: there's no asset '<id>'. Did you mean <id>?` | An asset id is misspelled. Without a close match, the message lists every asset id by category instead. |
-| `Error: <Asset> starts with no ability marked; pick one from 1 to 3` | A companion or similar asset has no `:<ability>`. |
-| `Error: <Asset> already starts with an ability marked` | An asset that starts with an ability marked has `:<ability>`. |
+| `Error: <Asset> doesn't have a starting ability; choose one from 1 to 3` | A companion or similar asset has no `:<ability>`. |
+| `Error: <Asset> already has a default ability` | An asset with a default ability has `:<ability>`. |
 | `Error: write a pick as an ability number, such as <id>:1` | The text after the colon isn't a number. |
 | `Error: buy <Asset> with /asset buy once you play, to choose its stat changes` | The pick is Shadow-Kin 1 or Battle-Scarred 1, which change stats. |
 | `Error: rank must be one of: troublesome, dangerous, formidable, extreme, epic` | `--rank` isn't a rank. |
@@ -102,8 +102,8 @@ The walkthrough asks each step of the rulebook's campaign setup in turn. The hea
 
 | Step | Questions | Needed |
 |---|---|---|
-| Create your character | Name and description. Stats. Three assets. For an asset that starts with no ability marked, its starting ability, and for any asset with fields, such as a companion's name or Ironclad's armor, the fields. Whether the character carries a deadly weapon. | The name, the description, all five stats, three assets, each starting ability, and each choice field. A text field, such as a name, is optional. |
-| Create your world | The 11 world truths of the Ironlands, one at a time, each with its quest starter. The region where the story begins, and the place in it. | A choice for each truth, which can be "Leave it open". A region. |
+| Create your character | Name and description. Stats. Three assets. For an asset that doesn't have a starting ability, the one you choose, and for any asset with fields, such as a companion's name or Ironclad's armor, the fields. Whether the character is armed with a deadly weapon. | The name, the description, all five stats, three assets, each starting ability, and each choice field. A text field, such as a name, is optional. |
+| Create your world | The 11 world truths of the Ironlands, one at a time, each with its quest starter. The region where the story begins, and the place in it. | A choice for each truth, which can be "Leave it blank". A region. |
 | Mark your background bonds | Up to three bonds. | Nothing. |
 | Write your background vow | The vow, and its rank: extreme or epic. The quest starters of the chosen truths and region are listed as ideas. | The vow. |
 | Envision your inciting incident | The problem that starts the story, with the quest starters as ideas. | Nothing. |
@@ -118,7 +118,7 @@ The walkthrough asks each step of the rulebook's campaign setup in turn. The hea
 | Ctrl+Q | Everywhere | Quit and save nothing. |
 | Up, Down | A list of choices | Select the choice above or below. |
 | 1 to 9 | A list of choices | Select a choice by its number. |
-| Up, Down, 1, 2, 3 | Stats | Move between the stats, and give the highlighted stat a value. A value that's used up is taken from the stat that had it. |
+| Up, Down, 1, 2, 3 | Stats | Move between the stats, and set the highlighted stat's bonus. A bonus that's used up is taken from the stat that had it. |
 | Up, Down, Space | Assets | Browse the assets, and pick or drop the highlighted one. The right side shows its abilities. |
 | Ctrl+R | Name | Roll an Ironlander name. |
 | `r` | A world truth | Roll 1 to 100 for the truth. |
@@ -425,7 +425,7 @@ Names you type:
 | [`/note`](#note) | Writes a note in the log. |
 | [`/vow`](#vow) | Lists, swears, marks, fulfills, or forsakes vows. |
 | [`/scene`](#scene) | Sets the scene text. |
-| [`/world`](#world) | Lists the world truths, where the story began, and the inciting incident. |
+| [`/world`](#world) | Lists the world truths, where your story begins, and the inciting incident. |
 | [`/target`](#target) | Picks the foe an attack targets. |
 | [`/tide`](#tide) | Arms or disarms Turn the Tide. |
 | [`/adjust`](#adjust) | Changes a value by hand. |
@@ -563,11 +563,11 @@ Scene: A ruined watchtower in the rain
 /world
 ```
 
-Lists what the [walkthrough](#walkthrough) set up: `Where you begin: <place>, <region>`, `Inciting incident: <text>`, and each world truth as `<truth>: <text>`, leaving out any that weren't set. Shows `No world truths, place, or inciting incident.` when none were, as for a campaign created from options. Changes nothing.
+Lists what the [walkthrough](#walkthrough) set up: `Where your story begins: <place>, <region>`, `Inciting incident: <text>`, and each world truth as `<truth>: <text>`, leaving out any that weren't set. Shows `No world truths, place where your story begins, or inciting incident.` when none were, as for a campaign created from options. Changes nothing.
 
 ```text
 /world
-Where you begin: Ravenford, Havens
+Where your story begins: Ravenford, Havens
 Inciting incident: Raiders took Torvin, and they'll sell him at the coast before the thaw
 Mysticism: Magic is rare and dangerous, but those few who wield the power are truly gifted.
 ```
@@ -686,7 +686,7 @@ Blarg faces 2 harm
 | `/asset` | Shows each owned asset as `<Asset> (<given name>): <marked abilities>, <meter> <value>/<max>, <field> <value>`. Changes nothing. |
 | `/asset list [<category>]` | Shows every asset as `<id>: <Asset>`, or only those in `combat_talent`, `companion`, `path`, or `ritual`. Changes nothing. |
 | `/asset show <asset>` | Shows the asset's category, requirement, and abilities, with `[x]` on marked ones. For an owned asset, adds its summary. Changes nothing. |
-| `/asset buy <asset> [<ability> [...]]` | Spends 3 experience on a new asset. An asset that starts with no ability marked needs `<ability>`, from 1 to 3. For Shadow-Kin 1 and Battle-Scarred 1, give the ability number, then the stat changes. Stat changes always follow an ability number. |
+| `/asset buy <asset> [<ability> [...]]` | Spends 3 experience on a new asset. An asset that doesn't have a starting ability needs `<ability>`, from 1 to 3. For Shadow-Kin 1 and Battle-Scarred 1, give the ability number, then the stat changes. Stat changes always follow an ability number. |
 | `/asset upgrade <asset> <ability> [...]` | Spends 2 experience to mark an ability of an owned asset. Give stat changes after the ability number when it calls for them. |
 | `/asset meter <asset> <meter> <n>` | Adds `<n>` to an asset's meter, such as a companion's `health`, within 0 and its maximum. |
 | `/asset set <asset> <field> <value>` | Fills in a text or choice field, such as a companion's `name`. The value can have spaces. Setting Ironclad's `equipped` to `geared_for_war` marks encumbered, and changing it from that clears encumbered. |
@@ -706,7 +706,7 @@ Animal Kin 2 (companions other than Kindred), Ritualist 3 (rituals), and Weaponm
 | `<character> doesn't own <id>` | The form needs an owned asset. |
 | `<Asset>'s ability <n> is already marked` | `upgrade` for a marked ability. |
 | `<Asset>'s abilities are numbered 1 to 3` | The ability number is out of range. |
-| `<Asset> starts with no ability marked; pick one from 1 to 3` | `buy` without `<ability>` for an asset that needs it. |
+| `<Asset> doesn't have a starting ability; choose one from 1 to 3` | `buy` without `<ability>` for an asset that needs it. |
 | `<Asset>'s ability <n> doesn't change a stat` | Stat changes for an ability that makes none. |
 | `Shadow-Kin: lower heart by 1 and raise shadow by up to 2` | Shadow-Kin 1's changes don't match the ability. |
 | `Battle-Scarred: lower edge or iron by 1, and raise wits or heart by 2, or each by 1` | Battle-Scarred 1's changes don't match the ability. |

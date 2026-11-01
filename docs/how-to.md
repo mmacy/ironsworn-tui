@@ -93,7 +93,7 @@ Use this to create a character in one command instead of in the walkthrough, for
 Before you start, choose:
 
 - A name. The campaign file gets the same name.
-- Your stats. Give 3 to one stat, 2 to two stats, and 1 to the other two.
+- Your stats. Arrange the bonuses 3, 2, 2, 1, and 1 across them: 3 for one stat, 2 for two, and 1 for the other two.
 - Three asset ids. Run `new` with `--assets help` to print every id by category. It creates nothing. In a campaign, `/asset list` shows them too.
 - For a companion, the ability it starts with, from 1 to 3.
 - Your background vow.
@@ -115,8 +115,8 @@ Steps:
 
 The command prints the path of the new campaign file, for example `campaigns/Blarg.json`. If something is wrong, it prints an error and creates nothing. For example:
 
-- "Error: Hawk starts with no ability marked; pick one from 1 to 3" means you left off the companion's ability, as in `hawk` instead of `hawk:2`.
-- "Error: give the five stats, edge, heart, iron, shadow, and wits, the values 3, 2, 2, 1, and 1" means the stats don't add up that way.
+- "Error: Hawk doesn't have a starting ability; choose one from 1 to 3" means you left off the companion's ability, as in `hawk` instead of `hawk:2`.
+- "Error: arrange the bonuses 3, 2, 2, 1, and 1 across the five stats" means the stats don't use those bonuses.
 - "Error: there's no asset 'wrigt'. Did you mean wright?" means an id is misspelled.
 - "Error: a campaign named Blarg already exists" means you made this character before. See [How to start a character over](#how-to-start-a-character-over).
 
@@ -323,7 +323,7 @@ To buy a new asset:
    /asset show owl
    ```
 
-2. Type `/asset buy` and the asset. For an asset that starts with no ability marked, like a companion, add the number of the ability to mark:
+2. Type `/asset buy` and the asset. For an asset that doesn't have a starting ability, like a companion, add the number of the ability you choose:
 
    ```text
    /asset buy owl 3
