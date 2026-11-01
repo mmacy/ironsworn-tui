@@ -241,7 +241,7 @@ def test_a_bad_argument_shows_the_usage_and_points_to_help(tmp_path: Path):
     with pytest.raises(CommandError) as raised:
         run_command(turn, "/ask maybe")
     message = str(raised.value)
-    assert "Usage: /ask <likelihood>" in message
+    assert "Usage: /ask <odds>" in message
     assert "/ask help" in message
 
 

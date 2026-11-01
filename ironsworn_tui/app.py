@@ -160,7 +160,7 @@ class CharacterPanel(Static):
             who = c.name if campaign.initiative == "character" else "foe"
             lines += ["", "[b]Fight[/b]", f"Initiative: {escape(who)}"]
             if campaign.tide_armed:
-                lines.append("Turn the Tide armed")
+                lines.append("Turn the Tide ready")
             target = campaign.target_foe()
             for foe in campaign.foes:
                 mark = "> " if foe is target else "  "

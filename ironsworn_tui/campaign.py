@@ -176,8 +176,8 @@ def new_owned(data: Datasworn, asset_id: str, ability: int | None) -> OwnedAsset
 def setback_note(setback: int) -> str:
     """Return the note for a momentum loss past -6, which the player takes with Face a Setback."""
     return (
-        f"Face a Setback: exchange {setback} momentum for health, spirit, supply, or progress "
-        "on a track."
+        f"Face a Setback: exchange -{setback} momentum for any combination of -health, -spirit, "
+        "or -supply, or clear progress on a quest, journey, or fight."
     )
 
 
@@ -646,7 +646,7 @@ def _asset_problems(character: Character) -> list[str]:
         if not any(owned.marked) or any(
             e and not m for e, m in zip(enabled, owned.marked, strict=True)
         ):
-            problems.append(f"{owned.id} is missing a marked ability")
+            problems.append(f"{owned.id} has no ability filled in")
         if asset.counts_as_debility and not owned.debility:
             problems.append(f"{owned.id} must count as a debility")
         if owned.fields.get("equipped") == "geared_for_war" and (

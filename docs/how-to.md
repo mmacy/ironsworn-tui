@@ -224,7 +224,7 @@ On a hit, the foe leaves the fight. When no foes are left, the panel no longer s
 
 To end a fight in another way, like when you flee, lose, or settle it with Battle, type `/adjust fight end`.
 
-When a foe has initiative, `/tide` arms Turn the Tide for your next move, and `/tide off` disarms it.
+When a foe has initiative, `/tide` readies Turn the Tide, so your next move steals initiative, and `/tide off` takes it back.
 
 ## How to undertake a journey
 
@@ -253,7 +253,7 @@ Use this when you want the oracle to answer a question or inspire a detail.
 To ask a yes or no question:
 
 1. Decide how likely a yes is: `almost certain`, `likely`, `50/50`, `unlikely`, or `small chance`.
-2. Type `/ask`, the likelihood, and, if you like, the question:
+2. Type `/ask`, the odds, and, if you like, the question:
 
    ```text
    /ask almost certain Do I know which castle I'm in?
@@ -273,7 +273,7 @@ To roll on a table:
 
 The log shows the table, your question, the roll, and the result, for example "Oracle (location): Where does the trail lead? 18: Ruin". `/oracle help` lists the tables in groups and says what each one gives.
 
-To let the app pick the table or the likelihood:
+To let the app pick the table or the odds:
 
 1. Type `/oracle` and the question, with no table:
 
@@ -281,7 +281,7 @@ To let the app pick the table or the likelihood:
    /oracle Do I know which castle I'm in?
    ```
 
-2. The suggestion bar shows the question and the oracles to roll. When the decision model is confident, it selects one: a likelihood, like `Ask unlikely`, for a yes or no question, or a table, like `location`.
+2. The suggestion bar shows the question and the oracles to roll. When the decision model is confident, it selects one: the odds, like `Ask unlikely`, for a yes or no question, or a table, like `location`.
 3. Press Enter to roll the selected one, or press another option's key first. When nothing is selected, pick one with its key.
 
 The log shows the answer with your question, as if you had typed `/ask` or `/oracle` with the table. Press Escape to leave the question without a roll.
@@ -331,7 +331,7 @@ To buy a new asset:
 
 The log shows "Asset: bought Owl for 3 experience", and the asset appears under "Assets" in the panel.
 
-To mark another ability on an asset you own:
+To upgrade an asset you own, filling in another of its abilities:
 
 1. Type `/asset upgrade`, the asset, and the ability number:
 
@@ -339,9 +339,9 @@ To mark another ability on an asset you own:
    /asset upgrade owl 1
    ```
 
-The log shows "Asset: marked Owl's ability 1 for 2 experience".
+The log shows "Asset: upgraded Owl: filled in ability 1 for 2 experience".
 
-Battle-scarred and Shadow-kin change your stats when you mark them. Add each change as `+stat` or `-stat`. For example, Shadow-kin's first ability lowers heart by 1 and raises shadow by up to 2:
+Battle-scarred and Shadow-kin change your stats when you fill them in. Add each change as `+stat` or `-stat`. For example, Shadow-kin's first ability lowers heart by 1 and raises shadow by up to 2:
 
 ```text
 /asset buy shadow-kin 1 -heart +shadow +shadow
@@ -404,7 +404,7 @@ To have a companion take harm:
    /asset harm hawk 2
    ```
 
-2. The bar shows "Companion Endure Harm" and "Enter roll (2)". Press Enter. The companion loses the health before the roll.
+2. The bar shows "Companion Endure Harm" and "Enter roll (2)". Press Enter. The companion suffers -health before the roll.
 3. Pick any choices on the card, then press Enter.
 
 In `/asset` commands, you can use the companion's asset id, its asset name, or the name you gave it, like `hawk` or `Kestrel`.
@@ -491,7 +491,7 @@ You can't use `/adjust` while a roll card is open. Press Enter to apply the card
 
 The log also asks you to use `/adjust` in a few places. For example:
 
-- "Face a Setback" and "Out of Supply" notes ask you to trade an amount for health, spirit, supply, or momentum.
+- "Face a Setback" and "Out of Supply" notes ask you to exchange the -momentum or -supply you can't take for other losses, such as -health or -spirit.
 - The Fated note asks you to take +2 momentum or +1 spirit.
 - Lorekeeper's archive may ask you to mark corrupted with `/adjust corrupted mark`.
 

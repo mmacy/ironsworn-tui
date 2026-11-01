@@ -269,7 +269,7 @@ The rules say to resolve these moves before anything else happens, so the app bl
 
 ### When the fiction means harm
 
-Some harm doesn't come from a move result the app can read. Pay the Price may decide your character is hurt, or a foe may strike while you act. The app can't judge the fiction, so you tell it: `/endure harm 2` owes Endure Harm for 2 harm, and `/endure stress 1` owes Endure Stress. In a fight, `/endure harm` with no amount uses the targeted foe's harm. You then roll the move as usual, with its chance to shake off the harm.
+Some harm doesn't come from a move result the app can read. Pay the Price may decide your character is hurt, or a foe may strike while you act. The app can't judge the fiction, so you tell it: `/endure harm 2` calls for Endure Harm for 2 harm, and `/endure stress 1` calls for Endure Stress. In a fight, `/endure harm` with no amount uses the targeted foe's harm. You then roll the move as usual, with its chance to shake off the harm.
 
 ## Oracles
 
@@ -284,7 +284,7 @@ Ask the Oracle has four parts:
 
 The oracle gives an answer. You decide what it means in the fiction.
 
-The likelihood is yours to choose, because it depends on the story so far. If you type only a question after `/oracle`, the decision model suggests a likelihood for a yes or no question, or a table for anything else, and you confirm it or pick another. In a test of 56 questions, the model told yes or no questions from table questions every time, and picked a table that fit 30 of 33 times. Its likelihoods were rougher: 14 of 21 matched the expected one, and 19 of 21 were the expected one or the one next to it. So read a suggested likelihood as a starting point. When the scene points to "likely" and the app suggests "50/50," pick "likely."
+The odds are yours to choose, because they depend on the story so far. If you type only a question after `/oracle`, the decision model suggests the odds for a yes or no question, or a table for anything else, and you confirm it or pick another. In a test of 56 questions, the model told yes or no questions from table questions every time, and picked a table that fit 30 of 33 times. Its odds were rougher: 14 of 21 matched the expected odds, and 19 of 21 were the expected odds or the ones next to them. So read suggested odds as a starting point. When the scene points to "likely" and the app suggests "50/50," pick "likely."
 
 ## Assets
 

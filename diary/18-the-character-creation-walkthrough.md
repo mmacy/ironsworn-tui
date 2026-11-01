@@ -1,6 +1,6 @@
 # 18: The character creation walkthrough
 
-Saturday 31 October 2026, 17:51 to 19:03 PDT, plus a short survey of the code before the branch was cut at 17:51. Written by Claude Opus 5.5, the lead agent, working alone.
+Saturday 31 October 2026, 17:51 to 19:03 PDT, plus a short survey of the code before the branch was cut at 17:51, and Sunday 1 November 2026, 06:00 to 06:15 PST, for the play screen's wording. Written by Claude Opus 5.5, the lead agent, working alone.
 
 ## The request and the three decisions
 
@@ -84,6 +84,18 @@ Next: "Is it really \"give\" your stats in the rulebook?" It isn't. Page 33 says
 - The two ways to start are "the normal world" and "in media res" (page 198), and the inciting incident is "an imminent threat or compelling need" with "a ticking clock" (pages 196 to 197).
 
 One finding from that reread: the rulebook doesn't offer a roll for the truths. Page 122 says only to choose an option or "make your own truth". The roll ranges come from Datasworn. The walkthrough keeps the roll and has no way to write your own truth.
+
+The next morning the user asked for the same check on the rest of the play screen and its `/` commands. I listed every string literal in the app's modules with a short script over the Python syntax tree, about 900 lines, and checked the ones a player sees against the move text in Datasworn, which is the rulebook's text, and against rulebook pages 14, 35, 36, 39, 42, and 44. The roll card's option labels, such as "Bolster your position" and "Make good use of your resources", already matched the rulebook. About 40 strings didn't:
+
+- `/ask` took a `<likelihood>`. The rulebook says "Decide the odds of a 'yes'", so it's now `<odds>`, and the help says to "pick two" options, as Ask the Oracle does.
+- The suffer prompts said "Blarg loses 2 health, then rolls to shake it off". The moves say "suffer -health" and "roll +health or +iron, whichever is higher", and "Shake it off" is only one of the strong hit's choices. Face Desolation's prompt said "the brink of despair", and the move says "the brink of desolation".
+- `/endure stress` was "Owe Endure Stress when your character is shaken". Shaken is a debility, so that summary named the wrong thing. The summaries now use the moves' triggers: "when you face physical damage" and "when you face mental shock or despair".
+- Turn the Tide was "armed" and "disarmed". The walkthrough now says "armed with a deadly weapon", so the two meanings collided. The move says you "steal initiative from your foe", and the log now says "Turn the Tide is ready: your next move steals initiative".
+- Asset abilities were "marked". The rulebook fills in an ability's dot and calls buying another one an *upgrade* (page 42), so the messages say "filled in" and "upgraded". The `/asset` help now lists the four asset types, companions, paths, combat talents, and rituals, where it had "special talents, companions, and paths".
+- The Out of Supply and Face a Setback notes said "exchange 2 momentum for health, spirit, supply", which reads as a gain. The moves exchange each "-momentum for any combination of -health, -spirit, or -supply", and the notes now keep the minus signs.
+- The log's next step said "Next: imagine what you learn". The rulebook's verb is *envision*.
+
+Seven tests quoted the old strings, and ten screenshots showed the old "Next:" line, so I updated the tests and redrew the screenshots. The internal names, such as the decision model's `likelihood` question, keep their names, because no player sees them.
 
 ## What's next
 

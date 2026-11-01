@@ -232,7 +232,7 @@ Gather Information is the move for when you search an area, ask questions, condu
 Gather Information +wits: 6 + 3 + 0 = 9 vs 3, 4, strong hit
 On a strong hit, you discover something helpful and specific. The path you must follow or action you must take to make progress is made clear. Envision what you learn (Ask the Oracle if unsure), and take +2 momentum.
 Momentum +2 (now 5)
-Next: imagine what you learn and type it, or ask the oracle (/ask likely for yes or no, /oracle action for ideas).
+Next: envision what you learn and type it, or ask the oracle (/ask likely for yes or no, /oracle action for ideas).
 ```
 
 Each kind of line has a different color:
@@ -271,7 +271,7 @@ Solo play has no game master to answer questions about the world. The oracle ans
 
 The log shows your question with the answer, such as `Ask (likely): Is my brother in the camp? 69: yes`. The word after `/ask` is how likely you think a yes is: `almost certain`, `likely`, `50/50`, `unlikely`, or `small chance`. The question is optional.
 
-You don't have to remember the likelihoods. Type `/ask ` and the input line shows them in dim text, such as `[almost certain | likely | 50/50 | unlikely | small chance | help]`. Type a letter or two to narrow the list, press Up or Down to pick one, and press Tab to complete it. This works for every command: type `/` to see them all.
+You don't have to remember the odds. Type `/ask ` and the input line shows them in dim text, such as `[almost certain | likely | 50/50 | unlikely | small chance | help]`. Type a letter or two to narrow the list, press Up or Down to pick one, and press Tab to complete it. This works for every command: type `/` to see them all.
 
 ![The input line after typing /oracle and a space. Dim text after the cursor lists the oracle tables, starting with action and theme, and counts the rest.](images/completion.svg)
 

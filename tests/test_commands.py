@@ -75,9 +75,9 @@ def test_note_logs_free_text(tmp_path: Path):
         run_command(turn, "/note")
 
 
-def test_ask_needs_a_likelihood(tmp_path: Path):
+def test_ask_needs_the_odds(tmp_path: Path):
     turn, _, _ = engine(tmp_path)
-    with pytest.raises(CommandError, match="likelihood"):
+    with pytest.raises(CommandError, match="odds"):
         run_command(turn, "/ask maybe")
 
 
@@ -367,7 +367,7 @@ def test_adjust_momentum_past_minus_six_owes_face_a_setback(tmp_path: Path):
     assert turn.campaign.character.momentum == -6
     texts = [entry.text for entry in turn.campaign.log[-2:]]
     assert texts[0] == "Adjust: Momentum is now -6"
-    assert texts[1].startswith("Face a Setback: exchange 2 momentum")
+    assert texts[1].startswith("Face a Setback: exchange -2 momentum")
 
 
 def test_asset_commands_take_a_companions_given_name(tmp_path: Path):
