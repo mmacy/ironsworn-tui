@@ -36,7 +36,9 @@ The app works without a server. `ironsworn-tui play --no-model` starts none, and
 | Module | Its job |
 |---|---|
 | `__main__.py` | Runs the CLI for `python -m ironsworn_tui`. |
-| `cli.py` | The `ironsworn-tui` command and its subcommands: `new`, `play`, `suggest`, and `write-suites`. It loads the settings, starts the jevtester server, and creates the turn engine and the app. |
+| `cli.py` | The `ironsworn-tui` command and its subcommands: `new`, `play`, `suggest`, and `write-suites`. It loads the settings, runs the walkthrough for a bare `new`, starts the jevtester server, and creates the turn engine and the app. |
+| `walkthrough.py` | The character creation walkthrough, a second Textual app. Each `Step` asks one part of the rulebook's campaign setup, and the app returns a `Setup`, or None if the player quits. |
+| `creation.py` | Campaign setup with no UI code: `Setup`, the walkthrough's answers; `begin_campaign`, which turns them into a campaign; `open_play`, which makes the first Swear an Iron Vow in media res; and the oracle rolls the walkthrough offers. |
 | `app.py` | The Textual app: the character panel, the log, the suggestion bar, the input line with its command completion (`CommandInput`), and the pop-up screens for inputs, boosts, and dice. It calls the turn engine and the commands for everything except drawing the screen. |
 | `commands.py` | The `/` commands, like `/oracle`, `/vow`, and `/asset`, and `REGISTRY`, which describes each command's arguments, options, and help. It has no UI code. |
 | `oracles.py` | The oracles the player rolls: the likelihoods for `/ask`, the oracle tables by short name, and `ASKED_TABLES`, the tables the decision model can suggest. |
@@ -60,7 +62,7 @@ The rules package is a typed port of `iron.py` from the Ironsworn referee plugin
 
 | Module | Its job |
 |---|---|
-| `datasworn.py` | Loads the vendored Datasworn data into typed, read-only indexes of moves, oracle tables, assets, and NPCs. `datasworn()` returns one cached copy. |
+| `datasworn.py` | Loads the vendored Datasworn data into typed, read-only indexes of moves, oracle tables, assets, NPCs, world truths, and the regions of the Ironlands. `datasworn()` returns one cached copy. |
 | `dice.py` | Dice, challenge dice, and the three results (`Hit`): strong hit, weak hit, and miss. |
 | `action.py` | Action rolls and burning momentum. |
 | `progress.py` | Progress tracks, ranks, and progress rolls. |
@@ -73,7 +75,7 @@ The rules package is a typed port of `iron.py` from the Ironsworn referee plugin
 
 | Folder | What it contains |
 |---|---|
-| `ironsworn_tui/data/datasworn/` | The Datasworn data for Ironsworn, copied unchanged from the referee plugin. `datasworn.py` reads `moves.yaml`, `npcs.yaml`, `rules.yaml`, and the YAML files in `assets/` and `oracles/`. The code doesn't read `atlas.yaml` or `truths.yaml` yet. `LICENSE.md` gives the upstream commit and the licenses. |
+| `ironsworn_tui/data/datasworn/` | The Datasworn data for Ironsworn, copied from the referee plugin with one fix, which `ironsworn_tui/data/README.md` describes. `datasworn.py` reads `moves.yaml`, `npcs.yaml`, `rules.yaml`, `truths.yaml`, the regions in `atlas.yaml`, and the YAML files in `assets/` and `oracles/`. `LICENSE.md` gives the upstream commit and the licenses. |
 | `suites/` | jevtester files. `play-<context>.yaml` and `play-oracle.yaml` contain the cases saved in play. `recognizer-*.yaml` are the experiments' suites, `question-sets/` contains the questions each suite asks, and `policies/` contains the thresholds. `write-suites` regenerates the question sets and recognizer suites. It never rewrites a play suite, because play suites contain the cases saved in play. |
 | `experiments/` | `recognizer-phrasings.yaml` contains the hand-written player messages that the move recognizer suites are built from. `oracle-phrasings.yaml` contains the hand-written oracle questions that `recognizer-oracle` is built from. `results.md` contains the accuracy results. |
 | `scripts/` | `screenshots.py`, which draws the SVG screenshots in `docs/images/`. |
@@ -91,12 +93,12 @@ The code is in layers. Each layer may import from the layers below it, and never
 | 3. Outcomes and abilities | `outcomes.py`, `abilities.py` | The campaign model, the turn engine, the decision code, the commands, or the UI |
 | 4. Campaign model | `campaign.py`, `assets.py` | Outcomes, abilities, the turn engine, the decision code, the commands, or the UI |
 | 5. Turn engine | `turn.py` | The commands, the app, the CLI, or Textual |
-| 6. Commands | `registry.py`, `commands.py` | The app, the CLI, or Textual |
-| 7. App and CLI | `app.py`, `cli.py` | Nothing is above them |
+| 6. Commands and setup | `registry.py`, `commands.py`, `creation.py` | The app, the walkthrough, the CLI, or Textual |
+| 7. App, walkthrough, and CLI | `app.py`, `walkthrough.py`, `cli.py` | Nothing is above them |
 
 The decision code sits beside layers 2 to 4. `criteria.py`, `decide.py`, `settings.py`, `policy.py`, and `cases.py` import only `moves.py`, `oracles.py`, `rules/`, and each other. Inside the package, the turn engine, the CLI, and `experiment.py` import them, and `app.py` imports the `Suggestion` and `OracleSuggestion` types from `policy.py`. Only the CLI uses `experiment.py`.
 
-Only `app.py` imports Textual or Rich. Inside the package, only `cli.py` imports `app.py`. So the tests can drive whole turns through `TurnEngine` and `run_command` without a screen.
+Only `app.py` and `walkthrough.py` import Textual or Rich. Inside the package, only `cli.py` imports them. So the tests can drive whole turns through `TurnEngine` and `run_command`, and set up whole campaigns through `begin_campaign`, without a screen.
 
 ### Where the code breaks the layering
 
@@ -137,7 +139,9 @@ The engine stores these in the campaign, so they survive a restart: the owed fol
 
 | Type | Where | What it is |
 |---|---|---|
-| `Campaign` | `campaign.py` | Everything saved about one campaign: the character, vows, bonds, foes, journey, follow-ups, lasting effects, and log. `Campaign.context` works out the context from the foes and the journey. |
+| `Campaign` | `campaign.py` | Everything saved about one campaign: the character, vows, bonds, foes, journey, follow-ups, lasting effects, the world, and the log. `Campaign.context` works out the context from the foes and the journey. |
+| `World` | `campaign.py` | What the walkthrough set up about the world: the chosen truths, the region and place where the story begins, and the inciting incident. No rule reads it. `/world` lists it. |
+| `Setup` | `creation.py` | The walkthrough's answers, before they become a campaign. |
 | `Character` | `campaign.py` | The character: stats, meters, momentum, debilities, owned assets, experience, and the harm they inflict. |
 | `OwedMove` | `campaign.py` | A follow-up move that a result called for and that the player still owes, with its amount, vow, or companion. |
 | `Lasting` | `campaign.py` | A lasting effect in the campaign, like an elixir. Its `kind` is a key of `abilities.LASTING`. |
@@ -281,6 +285,8 @@ Most modules have a test file named after them. For example, `test_turn.py` test
 
 `tests/test_app.py` drives the real app with Textual's pilot, which presses keys in a headless app. Each test runs `app.run_test(size=(120, 40))` inside `asyncio.run` and presses keys with `pilot.press`. Then it checks `app.bar_state`, the focused widget, and `app.render_bar()`. The `settle` helper waits for the decision worker to finish.
 
+`tests/test_walkthrough.py` drives the walkthrough the same way and checks the `Setup` it returns. Each key press waits for the screen to update, so its `write` helper fills in an input's value and presses only Enter.
+
 ### Live tests
 
 `test_decide_live.py`, `test_cases_live.py` (which also saves an oracle case), and `test_app_live.py` call the configured target through a real `jevtester serve`. Run them with `uv run pytest -m live`. They need the jevtester checkout, a `jevtester.local.toml` with real account details, and a provider sign-in.
@@ -293,7 +299,7 @@ Most modules have a test file named after them. For example, `test_turn.py` test
 uv run python -m scripts.screenshots
 ```
 
-To add a screenshot, add a drive function to `SCREENS` in the script.
+To add a screenshot, add a drive function to `SCREENS` in the script, or to `WALKTHROUGH_SCREENS` for the walkthrough. The play screens start from Blarg's campaign as the tutorial's walkthrough sets it up, on the Swear an Iron Vow roll.
 
 ## Where to read next
 

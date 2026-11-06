@@ -118,7 +118,7 @@ def test_two_stat_changes_are_refused(tmp_path: Path):
 @pytest.mark.parametrize(
     ("ref", "message"),
     [
-        (BoostRef("archer", 3), "marked"),
+        (BoostRef("archer", 3), "filled in"),
         (BoostRef("slayer", 1), "own"),
         (BoostRef("archer", 1, 5), "variant"),
         (BoostRef("hawk", 2), "Secure an Advantage"),

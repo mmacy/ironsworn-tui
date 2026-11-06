@@ -261,6 +261,20 @@ def _note(engine: TurnEngine, values: Values) -> CommandResult:
     return CommandResult()
 
 
+def _world(engine: TurnEngine, _: Values) -> CommandResult:
+    world = engine.campaign.world
+    lines: list[str] = []
+    where = ", ".join(part for part in (world.place, world.region or "") if part)
+    if where:
+        lines.append(f"Where your story begins: {where}")
+    if world.inciting_incident:
+        lines.append(f"Inciting incident: {world.inciting_incident}")
+    lines += [f"{truth.name}: {truth.text}" for truth in world.truths]
+    return CommandResult(
+        tuple(lines or ["No world truths, place where your story begins, or inciting incident."])
+    )
+
+
 def _vows(engine: TurnEngine, _: Values) -> CommandResult:
     vows = engine.campaign.vows
     lines = [f"{vow.name} ({vow.rank.name.lower()}): {_filled(vow)}" for vow in vows]
@@ -434,7 +448,7 @@ def _endure(move: Literal["endure_harm", "endure_stress"]) -> Command:
     if move == "endure_harm":
         return Command(
             "harm",
-            "Owe Endure Harm when your character is hurt",
+            "Endure Harm when you face physical damage",
             run,
             (Arg("n", number=True, optional=True),),
             help=(
@@ -446,7 +460,7 @@ def _endure(move: Literal["endure_harm", "endure_stress"]) -> Command:
         )
     return Command(
         "stress",
-        "Owe Endure Stress when your character is shaken",
+        "Endure Stress when you face mental shock or despair",
         run,
         (Arg("n", number=True),),
         help=(
@@ -527,7 +541,9 @@ def _asset_upgrade(engine: TurnEngine, values: Values) -> CommandResult:
     ability = int(values[1])
     character = engine.campaign.character
     spent = upgrade(character, engine.data, asset.id, ability, _changes(values[2:]))
-    return _asset_logged(engine, f"marked {asset.name}'s ability {ability} for {spent} experience")
+    return _asset_logged(
+        engine, f"upgraded {asset.name}: filled in ability {ability} for {spent} experience"
+    )
 
 
 def _asset_meter(engine: TurnEngine, values: Values) -> CommandResult:
@@ -661,7 +677,7 @@ REGISTRY = Registry(
                 "Write your question after the table, and the log keeps it with the answer, "
                 "such as /oracle ironlander-name What is the guard called?",
                 "Or write only the question, such as /oracle Do I know which castle I'm in? "
-                "The app suggests a table, or a likelihood for /ask if a yes or no answers "
+                "The app suggests a table, or the odds for /ask if a yes or no answers "
                 "it. Press Enter to roll it, or pick another with its key. /oracle alone "
                 "lists them all.",
             ),
@@ -676,17 +692,17 @@ REGISTRY = Registry(
             "ask",
             "Ask the oracle a yes or no question",
             _ask,
-            (Arg("likelihood", tuple(LIKELIHOODS)), _QUESTION),
+            (Arg("odds", tuple(LIKELIHOODS)), _QUESTION),
             help=(
                 "Think of a yes or no question about the world, such as Is the bridge "
-                "guarded? Decide how likely a yes is, and roll. The app rolls 1 to 100.",
+                "guarded? Decide the odds of a yes, and roll. The app rolls 1 to 100.",
                 "The answer is yes on: almost certain 11 or more, likely 26 or more, 50/50 51 "
                 "or more, unlikely 76 or more, small chance 91 or more.",
                 "Doubles, such as 22 or 77, are a match. A match means something extreme or "
                 "a twist: a yes is a big yes, and a no can be a nasty surprise.",
-                "To choose between two ideas, rate one as likely and ask. If the answer is "
-                "no, it's the other one.",
-                "Write your question after the likelihood, and the log keeps it with the "
+                "To pick two, envision two options, rate one as likely, and ask. If the "
+                "answer is no, it's the other one.",
+                "Write your question after the odds, and the log keeps it with the "
                 "answer, such as /ask almost certain Do I know which castle I'm in?",
             ),
             examples=("/ask likely", "/ask almost certain Do I know which castle I'm in?"),
@@ -713,9 +729,10 @@ REGISTRY = Registry(
                     _vow_swear,
                     (Arg("rank", tuple(RANKS)), Arg("vow", free=True, rest=True)),
                     help=(
-                        "The rank says how long and hard the quest is: troublesome is a "
-                        "short task, and epic can take a whole campaign. Swearing rolls the "
-                        "Swear an Iron Vow move.",
+                        "The rank says how hard the quest is. Troublesome is for simple "
+                        "challenges, a typical quest is dangerous or formidable, and extreme "
+                        "and epic quests take great effort and luck. Swearing makes the Swear "
+                        "an Iron Vow move.",
                     ),
                     examples=("/vow swear dangerous Find my brother",),
                 ),
@@ -725,30 +742,34 @@ REGISTRY = Registry(
                     _vow_mark,
                     (_VOW,),
                     help=(
-                        "A milestone is a real step toward the vow, such as finding a clue "
-                        "or reaching a place. Higher ranks mark less progress each time. You "
-                        "can leave out the name when you have one vow.",
+                        "A milestone is significant progress in your quest, such as "
+                        "overcoming a critical obstacle or solving a complex mystery. Higher "
+                        "ranks mark less progress each time. You can leave out the name when "
+                        "you have one vow.",
                     ),
                     examples=("/vow mark Find my brother",),
                 ),
                 Command(
                     "fulfill",
-                    "Try to complete a vow with a progress roll",
+                    "Fulfill a vow with a progress roll",
                     _vow_fulfill,
                     (_VOW,),
                     help=(
-                        "Use it when the story reaches the vow's end. The more progress "
-                        "you marked, the better your chances. Fulfilling a vow earns "
-                        "experience.",
+                        "Use it when you achieve what you believe fulfills the vow. The "
+                        "more progress you marked, the better your chances. Fulfilling a vow "
+                        "earns experience.",
                     ),
                     examples=("/vow fulfill Find my brother",),
                 ),
                 Command(
                     "forsake",
-                    "Give up on a vow",
+                    "Forsake a vow you renounce, or whose goal is lost to you",
                     _vow_forsake,
                     (_VOW,),
-                    help=("Breaking a vow hurts: the vow is cleared, and you owe Endure Stress.",),
+                    help=(
+                        "The vow is cleared, and you Endure Stress: -spirit equal to its "
+                        "rank, from 1 for troublesome to 5 for epic.",
+                    ),
                     examples=("/vow forsake Find my brother",),
                 ),
             ),
@@ -759,6 +780,17 @@ REGISTRY = Registry(
                 "With no option, /vow lists your vows and their progress.",
             ),
             examples=("/vow", "/vow swear dangerous Find my brother"),
+        ),
+        Command(
+            "world",
+            "List the world truths, where your story begins, and the inciting incident",
+            _world,
+            help=(
+                "The walkthrough in ironsworn-tui new sets these up before play: the truths of "
+                "your version of the Ironlands, and the inciting incident that set your story "
+                "in motion.",
+            ),
+            examples=("/world",),
         ),
         Command(
             "scene",
@@ -781,14 +813,14 @@ REGISTRY = Registry(
         ),
         Command(
             "tide",
-            "Turn the Tide once a fight, when the foe has the upper hand",
+            "Once per fight, when you risk it all, steal initiative from your foe",
             _tide,
             (Arg("off", ("off",), optional=True),),
             help=(
-                "Once a fight, when the foe has the initiative, you can risk it all and take "
-                "the initiative back. /tide arms it for your next move, which adds 1 and "
-                "gains 1 momentum on a hit. If that move misses, you Pay the Price. /tide off "
-                "disarms it unused.",
+                "Turn the Tide works once per fight, when your foe has initiative. /tide "
+                "readies it, and your next move steals initiative: add +1, and take +1 "
+                "momentum on a hit. If you fail to score a hit, you suffer a dire outcome: Pay "
+                "the Price. /tide off takes it back unused.",
             ),
             examples=("/tide", "/tide off"),
         ),
@@ -830,7 +862,8 @@ REGISTRY = Registry(
                 ),
                 Command(
                     "harm",
-                    "Set the harm your attacks deal: 2 with a deadly weapon, 1 without",
+                    "Set the harm you inflict: 2 armed with a deadly weapon, 1 unarmed or with "
+                    "a simple weapon",
                     _adjust_harm,
                     (Arg("harm", ("1", "2"), number=True),),
                     examples=("/adjust harm 1",),
@@ -848,19 +881,21 @@ REGISTRY = Registry(
                 "changes one without a move, such as a meal that restores supply, or to fix "
                 "a mistake.",
                 "Health, spirit, and supply run from 0 to 5. Momentum runs from -6 to +10. "
-                "A debility, such as wounded, is a lasting condition that lowers your "
-                "momentum's maximum. A progress track has 10 boxes of 4 ticks each.",
+                "A debility, such as wounded, is a disadvantage that lowers your max "
+                "momentum and your momentum reset. A progress track has 10 boxes of 4 ticks "
+                "each.",
             ),
             examples=("/adjust health -2", "/adjust wounded mark", "/adjust vow Find my brother 4"),
         ),
         Command(
             "endure",
-            "Roll to resist harm or stress the story deals your character",
+            "Endure Harm or Endure Stress when the story deals it",
             subcommands=(_endure("endure_harm"), _endure("endure_stress")),
             help=(
-                "Harm hurts the body and lowers health. Stress hurts the mind and lowers "
-                "spirit. Moves usually ask for these rolls themselves. Use /endure when the "
-                "story hurts your character on its own. The bar then asks you to roll.",
+                "Harm is physical damage, and you suffer -health. Stress is mental shock or "
+                "despair, and you suffer -spirit. Moves usually call for these moves "
+                "themselves. Use /endure when the story deals harm or stress on its own. The "
+                "bar then asks you to roll.",
             ),
             examples=("/endure harm 2", "/endure stress 1"),
         ),
@@ -885,7 +920,7 @@ REGISTRY = Registry(
                 ),
                 Command(
                     "buy",
-                    "Spend 3 experience on a new asset",
+                    "Spend 3 experience to add a new asset",
                     _asset_buy,
                     (
                         Arg("asset", _catalog),
@@ -893,21 +928,22 @@ REGISTRY = Registry(
                         Arg("stat change", STAT_CHANGES, repeat=True),
                     ),
                     help=(
-                        "Some assets start with no ability marked, so give the ability to "
-                        "mark. A few abilities change your stats: write each change after "
+                        "Some assets don't have a starting ability, so give the one you "
+                        "choose. A few abilities change your stats: write each change after "
                         "the ability, such as +shadow or -heart.",
                     ),
                     examples=("/asset buy owl", "/asset buy shadow_kin 1 -heart +shadow"),
                 ),
                 Command(
                     "upgrade",
-                    "Spend 2 experience to mark another ability of an asset you own",
+                    "Spend 2 experience to upgrade an asset you own",
                     _asset_upgrade,
                     (
                         _OWNED,
                         Arg("ability", _unmarked, number=True),
                         Arg("stat change", STAT_CHANGES, repeat=True),
                     ),
+                    help=("Upgrading fills in another of the asset's abilities, in any order.",),
                     examples=("/asset upgrade archer 2",),
                 ),
                 Command(
@@ -941,7 +977,7 @@ REGISTRY = Registry(
                 ),
                 Command(
                     "harm",
-                    "Owe Companion Endure Harm when your companion is hurt",
+                    "Companion Endure Harm when your companion faces physical damage",
                     _asset_harm,
                     (Arg("companion", _companions), Arg("n", number=True)),
                     examples=("/asset harm hawk 2",),
@@ -966,10 +1002,11 @@ REGISTRY = Registry(
                 ),
             ),
             help=(
-                "Assets are your character's special talents, companions, and paths, each "
-                "with three abilities. Marked abilities apply in play, and the app offers "
-                "them when they fit a move. You earn experience by fulfilling vows, and you "
-                "spend it on new assets and abilities.",
+                "Assets represent your character's background, skills, and traits. There are "
+                "four types: companions, paths, combat talents, and rituals. Each asset has "
+                "three abilities. Filled-in abilities apply in play, and the app offers them "
+                "when they fit a move. You gain experience when you fulfill vows, and you "
+                "spend it to add assets and upgrade them.",
                 "With no option, /asset lists the assets you own.",
             ),
             examples=("/asset", "/asset show archer", "/asset buy owl"),

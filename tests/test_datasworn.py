@@ -177,3 +177,49 @@ def test_without_lists_counts_a_list_split_by_headings_as_one():
     )
     assert without_lists(text, {3}) == "Choose one from the categories below."
     assert without_lists(text, {1}) == text
+
+
+def test_truths_follow_the_rulebook_order():
+    truths = datasworn().truths
+    assert [truth.name for truth in truths.values()] == [
+        "The Old World",
+        "Iron",
+        "Legacies",
+        "Communities",
+        "Leaders",
+        "Defense",
+        "Mysticism",
+        "Religion",
+        "Firstborn",
+        "Beasts",
+        "Horrors",
+    ]
+
+
+def test_each_truth_has_three_options_that_cover_1_to_100():
+    for truth in datasworn().truths.values():
+        ranges = [(option.roll.min, option.roll.max) for option in truth.options]
+        assert ranges == [(1, 33), (34, 67), (68, 100)], truth.id
+
+
+def test_a_truth_option_has_a_description_and_a_quest_starter():
+    option = datasworn().truths["mysticism"].options[1]
+    assert option.description.startswith("Magic is rare and dangerous")
+    assert option.quest_starter.startswith("You have heard stories of someone")
+
+
+def test_a_truth_option_for_a_roll():
+    truth = datasworn().truths["iron"]
+    assert truth.option_for(1) == 0
+    assert truth.option_for(34) == 1
+    assert truth.option_for(100) == 2
+
+
+def test_regions_are_the_nine_of_the_ironlands():
+    regions = datasworn().regions
+    assert len(regions) == 9
+    havens = regions["havens"]
+    assert havens.name == "Havens"
+    # Links are reduced to their labels.
+    assert "datasworn:" not in havens.summary
+    assert havens.quest_starter

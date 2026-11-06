@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from ironsworn_tui.campaign import Campaign, Lasting, OwedMove
+from ironsworn_tui.campaign import Campaign, Lasting, OwedMove, World, WorldTruth
 from ironsworn_tui.commands import parse_foes, run_command
 from ironsworn_tui.registry import CommandError
 from ironsworn_tui.rules.dice import Hit
@@ -75,9 +75,9 @@ def test_note_logs_free_text(tmp_path: Path):
         run_command(turn, "/note")
 
 
-def test_ask_needs_a_likelihood(tmp_path: Path):
+def test_ask_needs_the_odds(tmp_path: Path):
     turn, _, _ = engine(tmp_path)
-    with pytest.raises(CommandError, match="likelihood"):
+    with pytest.raises(CommandError, match="odds"):
         run_command(turn, "/ask maybe")
 
 
@@ -367,7 +367,7 @@ def test_adjust_momentum_past_minus_six_owes_face_a_setback(tmp_path: Path):
     assert turn.campaign.character.momentum == -6
     texts = [entry.text for entry in turn.campaign.log[-2:]]
     assert texts[0] == "Adjust: Momentum is now -6"
-    assert texts[1].startswith("Face a Setback: exchange 2 momentum")
+    assert texts[1].startswith("Face a Setback: exchange -2 momentum")
 
 
 def test_asset_commands_take_a_companions_given_name(tmp_path: Path):
@@ -404,3 +404,25 @@ def test_marking_an_epic_vow_reports_the_tick(tmp_path: Path):
 def test_quit_asks_the_app_to_quit(tmp_path: Path):
     turn, _, _ = engine(tmp_path)
     assert run_command(turn, "/quit").quit
+
+
+def test_world_lists_the_setup(tmp_path: Path):
+    turn, _, _ = engine(tmp_path)
+    turn.campaign.world = World(
+        truths=[WorldTruth(name="Iron", text="Iron is precious.")],
+        region="Havens",
+        place="Cinderhome",
+        inciting_incident="The overseer is sick.",
+    )
+    assert run_command(turn, "/world").lines == (
+        "Where your story begins: Cinderhome, Havens",
+        "Inciting incident: The overseer is sick.",
+        "Iron: Iron is precious.",
+    )
+
+
+def test_world_without_a_setup(tmp_path: Path):
+    turn, _, _ = engine(tmp_path)
+    assert run_command(turn, "/world").lines == (
+        "No world truths, place where your story begins, or inciting incident.",
+    )

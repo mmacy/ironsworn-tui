@@ -80,6 +80,56 @@ def test_a_command_from_the_input_line(tmp_path: Path):
     assert turn.campaign.character.health == 3
 
 
+def _log_text(app: IronswornApp) -> str:
+    return "\n".join(line.text for line in app.query_one(RichLog).lines)
+
+
+def test_a_new_campaign_opens_with_a_welcome(tmp_path: Path):
+    turn, _, _ = engine(tmp_path)
+    turn.set_scene("The burned village at dawn")
+
+    async def play() -> None:
+        app = IronswornApp(turn)
+        async with app.run_test(size=(120, 40)) as pilot:
+            await pilot.pause()
+            assert "Welcome. Type what Kira does" in _log_text(app)
+
+    asyncio.run(play())
+
+
+def test_the_welcome_waits_for_the_opening_roll(tmp_path: Path):
+    turn, dice, _ = engine(tmp_path)
+    dice.load(3, 4, 6)
+    turn.make_move(
+        "swear_an_iron_vow", inputs=MoveInputs(vow="Find my brother", rank=Rank.DANGEROUS)
+    )
+
+    async def play() -> None:
+        app = IronswornApp(turn)
+        async with app.run_test(size=(120, 40)) as pilot:
+            await pilot.pause()
+            assert "Welcome" not in _log_text(app)
+            await pilot.press("enter")
+            await pilot.pause()
+            text = _log_text(app)
+            assert text.index("Welcome. Type what Kira does") > text.index("Next:")
+
+    asyncio.run(play())
+
+
+def test_the_welcome_is_gone_once_play_starts(tmp_path: Path):
+    turn, _, _ = engine(tmp_path)
+    turn.log_message("I search the ruins.")
+
+    async def play() -> None:
+        app = IronswornApp(turn)
+        async with app.run_test(size=(120, 40)) as pilot:
+            await pilot.pause()
+            assert "Welcome" not in _log_text(app)
+
+    asyncio.run(play())
+
+
 def test_the_idle_hint_points_to_help(tmp_path: Path):
     turn, _, _ = engine(tmp_path)
     hint = IronswornApp(turn).render_bar()
@@ -94,7 +144,7 @@ def test_typing_a_slash_shows_the_options_as_ghost_text(tmp_path: Path):
         app = IronswornApp(turn)
         async with app.run_test(size=(120, 40)) as pilot:
             line = app.query_one(CommandInput)
-            await pilot.press(*"/or")
+            await pilot.press(*"/ora")
             assert line.ghost() == " [oracle]"
             await pilot.press("tab")
             assert line.value == "/oracle "

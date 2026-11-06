@@ -29,11 +29,10 @@ From the `ironsworn-tui` folder, sign in, create a character, and start playing:
 
 ```sh
 az login
-uv run ironsworn-tui new Blarg --description "the Destructor" --stats edge=2,heart=2,iron=1,shadow=1,wits=3 --assets archer,hawk:2,wright --vow "Avenge my village"
-uv run ironsworn-tui play Blarg
+uv run ironsworn-tui new
 ```
 
-Type what Blarg does and press Enter. When the app suggests a move, press Enter to roll it, then Enter again to apply the result. Press Ctrl+Q to quit. The app saves your campaign after every turn, so when you run `play Blarg` again, you pick up where you stopped.
+`new` opens a walkthrough that creates your character and their world, step by step, and then starts play. Say you named your character Blarg. Type what Blarg does and press Enter. When the app suggests a move, press Enter to roll it, then Enter again to apply the result. Press Ctrl+Q to quit. The app saves your campaign after every turn, so when you run `uv run ironsworn-tui play Blarg`, you pick up where you stopped.
 
 When the model answers a message and you make a move or press `n`, the app saves that message as a test case in `suites/play-<context>.yaml`. Those files change as you play.
 

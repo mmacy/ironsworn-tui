@@ -19,7 +19,7 @@ ironsworn-tui <command> [options]
 
 | Command | What it does |
 |---|---|
-| [`new`](#ironsworn-tui-new) | Creates a character and a campaign file. |
+| [`new`](#ironsworn-tui-new) | Creates a character and a campaign, in a walkthrough or from options. |
 | [`play`](#ironsworn-tui-play) | Opens a campaign in the play screen. |
 | [`suggest`](#ironsworn-tui-suggest) | Prints the moves the decision model suggests for one message. |
 | [`write-suites`](#ironsworn-tui-write-suites) | Writes the decision model's test suites. |
@@ -31,50 +31,62 @@ ironsworn-tui <command> [options]
 | Status | Meaning |
 |---|---|
 | `0` | The command succeeded. |
+| `1` | `new` only: you quit the walkthrough, and nothing was saved. |
 | `2` | The arguments didn't parse, an option wasn't valid, the settings file couldn't be read or wasn't valid, or a campaign file was missing, already existed, or couldn't be loaded. The command prints `Error:` and the reason, or argparse's usage message, to standard error. |
 | `3` | `suggest` only: jevtester couldn't answer, or the model gave no answer. |
 
 ### ironsworn-tui new
 
 ```text
-ironsworn-tui new <name> --description <text> --stats <stat>=<n>,... --assets <asset>[:<ability>],... --vow <text> [--bond <text>]... [--rank <rank>] [--harm 1|2] [--overwrite]
+ironsworn-tui new [<name>] [--overwrite] [--no-model]
+ironsworn-tui new <name> --description <text> --stats <stat>=<n>,... --assets <asset>[:<ability>],... --vow <text> [--bond <text>]... [--rank extreme|epic] [--harm 1|2] [--overwrite]
 ```
 
-Creates a character and a campaign with one background vow. Saves it as `<name>.json` in the campaigns folder, and prints the file's path to standard output. The character starts with full health, spirit, and supply, +2 momentum, and 0 experience.
+Creates a character and a campaign. With none of `--description`, `--stats`, `--assets`, and `--vow`, it opens the [walkthrough](#walkthrough). With all four, it creates the character from the options. Either way, the character starts with full health, spirit, and supply, +2 momentum, and 0 experience, and the campaign is saved as `<name>.json` in the campaigns folder.
 
-| Argument or option | Required | Default | Value |
-|---|---|---|---|
-| `<name>` | Yes | | The character's name. It's also the campaign's name and the file name, and it's case-sensitive. |
-| `--description` | Yes | | A few words about the character, such as `"the Destructor"`. |
-| `--stats` | Yes | | All five stats (`edge`, `heart`, `iron`, `shadow`, `wits`), given the values 3, 2, 2, 1, and 1 in any order. Write each as `<stat>=<n>` and separate them with commas. Case doesn't matter. |
-| `--assets` | Yes | | Exactly three asset ids, separated by commas with no spaces. Ids are lowercase, such as `archer` or `cave_lion`. An asset that starts with no ability marked, such as a companion, needs the ability to mark after a colon, from 1 to 3, such as `hawk:2`. An asset that starts with an ability marked takes no colon. `--assets help` prints the ids by category, exits with 0, and creates nothing. |
-| `--vow` | Yes | | The background vow's text. |
-| `--bond` | No | None | A person or community the character shares a background bond with. Repeat it for up to three bonds. For each bond, the app marks one tick on the bonds track and logs `Bond: <text>`. |
-| `--rank` | No | `epic` | The background vow's rank: `troublesome`, `dangerous`, `formidable`, `extreme`, or `epic`. Case doesn't matter. |
-| `--harm` | No | `2` | The harm the character deals: `2` with a deadly weapon, `1` without. |
-| `--overwrite` | No | Off | Replaces an existing campaign with the same name, to start the character over. The old campaign is lost. |
+The walkthrough saves the campaign, prints the file's path to standard output, and then starts play as [`play`](#ironsworn-tui-play) does. If the walkthrough started in media res, play opens on the Swear an Iron Vow roll for the first vow. After a prologue, the log notes how to swear the vow with [`/vow swear`](#vow). If you quit the walkthrough, it prints `Nothing saved.` to standard error and exits with status 1.
+
+From the options, the command saves the campaign, prints the file's path, and exits without starting play.
+
+| Argument or option | Default | Value |
+|---|---|---|
+| `<name>` | None | The character's name. It's also the campaign's name and the file name, and it's case-sensitive. The options form needs it. The walkthrough starts with it filled in. |
+| `--description` | None | A few words about the character, such as `"the Destructor"`. |
+| `--stats` | None | All five stats (`edge`, `heart`, `iron`, `shadow`, `wits`), with the bonuses 3, 2, 2, 1, and 1 arranged across them in any order. Write each as `<stat>=<n>` and separate them with commas. Case doesn't matter. |
+| `--assets` | None | Exactly three asset ids, separated by commas with no spaces. Ids are lowercase, such as `archer` or `cave_lion`. An asset that doesn't have a starting ability, such as a companion, needs the one you choose after a colon, from 1 to 3, such as `hawk:2`. An asset with a default ability takes no colon. `--assets help` prints the ids by category, exits with 0, and creates nothing. |
+| `--vow` | None | The background vow's text. |
+| `--bond` | None | A person or community the character shares a background bond with. Repeat it for up to three bonds. For each bond, the app marks one tick on the bonds track and logs `Bond: <text>`. Options form only. |
+| `--rank` | `epic` | The background vow's rank: `extreme` or `epic`. Case doesn't matter. Options form only. |
+| `--harm` | `2` | The harm the character deals: `2` with a deadly weapon, `1` without. Options form only. |
+| `--overwrite` | Off | Replaces an existing campaign with the same name, to start the character over. The old campaign is lost. In the walkthrough, it lets the name step take a name a campaign already uses. |
+| `--no-model` | Off | After the walkthrough, play without move suggestions, as `play --no-model` does. |
 
 Errors, each with exit status 2. The command writes nothing when one occurs.
 
 | Message | Cause |
 |---|---|
+| `Error: give <options> too, or leave out every option to use the walkthrough.` | Some of `--description`, `--stats`, `--assets`, and `--vow` are given, but not all four. |
+| `Error: give the character's name before the options.` | The options form has no `<name>`. |
+| `Error: --bond, --rank, and --harm go with --description, --stats, --assets, and --vow. Without those, new asks everything in the walkthrough.` | `--bond`, `--rank`, or `--harm` is given without the other options. |
 | `Error: a campaign named <name> already exists at <path>. Use --overwrite to start over, or choose another name.` | A campaign with that name exists, and `--overwrite` isn't given. |
-| `Error: give the five stats, edge, heart, iron, shadow, and wits, the values 3, 2, 2, 1, and 1 in any order, got <stats>` | A stat is missing, or the values aren't 3, 2, 2, 1, 1. |
+| `Error: arrange the bonuses 3, 2, 2, 1, and 1 across the five stats, edge, heart, iron, shadow, and wits, in any order, got <stats>` | A stat is missing, or the values aren't 3, 2, 2, 1, 1. |
 | `Error: unknown stat '<word>'; the stats are edge, heart, iron, shadow, and wits` | A name in `--stats` isn't one of the five stats. |
 | `Error: write each stat as <stat>=<n>, such as <stat>=2` | A stat value is missing or isn't a whole number. |
 | `Error: pick 3 assets, got <n>` | `--assets` doesn't list three assets. |
 | `Error: pick 3 different assets, got <ids>` | `--assets` lists the same asset twice. |
 | `Error: a character starts with up to 3 bonds` | `--bond` is given more than three times. |
 | `Error: there's no asset '<id>'. Did you mean <id>?` | An asset id is misspelled. Without a close match, the message lists every asset id by category instead. |
-| `Error: <Asset> starts with no ability marked; pick one from 1 to 3` | A companion or similar asset has no `:<ability>`. |
-| `Error: <Asset> already starts with an ability marked` | An asset that starts with an ability marked has `:<ability>`. |
+| `Error: <Asset> doesn't have a starting ability; choose one from 1 to 3` | A companion or similar asset has no `:<ability>`. |
+| `Error: <Asset> already has a default ability` | An asset with a default ability has `:<ability>`. |
 | `Error: write a pick as an ability number, such as <id>:1` | The text after the colon isn't a number. |
 | `Error: buy <Asset> with /asset buy once you play, to choose its stat changes` | The pick is Shadow-Kin 1 or Battle-Scarred 1, which change stats. |
 | `Error: rank must be one of: troublesome, dangerous, formidable, extreme, epic` | `--rank` isn't a rank. |
+| `Error: a background vow is extreme or epic` | `--rank` is a rank below extreme. |
 
-Example:
+Examples:
 
 ```console
+$ ironsworn-tui new
 $ ironsworn-tui new Blarg --description "the Destructor" \
     --stats edge=3,heart=2,iron=2,shadow=1,wits=1 \
     --assets archer,hawk:2,wright \
@@ -83,6 +95,38 @@ $ ironsworn-tui new Blarg --description "the Destructor" \
 ```
 
 See also: [`ironsworn-tui play`](#ironsworn-tui-play).
+
+#### Walkthrough
+
+The walkthrough asks each step of the rulebook's campaign setup in turn. The heading shows the rulebook step, the question, and `Step <n> of 7`. A rules line under it gives the rule, and the line at the bottom lists the keys. A problem with a step, or the result of a roll, shows in yellow above the keys.
+
+| Step | Questions | Needed |
+|---|---|---|
+| Create your character | Name and description. Stats. Three assets. For an asset that doesn't have a starting ability, the one you choose, and for any asset with fields, such as a companion's name or Ironclad's armor, the fields. Whether the character is armed with a deadly weapon. | The name, the description, all five stats, three assets, each starting ability, and each choice field. A text field, such as a name, is optional. |
+| Create your world | The 11 world truths of the Ironlands, one at a time, each with its quest starter. The region where the story begins, and the place in it. | A choice for each truth, which can be "Leave it blank". A region. |
+| Mark your background bonds | Up to three bonds. | Nothing. |
+| Write your background vow | The vow, and its rank: extreme or epic. The quest starters of the chosen truths and region are listed as ideas. | The vow. |
+| Envision your inciting incident | The problem that starts the story, with the quest starters as ideas. | Nothing. |
+| Set the scene | In media res or a prologue. The opening scene, which becomes the [`/scene`](#scene) text. In media res, the first vow and its rank: troublesome, dangerous, or formidable. | In media res, the vow. |
+| Review | Every choice. | Nothing. |
+
+| Key | Where | Action |
+|---|---|---|
+| Enter | Everywhere | Move to the step's next field, or from its last field to the next step. On the review, create the campaign and play. |
+| Tab, Shift+Tab | Everywhere | Move between the step's fields. |
+| Esc | Everywhere | Go back a step. The answers are kept. |
+| Ctrl+Q | Everywhere | Quit and save nothing. |
+| Up, Down | A list of choices | Select the choice above or below. |
+| 1 to 9 | A list of choices | Select a choice by its number. |
+| Up, Down, 1, 2, 3 | Stats | Move between the stats, and set the highlighted stat's bonus. A bonus that's used up is taken from the stat that had it. |
+| Up, Down, Space | Assets | Browse the assets, and pick or drop the highlighted one. The right side shows its abilities. |
+| Ctrl+R | Name | Roll an Ironlander name. |
+| `r` | A world truth | Roll 1 to 100 for the truth. |
+| `a` | A world truth | Roll for this truth and every truth after it, then move to the region. |
+| Ctrl+R | Where your story begins | Roll a settlement name for the place. |
+| Ctrl+R | Inciting incident | Roll the action and theme oracles for an idea. |
+
+Shadow-Kin's and Battle-Scarred's first abilities change stats, so the walkthrough shows them but doesn't let you choose them. Buy them in play with [`/asset buy`](#asset).
 
 ### ironsworn-tui play
 
@@ -184,7 +228,7 @@ suites/recognizer-fight-guide-acts.yaml
 The play screen has four parts:
 
 - **Character panel**, on the left: stats, health, spirit, supply, momentum, debilities, harm, experience, and the add for the next move; then, when they're active, the fight and the journey; then vows, bonds, and assets. In a fight, `>` marks the foe an attack targets. Each progress track shows 10 boxes: `■` is full, `▣` has some ticks, and `□` is empty. When the panel doesn't fit the screen, it scrolls.
-- **Log**, on the right: the campaign log. On opening, it shows the last 200 entries. A new campaign's log shows a welcome note that says how to start. A blank line separates each message and each command you type.
+- **Log**, on the right: the campaign log. On opening, it shows the last 200 entries. A new campaign's log shows a welcome note that says how to start, after any roll card the campaign opens on. A blank line separates each message and each command you type.
 - **Suggestion bar**, below them: suggested moves, the roll card, and owed moves. Its keys depend on its [mode](#suggestion-bar).
 - **Input line**, at the bottom: where you type a message or a `/` command. When empty, it reads `Type what your character does, or / for a command`.
 
@@ -203,7 +247,7 @@ A move adds these entries to the log, in this order. The app saves them all in t
 | Bold yellow | A `Next:` line, when the result asks for something the app doesn't do: imagining what happens, with how to ask the oracle; an owed move, with what it does and its key; or the End the Fight offer. |
 | Yellow | A note, such as an error or something to apply yourself. |
 | Dim | A command you ran, and what it changed. |
-| Bold italic | A note you wrote with `/note`. |
+| Bold italic | A note you wrote with `/note`, or the inciting incident from the walkthrough. |
 | Blue | Help from `/help` or `<command> help`. It isn't saved to the campaign log. |
 
 Changes made before the roll, such as a new vow or Endure Harm's damage, appear before the roll entry. Progress shows in boxes, and in ticks when it isn't whole boxes. A box is 4 ticks.
@@ -244,7 +288,7 @@ The bar takes keys only while it has focus. It shows the keys it takes on its la
 | Idle | Nothing is waiting. | The list of `/` commands. Focus is on the input line. |
 | Thinking | The decision model is answering a message or an oracle question. | `Thinking…`. The bar takes no keys. |
 | Suggest | The model answered, or you ran `/moves`. | Moves to choose from, what the selected move is for, the stat, the add, and turned-on abilities. |
-| Oracle | You typed `/oracle` without a table. | The question, and every table and likelihood to roll. |
+| Oracle | You typed `/oracle` without a table. | The question, and every table and the odds to ask at. |
 | Card | A move was rolled. | The roll card: the result, its outcome, and any choices. |
 | Follow-up | A follow-up move is owed. | The owed move. |
 | Offer | A strong hit on a move in a fight lets you make End the Fight. | The offer. |
@@ -276,17 +320,17 @@ Each move shows its key and, when the model answered, its probability. The selec
 
 #### Oracle mode
 
-The bar shows `Oracle:` and your question, then every oracle table and every likelihood for Ask the Oracle, each with its key. A likelihood shows as `Ask <likelihood>`, such as `Ask likely`.
+The bar shows `Oracle:` and your question, then every oracle table and the five odds for Ask the Oracle, each with its key. The odds show as `Ask <odds>`, such as `Ask likely`.
 
-- **The model answered:** the kind of answer it picked comes first. For a yes or no question, the five likelihoods come first. For a table question, the tables do. Each group is in order of probability, and each option the model gave 0.01 or more shows its probability. When the model is confident, the first option is selected. The thresholds in `suites/policies/oracle.yaml` set when: a confidence of 0.5 or more that the question is a yes or no question or a table question, and a probability of 0.4 or more for the likelihood or table.
-- **The model couldn't tell, the request failed, `--no-model`, or `/oracle` alone:** every table in the order `/oracle help` lists them, then the likelihoods, none selected.
+- **The model answered:** the kind of answer it picked comes first. For a yes or no question, the five odds come first. For a table question, the tables do. Each group is in order of probability, and each option the model gave 0.01 or more shows its probability. When the model is confident, the first option is selected. The thresholds in `suites/policies/oracle.yaml` set when: a confidence of 0.5 or more that the question is a yes or no question or a table question, and a probability of 0.4 or more for the likelihood or table.
+- **The model couldn't tell, the request failed, `--no-model`, or `/oracle` alone:** every table in the order `/oracle help` lists them, then the odds, none selected.
 
 | Key | Action |
 |---|---|
 | 1 to 9, then `A` to `Z` | Select the option with that key. |
 | Left, Up | Select the previous option. |
 | Right, Down | Select the next option. |
-| Enter | Roll the selected table, or ask the oracle at the selected likelihood. The log shows your question with the answer. With nothing selected, the log says `Pick an oracle`. |
+| Enter | Roll the selected table, or ask the oracle at the selected odds. The log shows your question with the answer. With nothing selected, the log says `Pick an oracle`. |
 | Escape | Leave the question without a roll. The app saves no case. |
 
 After the roll or Escape, the bar returns to the move suggestion it showed before, if any.
@@ -381,10 +425,11 @@ Names you type:
 | [`/note`](#note) | Writes a note in the log. |
 | [`/vow`](#vow) | Lists, swears, marks, fulfills, or forsakes vows. |
 | [`/scene`](#scene) | Sets the scene text. |
+| [`/world`](#world) | Lists the world truths, where your story begins, and the inciting incident. |
 | [`/target`](#target) | Picks the foe an attack targets. |
-| [`/tide`](#tide) | Arms or disarms Turn the Tide. |
+| [`/tide`](#tide) | Readies Turn the Tide, or takes it back. |
 | [`/adjust`](#adjust) | Changes a value by hand. |
-| [`/endure`](#endure) | Owes Endure Harm or Endure Stress. |
+| [`/endure`](#endure) | Calls for Endure Harm or Endure Stress. |
 | [`/asset`](#asset) | Lists, shows, buys, and changes assets. |
 | [`/effects`](#effects) | Lists or ends lasting effects. |
 | [`/quit`](#quit) | Leaves the app. |
@@ -432,22 +477,22 @@ With a table, rolls on it, writes the result to the log, and saves. The question
 Oracle (location): Where does the trail lead? 18: Ruin
 ```
 
-Without a table, `/oracle <question>` asks the decision model whether the question is a yes or no question, and at which likelihood, or which table to roll for it. The bar switches to [oracle mode](#oracle-mode) with the suggestion, and Enter rolls it. If the question's first word is a table's name, the app rolls that table, so `/oracle location of the camp?` rolls `location`. `/oracle` alone shows every table and likelihood without asking the model. The model never suggests `pay-the-price`, which you roll with the Pay the Price move.
+Without a table, `/oracle <question>` asks the decision model whether the question is a yes or no question, and at which odds, or which table to roll for it. The bar switches to [oracle mode](#oracle-mode) with the suggestion, and Enter rolls it. If the question's first word is a table's name, the app rolls that table, so `/oracle location of the camp?` rolls `location`. `/oracle` alone shows every table and likelihood without asking the model. The model never suggests `pay-the-price`, which you roll with the Pay the Price move.
 
 ```text
 /oracle Do I know which castle I'm in?
 Ask (unlikely): Do I know which castle I'm in? 80: yes
 ```
 
-![The suggestion bar after /oracle What is the raider chief called? It shows "Oracle: What is the raider chief called?", then ironlander-name with probability 0.96 selected, followed by the other tables and the five likelihoods, each with its key.](images/oracle-question.svg)
+![The suggestion bar after /oracle What is the raider chief called? It shows "Oracle: What is the raider chief called?", then ironlander-name with probability 0.96 selected, followed by the other tables and the five odds, each with its key.](images/oracle-question.svg)
 
 ### /ask
 
 ```text
-/ask <likelihood> [<question>]
+/ask <odds> [<question>]
 ```
 
-Asks the yes or no oracle (Ask the Oracle), writes the answer to the log, and saves. `<likelihood>` is `almost certain`, `likely`, `50/50`, `unlikely`, or `small chance`. The question, if you give one, is logged with the answer. The log adds `, match` when the roll is a match.
+Asks the yes or no oracle (Ask the Oracle), writes the answer to the log, and saves. `<odds>` is `almost certain`, `likely`, `50/50`, `unlikely`, or `small chance`. The question, if you give one, is logged with the answer. The log adds `, match` when the roll is a match.
 
 ```text
 /ask almost certain Do I know which castle I'm in?
@@ -482,7 +527,7 @@ Writes a note in the log, in bold italic, and saves it with the campaign. Use it
 | `/vow swear <rank> <vow>` | Makes Swear an Iron Vow for a new vow, and shows the roll card. The vow appears in the panel with the card, and it's saved when you apply the card. |
 | `/vow mark [<vow>]` | Reaches a Milestone: marks progress on the vow for its rank, and saves. |
 | `/vow fulfill [<vow>]` | Makes Fulfill Your Vow, a progress roll, and shows the roll card. |
-| `/vow forsake [<vow>]` | Makes Forsake Your Vow at once: clears the vow and owes Endure Stress. Saves. |
+| `/vow forsake [<vow>]` | Makes Forsake Your Vow at once: clears the vow and calls for Endure Stress, with -spirit equal to the vow's rank. Saves. |
 
 `<vow>` can be left out when you have one vow.
 
@@ -512,6 +557,21 @@ Replaces the scene text, which the decision model reads with each message. Logs 
 Scene: A ruined watchtower in the rain
 ```
 
+### /world
+
+```text
+/world
+```
+
+Lists what the [walkthrough](#walkthrough) set up: `Where your story begins: <place>, <region>`, `Inciting incident: <text>`, and each world truth as `<truth>: <text>`, leaving out any that weren't set. Shows `No world truths, place where your story begins, or inciting incident.` when none were, as for a campaign created from options. Changes nothing.
+
+```text
+/world
+Where your story begins: Ravenford, Havens
+Inciting incident: Raiders took Torvin, and they'll sell him at the coast before the thaw
+Mysticism: Magic is rare and dangerous, but those few who wield the power are truly gifted.
+```
+
 ### /target
 
 ```text
@@ -536,7 +596,7 @@ Target: Raider chief
 /tide off
 ```
 
-`/tide` arms Turn the Tide for your next move, and `/tide off` disarms it without using it. Each logs the change and saves. The character panel shows `Turn the Tide armed` while it's armed.
+`/tide` readies Turn the Tide, so your next move steals initiative from your foe, and `/tide off` takes it back without using it. Each logs the change and saves. The character panel shows `Turn the Tide ready` while it's ready.
 
 | Error | Cause |
 |---|---|
@@ -545,7 +605,7 @@ Target: Raider chief
 
 ```text
 /tide
-Turn the Tide is armed
+Turn the Tide is ready: your next move steals initiative
 ```
 
 ### /adjust
@@ -564,7 +624,7 @@ Changes a value by hand, without a move. `<n>` and `<ticks>` are whole numbers, 
 | Form | What it changes |
 |---|---|
 | `health`, `spirit`, `supply` `<n>` | Adds `<n>` to the meter, within 0 and its maximum. While wounded is marked, health can't rise, and while shaken is marked, spirit can't rise. |
-| `momentum <n>` | Adds `<n>` to momentum, within -6 and the maximum. A loss past -6 logs a note, `Face a Setback: exchange <n> momentum for health, spirit, supply, or progress on a track.`, as a move's loss does. |
+| `momentum <n>` | Adds `<n>` to momentum, within -6 and the maximum. A loss past -6 logs a note, `Face a Setback: exchange -<n> momentum for any combination of -health, -spirit, or -supply, or clear progress on a quest, journey, or fight.`, as a move's loss does. |
 | `experience <n>` | Adds `<n>` to experience, not below 0. |
 | `bonds <n>` | Adds `<n>` ticks to the bonds track, within 0 and 40. |
 | `<debility> mark\|clear` | Marks or clears `wounded`, `shaken`, `unprepared`, `encumbered`, `maimed`, `corrupted`, `cursed`, or `tormented`. |
@@ -593,7 +653,7 @@ Adjust: Find my brother is now 12 ticks
 /endure stress <n>
 ```
 
-Owes Endure Harm (`harm`) or Endure Stress (`stress`) for `<n>` harm or stress, which must be at least 1. In a fight, `/endure harm` with no amount uses the targeted foe's harm, plus 1 after Draw the Circle's "Bare yourself" boast. Use it when the fiction hurts your character and no move result owed the roll, such as a foe's attack or Pay the Price. The app adds the move to the end of the follow-up list, and the suggestion bar asks you to roll it. Logs `<name> faces <n> harm` or `<name> faces <n> stress`, and saves.
+Calls for Endure Harm (`harm`) or Endure Stress (`stress`) for `<n>` harm or stress, which must be at least 1. In a fight, `/endure harm` with no amount uses the targeted foe's harm, plus 1 after Draw the Circle's "Bare yourself" boast. Use it when the fiction hurts your character and no move result owed the roll, such as a foe's attack or Pay the Price. The app adds the move to the end of the follow-up list, and the suggestion bar asks you to roll it. Logs `<name> faces <n> harm` or `<name> faces <n> stress`, and saves.
 
 | Error | Cause |
 |---|---|
@@ -623,15 +683,15 @@ Blarg faces 2 harm
 
 | Form | What it does |
 |---|---|
-| `/asset` | Shows each owned asset as `<Asset> (<given name>): <marked abilities>, <meter> <value>/<max>, <field> <value>`. Changes nothing. |
+| `/asset` | Shows each owned asset as `<Asset> (<given name>): <filled-in abilities>, <meter> <value>/<max>, <field> <value>`. Changes nothing. |
 | `/asset list [<category>]` | Shows every asset as `<id>: <Asset>`, or only those in `combat_talent`, `companion`, `path`, or `ritual`. Changes nothing. |
 | `/asset show <asset>` | Shows the asset's category, requirement, and abilities, with `[x]` on marked ones. For an owned asset, adds its summary. Changes nothing. |
-| `/asset buy <asset> [<ability> [...]]` | Spends 3 experience on a new asset. An asset that starts with no ability marked needs `<ability>`, from 1 to 3. For Shadow-Kin 1 and Battle-Scarred 1, give the ability number, then the stat changes. Stat changes always follow an ability number. |
-| `/asset upgrade <asset> <ability> [...]` | Spends 2 experience to mark an ability of an owned asset. Give stat changes after the ability number when it calls for them. |
+| `/asset buy <asset> [<ability> [...]]` | Spends 3 experience to add a new asset. An asset that doesn't have a starting ability needs `<ability>`, from 1 to 3. For Shadow-Kin 1 and Battle-Scarred 1, give the ability number, then the stat changes. Stat changes always follow an ability number. |
+| `/asset upgrade <asset> <ability> [...]` | Spends 2 experience to upgrade an owned asset: fills in another of its abilities. Give stat changes after the ability number when it calls for them. |
 | `/asset meter <asset> <meter> <n>` | Adds `<n>` to an asset's meter, such as a companion's `health`, within 0 and its maximum. |
 | `/asset set <asset> <field> <value>` | Fills in a text or choice field, such as a companion's `name`. The value can have spaces. Setting Ironclad's `equipped` to `geared_for_war` marks encumbered, and changing it from that clears encumbered. |
 | `/asset debility <asset> on\|off` | Makes the asset count as a debility, or stop counting, as Fated and Leech call for. |
-| `/asset harm <companion> <n>` | Owes Companion Endure Harm for `<n>` harm. The bar shows it as a follow-up. |
+| `/asset harm <companion> <n>` | Calls for Companion Endure Harm for `<n>` harm. The bar shows it as a follow-up. |
 | `/asset use lorekeeper` | Uses Lorekeeper's third ability, one time only: raises wits by 1, to at most 5, and rolls a die. On 1 to 3, the app adds a log entry telling you to mark corrupted (`/adjust corrupted mark`) or Face Desolation. |
 | `/asset use slayer ritual\|sojourn` | Uses Slayer's third ability: adds a trophy as a lasting effect, for a ritual or a sojourn. |
 | `/asset discard <asset>` | Removes an owned asset. |
@@ -644,9 +704,9 @@ Animal Kin 2 (companions other than Kindred), Ritualist 3 (rituals), and Weaponm
 | `that costs <n> experience, and <character> has <m>` | Not enough experience. |
 | `<character> already owns <Asset>` | `buy` for an owned asset. |
 | `<character> doesn't own <id>` | The form needs an owned asset. |
-| `<Asset>'s ability <n> is already marked` | `upgrade` for a marked ability. |
+| `<Asset>'s ability <n> is already filled in` | `upgrade` for a filled-in ability. |
 | `<Asset>'s abilities are numbered 1 to 3` | The ability number is out of range. |
-| `<Asset> starts with no ability marked; pick one from 1 to 3` | `buy` without `<ability>` for an asset that needs it. |
+| `<Asset> doesn't have a starting ability; choose one from 1 to 3` | `buy` without `<ability>` for an asset that needs it. |
 | `<Asset>'s ability <n> doesn't change a stat` | Stat changes for an ability that makes none. |
 | `Shadow-Kin: lower heart by 1 and raise shadow by up to 2` | Shadow-Kin 1's changes don't match the ability. |
 | `Battle-Scarred: lower edge or iron by 1, and raise wits or heart by 2, or each by 1` | Battle-Scarred 1's changes don't match the ability. |
@@ -743,6 +803,6 @@ When `play` runs with the model, the app saves a case each time you respond to a
 - The state the model saw, and the move you made, with its stat when the move rolls with a chosen stat.
 - The tag `corrected` when you made a move other than the model's top answer, or `abstained` when the top answer was can't tell.
 
-When you roll a table or a likelihood from [oracle mode](#oracle-mode) after the model answered, the app saves a case to the end of `suites/play-oracle.yaml`. It has the question the model saw, whether you rolled a likelihood or a table, and which. It has the tag `corrected` when you rolled something other than the model's top answer, or `abstained` when the model couldn't tell what kind of question it was.
+When you roll a table or ask at the odds from [oracle mode](#oracle-mode) after the model answered, the app saves a case to the end of `suites/play-oracle.yaml`. It has the question the model saw, whether you asked at the odds or rolled a table, and which. It has the tag `corrected` when you rolled something other than the model's top answer, or `abstained` when the model couldn't tell what kind of question it was.
 
 The app saves no case when you press Escape, when the request failed, when you play with `--no-model`, or for End the Fight. When the context changed since the message, the log shows `Case not saved: <move> wasn't offered then`. When jevtester refuses the case, the log shows `Case not saved:` and the reason.

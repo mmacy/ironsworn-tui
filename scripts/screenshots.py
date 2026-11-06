@@ -22,10 +22,11 @@ from pathlib import Path
 from textual.pilot import Pilot
 
 from ironsworn_tui.app import IronswornApp
-from ironsworn_tui.campaign import create_character, new_campaign
+from ironsworn_tui.creation import AssetPick, Setup, begin_campaign, open_play
 from ironsworn_tui.rules.datasworn import datasworn
 from ironsworn_tui.rules.progress import Rank
 from ironsworn_tui.turn import MoveInputs, TurnEngine
+from ironsworn_tui.walkthrough import AssetList, Walkthrough
 from tests.support import STATS, Dice, FixtureDecider, engine
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -33,19 +34,43 @@ IMAGES = ROOT / "docs" / "images"
 SIZE = (120, 36)
 
 type Drive = Callable[[IronswornApp, Pilot[None], Dice, FixtureDecider], Awaitable[None]]
+type WalkthroughDrive = Callable[[Walkthrough, Pilot[Setup | None]], Awaitable[None]]
 type SetUp = Callable[[TurnEngine, Dice], None]
 
+# The choices the tutorial makes in the walkthrough. It leaves the world truths to the dice,
+# so none are set here.
+BLARG = Setup(
+    name="Blarg",
+    description="the Destructor",
+    stats=dict(STATS),
+    assets=[
+        AssetPick("archer"),
+        AssetPick("wayfinder"),
+        AssetPick("hawk", ability=1, fields={"name": "Kestrel"}),
+    ],
+    region="havens",
+    place="Ravenford",
+    bonds=["My brother, Torvin"],
+    background_vow="Find who burned my village",
+    inciting_incident="Raiders took Torvin, and they'll sell him at the coast before the thaw",
+    scene="The raiders' trail at the edge of the burned village",
+    vow="Free my brother from the raiders",
+    vow_rank=Rank.DANGEROUS,
+)
 
-def blarg(turn: TurnEngine) -> None:
-    """Give the engine a new campaign for Blarg, as the tutorial creates them.
+
+def blarg(turn: TurnEngine, dice: Dice) -> None:
+    """Give the engine Blarg's new campaign, opened on the Swear an Iron Vow roll, as the
+    tutorial's walkthrough ends.
 
     Args:
         turn: The turn engine.
+        dice: The dice the roll uses.
     """
-    character = create_character(
-        datasworn(), "Blarg", "the Destructor", STATS, ["archer", "wayfinder", "hawk:1"]
-    )
-    turn.campaign = new_campaign(character, "Find who burned my village", Rank.EPIC)
+    turn.campaign = begin_campaign(datasworn(), BLARG)
+    # Heart 2 + 3 = 5 against 4 and 6: a weak hit.
+    dice.load(3, 4, 6)
+    open_play(turn, BLARG)
 
 
 async def settle(app: IronswornApp, pilot: Pilot[None]) -> None:
@@ -88,14 +113,11 @@ async def press(pilot: Pilot[None], *keys: str) -> None:
 
 
 async def start(app: IronswornApp, pilot: Pilot[None], dice: Dice, decider: FixtureDecider) -> None:
-    """The play screen as a new campaign opens it."""
+    """The play screen as the walkthrough opens it, on the Swear an Iron Vow roll."""
 
 
 async def swear(app: IronswornApp, pilot: Pilot[None], dice: Dice, decider: FixtureDecider) -> None:
-    """Swear the tutorial's vow and apply the roll card."""
-    # Heart 2 + 3 = 5 against 4 and 6: a weak hit.
-    dice.load(3, 4, 6)
-    await type_line(pilot, "/vow swear dangerous Free my brother from the raiders")
+    """Apply the Swear an Iron Vow roll the campaign opens on."""
     await press(pilot, "enter")
 
 
@@ -201,6 +223,8 @@ def set_up_fight(turn: TurnEngine, dice: Dice) -> None:
         turn: The turn engine.
         dice: The loaded dice.
     """
+    # Apply the Swear an Iron Vow roll the campaign opens on.
+    turn.resolve()
     turn.set_scene("A raider blocks the path to the camp")
     # Heart 2 + 6 = 8 against 1 and 2: a strong hit, so Blarg has initiative.
     dice.load(6, 1, 2)
@@ -251,7 +275,7 @@ async def capture(name: str, drive: Drive, folder: Path) -> Path:
         The path of the saved screenshot.
     """
     turn, dice, decider = engine(folder)
-    blarg(turn)
+    blarg(turn, dice)
     setup = SETUPS.get(name)
     if setup is not None:
         setup(turn, dice)
@@ -264,9 +288,75 @@ async def capture(name: str, drive: Drive, folder: Path) -> Path:
     return Path(path)
 
 
+async def write(app: Walkthrough, pilot: Pilot[Setup | None], text: str) -> None:
+    """Fill in the walkthrough's focused input and press Enter.
+
+    Args:
+        app: The running walkthrough.
+        pilot: The pilot that drives it.
+        text: The text to type.
+    """
+    await pilot.press(*text, "enter")
+    await pilot.pause()
+
+
+async def walkthrough_stats(app: Walkthrough, pilot: Pilot[Setup | None]) -> None:
+    """The stats step, with Blarg's stats given."""
+    await write(app, pilot, "Blarg")
+    await write(app, pilot, "the Destructor")
+    await pilot.press("2", "down", "2", "down", "1", "down", "1", "down", "3")
+
+
+async def walkthrough_assets(app: Walkthrough, pilot: Pilot[Setup | None]) -> None:
+    """The assets step, with Blarg's three assets picked and the hawk highlighted."""
+    await walkthrough_stats(app, pilot)
+    await pilot.press("enter")
+    assets = app.query_one(AssetList)
+    for asset_id in ("archer", "wayfinder", "hawk"):
+        assets.highlighted = assets.get_option_index(asset_id)
+        await pilot.press("space")
+
+
+async def walkthrough_truth(app: Walkthrough, pilot: Pilot[Setup | None]) -> None:
+    """The first world truth, The Old World, with its third option selected."""
+    await walkthrough_assets(app, pilot)
+    await pilot.press("enter", "1", "enter")
+    await write(app, pilot, "Kestrel")
+    await pilot.press("enter", "3")
+
+
+WALKTHROUGH_SCREENS: dict[str, WalkthroughDrive] = {
+    "walkthrough-stats": walkthrough_stats,
+    "walkthrough-assets": walkthrough_assets,
+    "walkthrough-truth": walkthrough_truth,
+}
+
+
+async def capture_walkthrough(name: str, drive: WalkthroughDrive) -> Path:
+    """Run the walkthrough, drive it, and save a screenshot.
+
+    Args:
+        name: The screenshot's file name, without `.svg`.
+        drive: The steps that bring the walkthrough to the screen.
+
+    Returns:
+        The path of the saved screenshot.
+    """
+    app = Walkthrough(datasworn(), Dice())
+    async with app.run_test(size=SIZE) as pilot:
+        await pilot.pause()
+        await drive(app, pilot)
+        await pilot.pause()
+        path = app.save_screenshot(f"{name}.svg", str(IMAGES))
+    return Path(path)
+
+
 async def capture_all() -> None:
-    """Save every screenshot in `SCREENS`."""
+    """Save every screenshot in `WALKTHROUGH_SCREENS` and `SCREENS`."""
     IMAGES.mkdir(parents=True, exist_ok=True)
+    for name, walkthrough_drive in WALKTHROUGH_SCREENS.items():
+        path = await capture_walkthrough(name, walkthrough_drive)
+        print(path.relative_to(ROOT))
     for name, drive in SCREENS.items():
         with tempfile.TemporaryDirectory() as folder:
             path = await capture(name, drive, Path(folder))

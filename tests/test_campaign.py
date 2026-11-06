@@ -11,6 +11,8 @@ from ironsworn_tui.campaign import (
     Character,
     Foe,
     ProgressTrack,
+    World,
+    WorldTruth,
     create_character,
     new_campaign,
 )
@@ -145,10 +147,16 @@ def test_save_and_load_round_trip(tmp_path: Path):
     campaign.initiative = "foe"
     campaign.character.mark_debility("wounded")
     campaign.add_log("message", "I wade across the ford.")
+    campaign.world = World(
+        truths=[WorldTruth(name="Iron", text="Iron is precious.")],
+        region="Havens",
+        place="Cinderhome",
+        inciting_incident="The overseer is sick.",
+    )
     path = tmp_path / "campaigns" / "kira.json"
     campaign.save(path)
     assert Campaign.load(path) == campaign
-    assert '"schema_version": 4' in path.read_text()
+    assert '"schema_version": 5' in path.read_text()
     assert not path.with_suffix(".json.tmp").exists()
 
 
@@ -218,3 +226,14 @@ def test_ending_a_fight_restores_harm_and_foe_harm():
         0,
         None,
     )
+
+
+@pytest.mark.parametrize("rank", [Rank.TROUBLESOME, Rank.DANGEROUS, Rank.FORMIDABLE])
+def test_a_background_vow_is_extreme_or_epic(rank: Rank):
+    with pytest.raises(ValueError, match="extreme or epic"):
+        new_campaign(kira(), "Avenge my village", rank)
+
+
+def test_a_new_campaign_has_an_empty_world():
+    world = new_campaign(kira(), "Avenge my village", Rank.EXTREME).world
+    assert world == World()

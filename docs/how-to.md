@@ -75,6 +75,8 @@ Use this when you have no network, no sign-in, or want to pick every move yourse
    uv run ironsworn-tui play Blarg --no-model
    ```
 
+   For a new character, add it to `new` instead: `uv run ironsworn-tui new --no-model`. Play starts without the model once the walkthrough ends.
+
 2. Type what your character does and press Enter. The log shows your message, and the bar shows the full list of moves for where you are, with none selected.
 3. Pick a move. Press 1 to 9 for the first nine, Shift and a letter (`A`, `B`, and so on) for the moves after those, or the arrow keys for any move.
 4. If the bar shows "Stat: press" and a list of keys, press one of them: e, h, i, s, or w for edge, heart, iron, shadow, or wits.
@@ -84,14 +86,14 @@ You can also type `/moves` to open the full list without typing a message first.
 
 With the model, the app saves each message the model answered, with the move you made, as a test case in `suites/play-<context>.yaml`. Without the model, it saves none.
 
-## How to create a character with specific stats and assets
+## How to create a character from options
 
-Use this to start a campaign with the character you planned on paper.
+Use this to create a character in one command instead of in the walkthrough, for example in a script. The command saves the campaign and stops. It doesn't ask for world truths, an inciting incident, or an opening scene, and it doesn't start play.
 
 Before you start, choose:
 
 - A name. The campaign file gets the same name.
-- Your stats. Give 3 to one stat, 2 to two stats, and 1 to the other two.
+- Your stats. Arrange the bonuses 3, 2, 2, 1, and 1 across them: 3 for one stat, 2 for two, and 1 for the other two.
 - Three asset ids. Run `new` with `--assets help` to print every id by category. It creates nothing. In a campaign, `/asset list` shows them too.
 - For a companion, the ability it starts with, from 1 to 3.
 - Your background vow.
@@ -107,14 +109,14 @@ Steps:
 
 2. Add any of these options if you need them:
 
-   - `--rank` sets the background vow's rank. It's `epic` unless you give another rank: `troublesome`, `dangerous`, `formidable`, or `extreme`.
+   - `--rank extreme` makes the background vow extreme instead of epic. A background vow is always one of the two.
    - `--harm 1` means your character doesn't carry a deadly weapon. The default is 2.
    - `--bond` adds a background bond, like `--bond "My sister Ash"`. Repeat it for up to three bonds. Each one marks a tick on your bonds track.
 
 The command prints the path of the new campaign file, for example `campaigns/Blarg.json`. If something is wrong, it prints an error and creates nothing. For example:
 
-- "Error: Hawk starts with no ability marked; pick one from 1 to 3" means you left off the companion's ability, as in `hawk` instead of `hawk:2`.
-- "Error: give the five stats, edge, heart, iron, shadow, and wits, the values 3, 2, 2, 1, and 1" means the stats don't add up that way.
+- "Error: Hawk doesn't have a starting ability; choose one from 1 to 3" means you left off the companion's ability, as in `hawk` instead of `hawk:2`.
+- "Error: arrange the bonuses 3, 2, 2, 1, and 1 across the five stats" means the stats don't use those bonuses.
 - "Error: there's no asset 'wrigt'. Did you mean wright?" means an id is misspelled.
 - "Error: a campaign named Blarg already exists" means you made this character before. See [How to start a character over](#how-to-start-a-character-over).
 
@@ -122,11 +124,19 @@ You can't start with the first ability of Battle-scarred or Shadow-kin, because 
 
 To name a companion, see [How to look after a companion](#how-to-look-after-a-companion).
 
+Once the campaign is saved, play it with `uv run ironsworn-tui play Blarg`.
+
 ## How to start a character over
 
 Use this to throw away a campaign and create the character again, for example after a practice session.
 
-Run `new` with the same name and add `--overwrite`:
+Run `new` with `--overwrite`, and give the character the same name in the walkthrough:
+
+```sh
+uv run ironsworn-tui new --overwrite
+```
+
+To create the character from options instead, add `--overwrite` to the full command:
 
 ```sh
 uv run ironsworn-tui new Blarg --description "the Destructor" --stats edge=2,heart=2,iron=1,shadow=1,wits=3 --assets archer,hawk:2,wright --vow "Avenge my village" --overwrite
@@ -214,7 +224,7 @@ On a hit, the foe leaves the fight. When no foes are left, the panel no longer s
 
 To end a fight in another way, like when you flee, lose, or settle it with Battle, type `/adjust fight end`.
 
-When a foe has initiative, `/tide` arms Turn the Tide for your next move, and `/tide off` disarms it.
+When a foe has initiative, `/tide` readies Turn the Tide, so your next move steals initiative, and `/tide off` takes it back.
 
 ## How to undertake a journey
 
@@ -243,7 +253,7 @@ Use this when you want the oracle to answer a question or inspire a detail.
 To ask a yes or no question:
 
 1. Decide how likely a yes is: `almost certain`, `likely`, `50/50`, `unlikely`, or `small chance`.
-2. Type `/ask`, the likelihood, and, if you like, the question:
+2. Type `/ask`, the odds, and, if you like, the question:
 
    ```text
    /ask almost certain Do I know which castle I'm in?
@@ -263,7 +273,7 @@ To roll on a table:
 
 The log shows the table, your question, the roll, and the result, for example "Oracle (location): Where does the trail lead? 18: Ruin". `/oracle help` lists the tables in groups and says what each one gives.
 
-To let the app pick the table or the likelihood:
+To let the app pick the table or the odds:
 
 1. Type `/oracle` and the question, with no table:
 
@@ -271,7 +281,7 @@ To let the app pick the table or the likelihood:
    /oracle Do I know which castle I'm in?
    ```
 
-2. The suggestion bar shows the question and the oracles to roll. When the decision model is confident, it selects one: a likelihood, like `Ask unlikely`, for a yes or no question, or a table, like `location`.
+2. The suggestion bar shows the question and the oracles to roll. When the decision model is confident, it selects one: the odds, like `Ask unlikely`, for a yes or no question, or a table, like `location`.
 3. Press Enter to roll the selected one, or press another option's key first. When nothing is selected, pick one with its key.
 
 The log shows the answer with your question, as if you had typed `/ask` or `/oracle` with the table. Press Escape to leave the question without a roll.
@@ -313,7 +323,7 @@ To buy a new asset:
    /asset show owl
    ```
 
-2. Type `/asset buy` and the asset. For an asset that starts with no ability marked, like a companion, add the number of the ability to mark:
+2. Type `/asset buy` and the asset. For an asset that doesn't have a starting ability, like a companion, add the number of the ability you choose:
 
    ```text
    /asset buy owl 3
@@ -321,7 +331,7 @@ To buy a new asset:
 
 The log shows "Asset: bought Owl for 3 experience", and the asset appears under "Assets" in the panel.
 
-To mark another ability on an asset you own:
+To upgrade an asset you own, filling in another of its abilities:
 
 1. Type `/asset upgrade`, the asset, and the ability number:
 
@@ -329,9 +339,9 @@ To mark another ability on an asset you own:
    /asset upgrade owl 1
    ```
 
-The log shows "Asset: marked Owl's ability 1 for 2 experience".
+The log shows "Asset: upgraded Owl: filled in ability 1 for 2 experience".
 
-Battle-scarred and Shadow-kin change your stats when you mark them. Add each change as `+stat` or `-stat`. For example, Shadow-kin's first ability lowers heart by 1 and raises shadow by up to 2:
+Battle-scarred and Shadow-kin change your stats when you fill them in. Add each change as `+stat` or `-stat`. For example, Shadow-kin's first ability lowers heart by 1 and raises shadow by up to 2:
 
 ```text
 /asset buy shadow-kin 1 -heart +shadow +shadow
@@ -394,7 +404,7 @@ To have a companion take harm:
    /asset harm hawk 2
    ```
 
-2. The bar shows "Companion Endure Harm" and "Enter roll (2)". Press Enter. The companion loses the health before the roll.
+2. The bar shows "Companion Endure Harm" and "Enter roll (2)". Press Enter. The companion suffers -health before the roll.
 3. Pick any choices on the card, then press Enter.
 
 In `/asset` commands, you can use the companion's asset id, its asset name, or the name you gave it, like `hawk` or `Kestrel`.
@@ -481,7 +491,7 @@ You can't use `/adjust` while a roll card is open. Press Enter to apply the card
 
 The log also asks you to use `/adjust` in a few places. For example:
 
-- "Face a Setback" and "Out of Supply" notes ask you to trade an amount for health, spirit, supply, or momentum.
+- "Face a Setback" and "Out of Supply" notes ask you to exchange the -momentum or -supply you can't take for other losses, such as -health or -spirit.
 - The Fated note asks you to take +2 momentum or +1 spirit.
 - Lorekeeper's archive may ask you to mark corrupted with `/adjust corrupted mark`.
 

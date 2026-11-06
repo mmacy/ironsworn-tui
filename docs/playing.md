@@ -19,6 +19,21 @@ The app and you split the work this way:
 
 The app never decides fiction for you. It can't see the story, so it can't tell whether you're in a community, whether your foe is a beast, or whether the price you pay should be an injury. Where a rule depends on the fiction, the app asks you or leaves it to you.
 
+## Campaign setup
+
+The rulebook sets up a campaign in eight steps (rulebook page 202), and `ironsworn-tui new` with no options walks through them in order:
+
+1. **Create your character** (pages 33 to 47). You set your five stats by arranging the bonuses 3, 2, 2, 1, and 1 across them, and pick three assets. Most assets have a default ability filled in. If an asset doesn't have a starting ability, such as a companion, you choose one, and you give a companion a name. You make note of important equipment, and the app asks whether your character is armed with a deadly weapon, because that sets the harm they inflict (page 19).
+2. **Create your world** (pages 122 to 129). The rulebook offers 11 *truths* about the Ironlands, each with three options. You choose one and make it true for your version of the Ironlands, roll 1 to 100 for one, or leave the truth blank and fill it in as you play. Each option has a *quest starter*, a story idea. Then you choose where your story begins: a region, and a place in it.
+3. **Mark your background bonds** (page 195). You give yourself up to three bonds, to a community or an individual, and mark a tick on the bonds track for each. You don't make the Forge a Bond move for them, and you can hold one in reserve.
+4. **Write your background vow** (page 195). Your background vow represents a primary motivation or ultimate goal. You give it a rank of extreme or epic, and you don't make the Swear an Iron Vow move for it. The walkthrough lists the quest starters of the truths and region you chose as ideas.
+5. **Envision your inciting incident** (page 196). This is an imminent threat or compelling need that forces your character into action. The rulebook says to make it personal, make it a problem that won't go away on its own, and give it a ticking clock.
+6. **Set the scene** (page 198). You begin *in media res*, in the middle of things, as the inciting incident happens, or with the normal world, in a prologue. The scene you write becomes the scene text, which the decision model reads.
+7. **Swear an Iron Vow** (page 199). In media res, you swear a vow to face the inciting incident, troublesome, dangerous, or formidable. The app makes the move, and play opens on the roll card. After a prologue, you swear the vow with `/vow swear` when the incident comes.
+8. **Take your next steps** (page 200). This is play.
+
+`/world` lists the truths, where your story begins, and the inciting incident. You can change any of them in the fiction as you play. The app doesn't use them in any rule.
+
 ## The fiction-first loop
 
 Ironsworn is played *fiction first*. You describe what your character does. If the action is risky or uncertain, it triggers a *move*. A move is a rule with a trigger, like Gather Information's "When you search an area, ask questions, conduct an investigation, or follow a track" (rulebook page 62). Each move lists what to roll and what each result means. If an action isn't risky, no move triggers, and it happens.
@@ -165,7 +180,7 @@ The four progress moves are Fulfill Your Vow, Reach Your Destination, End the Fi
 
 A *vow* is a sworn quest, like "Avenge my village." Vows drive the game (rulebook pages 4 and 98 to 101).
 
-- **Swear:** When you swear a vow, you make the Swear an Iron Vow move. The app asks for the vow and its rank. You can type the oath as fiction, or use `/vow swear`. Your character's first vow, the *background vow*, comes from character creation.
+- **Swear:** When you swear a vow, you make the Swear an Iron Vow move. The app asks for the vow and its rank. You can type the oath as fiction, or use `/vow swear`. Your character's long-term vow, the *background vow*, comes from character creation, and you don't roll for it.
 - **Mark progress:** When you overcome an important obstacle in your quest, you Reach a Milestone and mark progress. The app can't tell when that happens, so you decide and use `/vow mark`.
 - **Fulfill:** When you think the quest is done, you make Fulfill Your Vow. On a strong hit, the app marks experience by the vow's rank and clears the vow. On a weak hit, it marks one less. On a miss, you choose to recommit or give up the vow.
 - **Forsake:** If you give up a vow, you Forsake Your Vow. The app clears the vow and makes you Endure Stress equal to its rank.
@@ -214,7 +229,7 @@ Draw the Circle starts a duel (rulebook page 73). On a strong hit, you can choos
 
 A *bond* is a close tie to a person or community (rulebook page 36). When you Forge a Bond, the app marks one tick on your bonds track. Some moves add +1 when you share a bond with someone. The app can't tell whether you do. For Sojourn, the app asks: answer `yes` in the Bond field, and the app adds the +1 and lets you choose one more recovery option on a hit (rulebook page 71). Don't also add the +1 yourself. For other moves, like Compel or Draw the Circle, add the +1 yourself with `+` before you roll. When your character retires, you roll Write Your Epilogue against your bonds track.
 
-The rulebook lets you start with up to three background bonds. Name them with `--bond` when you create your character, and the app marks a tick for each. To add a bond later, use `/adjust bonds`.
+The rulebook lets you start with up to three background bonds. Name them in the walkthrough, or with `--bond` when you create a character from options, and the app marks a tick for each. To add a bond later, use `/adjust bonds`.
 
 ### Aid Your Ally
 
@@ -254,7 +269,7 @@ The rules say to resolve these moves before anything else happens, so the app bl
 
 ### When the fiction means harm
 
-Some harm doesn't come from a move result the app can read. Pay the Price may decide your character is hurt, or a foe may strike while you act. The app can't judge the fiction, so you tell it: `/endure harm 2` owes Endure Harm for 2 harm, and `/endure stress 1` owes Endure Stress. In a fight, `/endure harm` with no amount uses the targeted foe's harm. You then roll the move as usual, with its chance to shake off the harm.
+Some harm doesn't come from a move result the app can read. Pay the Price may decide your character is hurt, or a foe may strike while you act. The app can't judge the fiction, so you tell it: `/endure harm 2` calls for Endure Harm for 2 harm, and `/endure stress 1` calls for Endure Stress. In a fight, `/endure harm` with no amount uses the targeted foe's harm. You then roll the move as usual, with its chance to shake off the harm.
 
 ## Oracles
 
@@ -269,7 +284,7 @@ Ask the Oracle has four parts:
 
 The oracle gives an answer. You decide what it means in the fiction.
 
-The likelihood is yours to choose, because it depends on the story so far. If you type only a question after `/oracle`, the decision model suggests a likelihood for a yes or no question, or a table for anything else, and you confirm it or pick another. In a test of 56 questions, the model told yes or no questions from table questions every time, and picked a table that fit 30 of 33 times. Its likelihoods were rougher: 14 of 21 matched the expected one, and 19 of 21 were the expected one or the one next to it. So read a suggested likelihood as a starting point. When the scene points to "likely" and the app suggests "50/50," pick "likely."
+The odds are yours to choose, because they depend on the story so far. If you type only a question after `/oracle`, the decision model suggests the odds for a yes or no question, or a table for anything else, and you confirm it or pick another. In a test of 56 questions, the model told yes or no questions from table questions every time, and picked a table that fit 30 of 33 times. Its odds were rougher: 14 of 21 matched the expected odds, and 19 of 21 were the expected odds or the ones next to them. So read suggested odds as a starting point. When the scene points to "likely" and the app suggests "50/50," pick "likely."
 
 ## Assets
 

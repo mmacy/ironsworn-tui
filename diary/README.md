@@ -19,3 +19,4 @@
 | [15](15-architecture-blarg-and-jevtester.md) | The architecture doc, Blarg, and jevtester going public | 25 October 2026, 07:32 to 09:09 PDT | Claude Opus 5.5 |
 | [16](16-fixing-the-reported-bugs.md) | Fixing the reported bugs | 25 October 2026, 09:10 to 09:57 PDT | Claude Opus 5.5 |
 | [17](17-a-fuller-log-completion-and-oracle-routing.md) | A fuller log, completion, and oracle routing | 25 October 2026, 10:16 to 11:30 PDT | Claude Opus 5.5 |
+| [18](18-the-character-creation-walkthrough.md) | The character creation walkthrough | 31 October 2026, 17:51 to 19:03 PDT, and 1 November 2026, 06:00 to 06:15 PST | Claude Opus 5.5 |

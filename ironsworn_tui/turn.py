@@ -227,26 +227,26 @@ FOLLOW_UP_NEXT = {
     ),
     "forsake_your_vow": "Forsake Your Vow. Press Enter to clear the vow, then Endure Stress.",
     "endure_harm": (
-        "Endure Harm ({amount}). {who} loses {amount} health, then rolls to shake it off. "
-        "Press Enter to roll."
+        "Endure Harm ({amount}). {who} suffers -{amount} health, then rolls +health or +iron, "
+        "whichever is higher. Press Enter to roll."
     ),
     "endure_stress": (
-        "Endure Stress ({amount}). {who} loses {amount} spirit, then rolls to hold on. "
-        "Press Enter to roll."
+        "Endure Stress ({amount}). {who} suffers -{amount} spirit, then rolls +spirit or "
+        "+heart, whichever is higher. Press Enter to roll."
     ),
     "companion_endure_harm": (
-        "Companion Endure Harm ({amount}). The companion loses {amount} health, then you roll "
-        "for it. Press Enter to roll."
+        "Companion Endure Harm ({amount}). The companion suffers -{amount} health, then you "
+        "roll +heart or +its health, whichever is higher. Press Enter to roll."
     ),
     "face_death": (
         "Face Death. {who} is at the brink of death, and rolls +heart to see what happens. "
         "Press Enter to roll."
     ),
     "face_desolation": (
-        "Face Desolation. {who} is at the brink of despair, and rolls +heart to see what "
+        "Face Desolation. {who} is at the brink of desolation, and rolls +heart to see what "
         "happens. Press Enter to roll."
     ),
-    "scrape_by": "Scrape By. Supply ran out, so roll +wits to get by. Press Enter to roll.",
+    "scrape_by": "Scrape By. Supply is reduced to 0, so roll +wits. Press Enter to roll.",
 }
 END_FIGHT_NEXT = "Next: you can End the Fight now. Press f to roll for it, or Esc to keep fighting."
 PRICE_NEXT = (
@@ -492,14 +492,14 @@ class TurnEngine:
 
     def _log_next(self, outcome_text: str = "") -> None:
         """Log what the player does next, when the result calls for something the app doesn't
-        do: imagining what happens, an owed follow-up, or the End the Fight offer."""
+        do: envisioning what happens, an owed follow-up, or the End the Fight offer."""
         campaign = self.campaign
         lines: list[str] = []
         envision = _ENVISION.search(outcome_text)
         oracle = "Ask the Oracle" in outcome_text
         if envision is not None:
             then = f", or {ORACLE_HINT}" if oracle else "."
-            lines.append(f"Next: imagine {envision.group(1).strip()} and type it{then}")
+            lines.append(f"Next: envision {envision.group(1).strip()} and type it{then}")
         elif oracle:
             lines.append(f"Next: decide what happens and type it, or {ORACLE_HINT}")
         if campaign.follow_ups:
@@ -718,7 +718,7 @@ class TurnEngine:
         elif option in ORACLES:
             self.roll_table(option, question)
         else:
-            raise ValueError(f"{option!r} is neither a likelihood nor an oracle table")
+            raise ValueError(f"{option!r} is neither the odds nor an oracle table")
         decision, self._oracle_answering = self._oracle_answering, None
         if decision is None or self.cases is None:
             return
@@ -813,13 +813,13 @@ class TurnEngine:
         if campaign.tide_used:
             raise TurnError("Turn the Tide was already used in this fight")
         campaign.tide_armed = True
-        campaign.add_log("command", "Turn the Tide is armed")
+        campaign.add_log("command", "Turn the Tide is ready: your next move steals initiative")
         self.save()
 
     def disarm_tide(self) -> None:
         """Disarm Turn the Tide without using it."""
         self.campaign.tide_armed = False
-        self.campaign.add_log("command", "Turn the Tide is disarmed")
+        self.campaign.add_log("command", "Turn the Tide is off")
         self.save()
 
     def boosts_for(self, option: str) -> tuple[AvailableBoost, ...]:
@@ -873,7 +873,7 @@ class TurnEngine:
         if needed is not None and campaign.character.asset_or_none(needed) is None:
             return f"{label} needs {self.data.asset(needed).name}"
         if any(not owned.marked[number - 1] for number in boost.needs):
-            return f"{label} needs ability {', '.join(map(str, boost.needs))} marked"
+            return f"{label} needs ability {', '.join(map(str, boost.needs))} filled in"
         if boost.limit == "fight" and _use_key(ref) in campaign.fight_uses:
             return f"{label} was already used once per fight"
         if boost.limit == "one_time" and ref.ability in owned.spent:
@@ -939,7 +939,7 @@ class TurnEngine:
                 raise TurnError(f"{character.name} doesn't own {ref.asset}")
             asset = self.data.asset(ref.asset)
             if not 1 <= ref.ability <= len(owned.marked) or not owned.marked[ref.ability - 1]:
-                raise TurnError(f"{asset.name}'s ability {ref.ability} isn't marked")
+                raise TurnError(f"{asset.name}'s ability {ref.ability} isn't filled in")
             boosts = entry_boosts(ABILITIES[(ref.asset, ref.ability)])
             if not 0 <= ref.variant < len(boosts):
                 raise TurnError(f"{asset.name} {ref.ability} has no variant {ref.variant + 1}")
@@ -1780,7 +1780,8 @@ class TurnEngine:
         if excess > 0 and "unprepared" in character.debilities:
             self.campaign.add_log(
                 "note",
-                f"Out of Supply: exchange {excess} supply for health, spirit, or momentum.",
+                f"Out of Supply: exchange -{excess} supply for any combination of -health, "
+                "-spirit, or -momentum.",
             )
 
     def _mark(self, track: str, times: int, vow: ProgressTrack | None) -> None:

@@ -45,7 +45,7 @@ def test_gather_information_strong_hit_keeps_the_whole_turn(tmp_path: Path):
         ("roll", "Gather Information +wits: 6 + 3 + 0 = 9 vs 3, 4, strong hit"),
         ("outcome", STRONG),
         ("change", "Momentum +2 (now 4)"),
-        ("next", f"Next: imagine what you learn and type it, or {ORACLE}"),
+        ("next", f"Next: envision what you learn and type it, or {ORACLE}"),
     ]
 
 
@@ -249,7 +249,7 @@ def test_the_log_widget_shows_the_whole_turn(tmp_path: Path):
             assert "Gather Information is the move for when you search an area" in flat
             assert "discover something helpful and specific" in flat
             assert "Momentum +2 (now 4)" in flat
-            assert "Next: imagine what you learn" in flat
+            assert "Next: envision what you learn" in flat
 
     asyncio.run(play())
 

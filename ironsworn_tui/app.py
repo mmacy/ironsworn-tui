@@ -68,13 +68,14 @@ HELP_STYLE = "blue"
 LOG_RESTORED = 200
 GHOST = Style(dim=True)
 GHOST_SELECTED = Style(dim=True, reverse=True)
+# Each field's placeholder: an example value, or the answers a field takes.
 FIELD_HINTS = {
-    "vow": "The vow",
+    "vow": "Heal the overseer",
     "rank": "troublesome, dangerous, formidable, extreme, or epic",
-    "foes": "A name and a rank, such as Wolf dangerous",
-    "destination": "The destination",
+    "foes": "Raider chief dangerous, Archer troublesome",
+    "destination": "The Deep Wilds",
     "treat": "yourself, someone else, or a companion",
-    "amount": "How much to spend",
+    "amount": "1",
     "bond": "yes or no",
 }
 # The suggestion bar shows an option's probability only from this value up.
@@ -159,7 +160,7 @@ class CharacterPanel(Static):
             who = c.name if campaign.initiative == "character" else "foe"
             lines += ["", "[b]Fight[/b]", f"Initiative: {escape(who)}"]
             if campaign.tide_armed:
-                lines.append("Turn the Tide armed")
+                lines.append("Turn the Tide ready")
             target = campaign.target_foe()
             for foe in campaign.foes:
                 mark = "> " if foe is target else "  "
@@ -483,6 +484,9 @@ class IronswornApp(App[None]):
         self.engine = engine
         self.bar_state = BarState()
         self._ask_id = 0
+        # A new campaign's log holds only its setup, such as its bonds and scene, so it gets
+        # a welcome once no roll card waits.
+        self._welcome = not any(entry.kind == "message" for entry in engine.campaign.log)
 
     def compose(self) -> ComposeResult:
         """Lay out the four parts."""
@@ -504,12 +508,6 @@ class IronswornApp(App[None]):
         campaign = self.engine.campaign
         for entry in campaign.log[-LOG_RESTORED:]:
             self.write_log(entry.kind, entry.text)
-        if not campaign.log:
-            name = campaign.character.name
-            self.note(
-                f"Welcome. Type what {name} does, such as I search the burned village for "
-                "tracks, and press Enter. Type /help to learn how to play."
-            )
         self.after_turn()
 
     @property
@@ -940,6 +938,12 @@ class IronswornApp(App[None]):
         if engine.card is not None:
             self.show_card(engine.card)
             return
+        if self._welcome:
+            self._welcome = False
+            self.note(
+                f"Welcome. Type what {engine.campaign.character.name} does, such as I search "
+                "the burned village for tracks, and press Enter. Type /help to learn how to play."
+            )
         if engine.follow_ups:
             self.bar_state = BarState(mode="follow_up")
         elif engine.campaign.end_fight_offered:

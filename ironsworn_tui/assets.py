@@ -123,7 +123,7 @@ def upgrade(
     if not 1 <= ability <= len(target.marked):
         raise AssetError(f"{asset.name}'s abilities are numbered 1 to 3")
     if target.marked[ability - 1]:
-        raise AssetError(f"{asset.name}'s ability {ability} is already marked")
+        raise AssetError(f"{asset.name}'s ability {ability} is already filled in")
     spent = _spend(character, cost(character, asset, UPGRADE_COST))
     _check_changes(character, asset, ability, changes or {})
     character.experience -= spent

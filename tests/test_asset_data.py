@@ -38,7 +38,7 @@ def test_companion_has_a_health_meter_and_a_name():
     hawk = datasworn().asset("hawk")
     assert hawk.meters["health"].max == 3
     assert hawk.meters["health"].value == 3
-    assert hawk.texts == ("name",)
+    assert hawk.texts == {"name": "name"}
     assert not any(ability.enabled for ability in hawk.abilities)
 
 
@@ -49,7 +49,7 @@ def test_meters_that_start_empty():
 
 def test_select_fields():
     devotant = datasworn().asset("devotant")
-    assert devotant.texts == ("gods_name",)
+    assert devotant.texts == {"gods_name": "god's name"}
     assert devotant.selects["stat"].choices["wits"].stat == "wits"
     masked = datasworn().asset("masked")
     assert masked.selects["material"].choices["ghostwood"].stat == "shadow"

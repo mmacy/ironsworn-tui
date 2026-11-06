@@ -16,12 +16,13 @@ from ironsworn_tui.rules.momentum import MomentumBounds, adjust_momentum, moment
 from ironsworn_tui.rules.progress import TICKS_PER_BOX, TRACK_TICKS, ProgressRoll, Rank
 from ironsworn_tui.rules.suffer import Endurance
 
-SCHEMA_VERSION = 4
+SCHEMA_VERSION = 5
 METER_MAX = 5
 STARTING_STATS = (3, 2, 2, 1, 1)
 STARTING_ASSETS = 3
 STARTING_MOMENTUM = 2
 MAX_BACKGROUND_BONDS = 3
+BACKGROUND_RANKS = (Rank.EXTREME, Rank.EPIC)
 
 type Meter = Literal["health", "spirit", "supply"]
 type Debility = Literal[
@@ -160,10 +161,10 @@ def new_owned(data: Datasworn, asset_id: str, ability: int | None) -> OwnedAsset
         if not 1 <= ability <= len(marked):
             raise AssetError(f"{asset.name}'s abilities are numbered 1 to 3")
         if any(marked):
-            raise AssetError(f"{asset.name} already starts with an ability marked")
+            raise AssetError(f"{asset.name} already has a default ability")
         marked[ability - 1] = True
     elif not any(marked):
-        raise AssetError(f"{asset.name} starts with no ability marked; pick one from 1 to 3")
+        raise AssetError(f"{asset.name} doesn't have a starting ability; choose one from 1 to 3")
     return OwnedAsset(
         id=asset_id,
         marked=marked,
@@ -175,8 +176,8 @@ def new_owned(data: Datasworn, asset_id: str, ability: int | None) -> OwnedAsset
 def setback_note(setback: int) -> str:
     """Return the note for a momentum loss past -6, which the player takes with Face a Setback."""
     return (
-        f"Face a Setback: exchange {setback} momentum for health, spirit, supply, or progress "
-        "on a track."
+        f"Face a Setback: exchange -{setback} momentum for any combination of -health, -spirit, "
+        "or -supply, or clear progress on a quest, journey, or fight."
     )
 
 
@@ -434,6 +435,35 @@ class LogEntry(_Model):
     text: str
 
 
+class WorldTruth(_Model):
+    """A truth about the world the player chose, such as what Iron means to the people.
+
+    Attributes:
+        name: The truth's name, such as `Iron`.
+        text: What it says.
+    """
+
+    name: str
+    text: str
+
+
+class World(_Model):
+    """What the player set up about the world before play (rulebook pages 194 and 196).
+
+    Attributes:
+        truths: The world truths the player chose, in the rulebook's order. A truth left open
+            isn't here.
+        region: The region of the Ironlands where the story begins, or None.
+        place: The place where the story begins, such as a village's name.
+        inciting_incident: The problem that drives the character into action.
+    """
+
+    truths: list[WorldTruth] = Field(default_factory=list[WorldTruth])
+    region: str | None = None
+    place: str = ""
+    inciting_incident: str = ""
+
+
 class Campaign(_Model):
     """Everything saved about one campaign.
 
@@ -459,12 +489,13 @@ class Campaign(_Model):
             Circle's "Hold no iron" boast set it to 1. None when no boast changed it.
         pending_card: The roll card waiting for the player's choices, if any.
         background_vow: The name of the background vow, which Fated counts.
+        world: The world truths, where the story begins, and the inciting incident.
         lasting: The lasting effects, such as a talisman, in the order they started.
         explained: The moves whose purpose the log has explained, so each is explained once.
         log: The turn log.
     """
 
-    schema_version: Literal[4] = SCHEMA_VERSION
+    schema_version: Literal[5] = SCHEMA_VERSION
     character: Character
     vows: list[ProgressTrack] = Field(default_factory=list[ProgressTrack])
     bonds: int = Field(default=0, ge=0, le=TRACK_TICKS)
@@ -483,6 +514,7 @@ class Campaign(_Model):
     harm_after_fight: int | None = Field(default=None, ge=1, le=2)
     pending_card: SavedCard | None = None
     background_vow: str | None = None
+    world: World = Field(default_factory=World)
     lasting: list[Lasting] = Field(default_factory=list[Lasting])
     explained: list[str] = Field(default_factory=list[str])
     log: list[LogEntry] = Field(default_factory=list[LogEntry])
@@ -614,7 +646,7 @@ def _asset_problems(character: Character) -> list[str]:
         if not any(owned.marked) or any(
             e and not m for e, m in zip(enabled, owned.marked, strict=True)
         ):
-            problems.append(f"{owned.id} is missing a marked ability")
+            problems.append(f"{owned.id} has no ability filled in")
         if asset.counts_as_debility and not owned.debility:
             problems.append(f"{owned.id} must count as a debility")
         if owned.fields.get("equipped") == "geared_for_war" and (
@@ -650,9 +682,9 @@ def create_character(
         data: The Datasworn data, to check the asset ids.
         name: The character's name.
         description: A few words about them, such as "a hunter".
-        stats: The five stats, assigned from 3, 2, 2, 1, 1.
-        assets: Three asset ids. An asset that starts with no ability marked, such as a
-            companion, names the ability to mark after a colon, such as `hawk:2`.
+        stats: The five stats, with the bonuses 3, 2, 2, 1, 1 arranged across them.
+        assets: Three asset ids. An asset that doesn't have a starting ability, such as a
+            companion, names the one to choose after a colon, such as `hawk:2`.
         harm: 2 when the character carries a deadly weapon, 1 when not.
 
     Returns:
@@ -668,8 +700,8 @@ def create_character(
     ):
         given = ", ".join(f"{stat}={value}" for stat, value in stats.items())
         raise ValueError(
-            "give the five stats, edge, heart, iron, shadow, and wits, the values 3, 2, 2, 1, "
-            f"and 1 in any order, got {given}"
+            "arrange the bonuses 3, 2, 2, 1, and 1 across the five stats, edge, heart, iron, "
+            f"shadow, and wits, in any order, got {given}"
         )
     ids = [spec.partition(":")[0] for spec in assets]
     for asset_id in ids:
@@ -737,13 +769,15 @@ def new_campaign(
     Args:
         character: The character.
         background_vow: The background vow's name.
-        rank: The background vow's rank.
+        rank: The background vow's rank, extreme or epic (rulebook page 195).
         bonds: Up to three people or communities the character shares a bond with. Each
             marks one tick on the bonds track (rulebook page 36).
 
     Raises:
-        ValueError: If there are more than three bonds.
+        ValueError: If the rank isn't extreme or epic, or there are more than three bonds.
     """
+    if rank not in BACKGROUND_RANKS:
+        raise ValueError("a background vow is extreme or epic")
     if len(bonds) > MAX_BACKGROUND_BONDS:
         raise ValueError(f"a character starts with up to {MAX_BACKGROUND_BONDS} bonds")
     campaign = Campaign(

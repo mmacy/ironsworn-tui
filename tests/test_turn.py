@@ -472,7 +472,7 @@ def test_supply_loss_at_zero_notes_the_exchange(tmp_path: Path):
     dice.load(3, 4, 6)
     turn.make_move("face_danger", stat="edge")
     turn.resolve([[3]])
-    assert "exchange 1 supply" in turn.campaign.log[-1].text
+    assert "exchange -1 supply" in turn.campaign.log[-1].text
 
 
 def test_heal_on_someone_else_leaves_your_health(tmp_path: Path):
